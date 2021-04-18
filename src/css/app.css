@@ -1,0 +1,53 @@
+:root {
+    font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
+}
+.board {
+    display: inline-grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: flex-start;
+    grid-auto-flow: row dense;
+}
+.block {
+    display: table;
+    border: 3px solid black;
+}
+.block .row {
+    display: table-row;
+}
+.cell {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+    border: 2px solid grey;
+    user-select: none;
+    position: relative;
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.5rem;
+}
+.cell .details {
+    opacity: 0.5;
+    color: lightslategray;
+    transition: opacity .5s ease;
+    position: absolute;
+    bottom: 0;
+    left:0;
+    white-space: nowrap;
+    font-size: .75em;
+}
+.cell:hover .details {
+    opacity: 1;
+}
+.cell .value {
+    font-weight: bold;
+    color: navy;
+}
+.app-view {
+    display: flex;
+    flex-wrap: wrap;
+}
+.app-create {
+    display: flex;
+    padding: 1rem;
+    flex-basis: 40%;
+}
