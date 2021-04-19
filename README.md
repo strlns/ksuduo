@@ -1,7 +1,7 @@
 # KSUDUO
 ## Simple Sudoku Generator
 
-######author: Moritz Rehbach
+https://strlns.github.io/ksuduo/index.html
 
 This is a toy project so I can get a basic understanding of:
 
@@ -48,3 +48,6 @@ Still, suggestions and tips are very welcome. :)
 🐻🔥😊🌿🏳️‍🌈🧑🏻‍🚀😍🙇🧙‍♀️ 🎰 🎱 🎲 🔮 ✨
 
 If you ask me, these are enough emojis to earn me a GitHub star. ;)
+
+
+_author: Moritz Rehbach_
