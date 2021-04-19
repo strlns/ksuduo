@@ -1,5 +1,5 @@
 import {BOARD_SIZE, BOARD_SIZE_NUM_CELLS, CellIndex, Sudoku} from '../model/Sudoku';
-import {CellValue} from "../model/Cell";
+import {CellValue} from "../model/CellData";
 
 //Probably must be increased. Im afraid this app will be too dumb to solve HARD sudokus.
 export const MINIMUM_CLUES = 17;
@@ -31,7 +31,7 @@ const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<number[]>): 
     if (!generatorResult.done) {
         const coords = generatorResult.value;
         // @ts-ignore
-        sudoku.setValue(coords[0], coords[1], CellValue.EMPTY);
+        sudoku.setValue(coords[0], coords[1], CellValue.EMPTY, false);
     }
 }
 

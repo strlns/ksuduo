@@ -23,7 +23,8 @@ const NumCluesSlider = withStyles({
 
 const GenerateButton = withStyles({
     root: {
-        alignSelf: 'center'
+        marginTop: '2rem',
+        width: '100%'
     }
 })(Button)
 
@@ -36,7 +37,7 @@ export default (props: createNewProps) => <div className={"app-create"}>
                             step={1}
                             valueLabelDisplay={"on"}
                             min={MINIMUM_CLUES}
-                            max={Math.floor(BOARD_SIZE_NUM_CELLS / 2)}
+                            max={Math.floor(BOARD_SIZE_NUM_CELLS / 2 + 8)}
                             aria-labelledby="num-clues"
                             onChange={props.setNumberOfClues}
             />

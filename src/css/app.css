@@ -19,7 +19,6 @@
     vertical-align: middle;
     text-align: center;
     border: 2px solid grey;
-    user-select: none;
     position: relative;
     width: 3.5rem;
     height: 3.5rem;
@@ -39,8 +38,25 @@
     opacity: 1;
 }
 .cell .value {
-    font-weight: bold;
     color: navy;
+    user-select: none;
+}
+.cell.fixed {
+    background-color: #cfcfcf;
+}
+.cell.fixed .value {
+    color: black;
+    font-weight: bold;
+    pointer-events: none;
+    cursor: none;
+}
+.cell.invalid {
+    background-color: #ff2f2f;
+}
+.cell.invalid.fixed {
+    cursor: not-allowed;
+    background-color: #f0bf9f;
+    box-shadow: inset 0 0 0 4px #ff2f2f;
 }
 .app-view {
     display: flex;
@@ -49,5 +65,5 @@
 .app-create {
     display: flex;
     padding: 1rem;
-    flex-basis: 40%;
+    align-items: flex-end;
 }
