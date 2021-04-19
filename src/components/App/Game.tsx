@@ -2,7 +2,6 @@ import * as React from "react";
 import Board from "../Board/Board";
 import '../../css/app.css';
 import CreateNew, {DEFAULT_NUMBER_OF_CLUES} from "../Controls/CreateNew";
-import {Sudoku} from "../../model/Sudoku";
 import generateSudoku, {MINIMUM_CLUES} from "../../generator/generator";
 import {ChangeEvent, useState} from "react";
 import {Typography} from "@material-ui/core";
@@ -36,12 +35,13 @@ export const Game = () => {
     }
 
     return <div className={"app-main"}>
+        <h1>Ksuduo</h1>
+        <h2>Sudoku Toy Project</h2>
         <div className={"app-view"}>
-            <Board sudoku={state.sudoku} />
+            <Board sudoku={state.sudoku}/>
             <CreateNew setNumberOfClues={updateNumberOfClues}
                        submit={newSudoku}/>
         </div>
-
         {isVeryHard() ?
             <HardWarning/> : null
         }

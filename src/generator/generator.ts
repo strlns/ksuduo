@@ -1,5 +1,6 @@
-import {BOARD_SIZE, BOARD_SIZE_NUM_CELLS, CellIndex, Sudoku} from '../model/Sudoku';
-import {CellValue} from "../model/CellData";
+import {BOARD_WIDTH, BOARD_SIZE, CellIndex, Sudoku} from '../model/Sudoku';
+import {CellData, CellValue} from "../model/CellData";
+import {first} from "lodash-es";
 
 //Probably must be increased. Im afraid this app will be too dumb to solve HARD sudokus.
 export const MINIMUM_CLUES = 17;
@@ -11,12 +12,17 @@ export default function generateSudoku(numberOfClues: number): Sudoku {
     let numDeletedCells = 0;
     board.initializeEmptyBoard();
     board.fillWithRandomCompleteSolution();
-    while (BOARD_SIZE_NUM_CELLS - numDeletedCells > numberOfClues) {
+    while (BOARD_SIZE - numDeletedCells > numberOfClues) {
         clearRandomCell(board, coordsGenerator);
         numDeletedCells++;
     }
+    const firstEmptyCell = board.getFirstEmptyCell();
+    if (firstEmptyCell !== undefined) {
+        firstEmptyCell.isFirstEmptyCell = true;
+    }
     return board;
 }
+
 
 const sanitizeNumberOfClues = (numberOfClues: number): number => {
     const numClues = Math.floor(numberOfClues);
@@ -41,7 +47,7 @@ const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<number[]>): 
  * @param max
  * @param min
  */
-function* randomCoordinatesGenerator(max: number = BOARD_SIZE, min: number = 0): Generator<number[]> {
+function* randomCoordinatesGenerator(max: number = BOARD_WIDTH, min: number = 0): Generator<number[]> {
     max = Math.floor(max);
     min = Math.floor(min);
     if (max <= min) throw new Error();

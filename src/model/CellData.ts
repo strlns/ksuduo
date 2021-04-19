@@ -35,12 +35,14 @@ export class CellData {
     public y: CellIndex;
     public isInitial: boolean;
     public isValid: boolean;
+    public isFirstEmptyCell: boolean;
 
     constructor(value: CellValue, x: CellIndex, y: CellIndex, isInitial = false) {
         this.value = value;
         this.x = x;
         this.y = y;
         this.isInitial = isInitial;
-        this.isValid = true;
+        this.isValid = true
+        this.isFirstEmptyCell = false;
     }
 }

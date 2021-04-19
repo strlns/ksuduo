@@ -2,7 +2,7 @@ import * as React from "react"
 import {Button, Slider} from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import {MINIMUM_CLUES} from "../../generator/generator";
-import {BOARD_SIZE_NUM_CELLS} from "../../model/Sudoku";
+import {BOARD_SIZE} from "../../model/Sudoku";
 import {withStyles} from "@material-ui/styles";
 import {ChangeEvent} from "react";
 
@@ -37,7 +37,7 @@ export default (props: createNewProps) => <div className={"app-create"}>
                             step={1}
                             valueLabelDisplay={"on"}
                             min={MINIMUM_CLUES}
-                            max={Math.floor(BOARD_SIZE_NUM_CELLS / 2 + 8)}
+                            max={Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 + 8))}
                             aria-labelledby="num-clues"
                             onChange={props.setNumberOfClues}
             />

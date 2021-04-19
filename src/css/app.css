@@ -1,6 +1,20 @@
 :root {
     font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
 }
+main {
+    padding-bottom: 1.5em;
+}
+footer {
+    position: fixed;
+    bottom:0;
+    text-align:right;
+    right:0;
+    font-size: .75rem;
+    background-color: navy;
+    padding: .5em;
+    border-radius: .75rem 0 0 0;
+    color: #cfcfcf;
+}
 .board {
     display: inline-grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -15,6 +29,7 @@
     display: table-row;
 }
 .cell {
+    color: navy;
     display: table-cell;
     vertical-align: middle;
     text-align: center;
@@ -24,7 +39,10 @@
     height: 3.5rem;
     font-size: 1.5rem;
 }
-.cell .details {
+.cell:focus-within {
+    border-color: blue;
+}
+/*.cell .details {
     opacity: 0.5;
     color: lightslategray;
     transition: opacity .5s ease;
@@ -36,9 +54,9 @@
 }
 .cell:hover .details {
     opacity: 1;
-}
+}*/
 .cell .value {
-    color: navy;
+    color: inherit;
     user-select: none;
 }
 .cell.fixed {
@@ -52,15 +70,42 @@
 }
 .cell.invalid {
     background-color: #ff2f2f;
+    color: black;
+    font-style: italic;
 }
 .cell.invalid.fixed {
     cursor: not-allowed;
     background-color: #f0bf9f;
     box-shadow: inset 0 0 0 4px #ff2f2f;
 }
+h1, h2 {
+    text-align: center;
+}
+.app-main {
+    margin: auto;
+    width: 100%;
+    padding: 2rem;
+}
+@media (min-width: 1200px) {
+    .app-main {
+        max-width: 1024px;
+    }
+}
+@media (min-width: 1920px) {
+    .app-main {
+        max-width: 1600px;
+    }
+}
+@media (min-width: 1920px) {
+    .app-main {
+        max-width: 75vw;
+    }
+}
 .app-view {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
 }
 .app-create {
     display: flex;

@@ -1,7 +1,7 @@
 import {CellData, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
-import {cloneDeep, cloneDeepWith} from "lodash-es";
+import {cloneDeep} from "lodash-es";
 
 export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -9,27 +9,34 @@ export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export const CELL_INDICES =
     Array(9).fill(0).map((v, i) => i as CellIndex);
 
-export const BOARD_SIZE = CELL_INDICES.length;
-export const BOARD_SIZE_NUM_CELLS = Math.pow(BOARD_SIZE, 2);
-
-export const BLOCK_SIZE = 3;
+export const BOARD_WIDTH = CELL_INDICES.length;
+export const BOARD_SIZE = Math.pow(BOARD_WIDTH, 2);
+export const BLOCK_WIDTH = 3;
 
 export class Sudoku {
 
     private rows: CellData[][] = [];
+    /**
+     * shortcut to make the constant calls to {@link isComplete} less wasteful
+     */
+    private numberOfFilledCells = 0;
 
     constructor() {
         this.initializeEmptyBoard();
     }
 
+    public getNumberOfFilledCells(): number {
+        return this.numberOfFilledCells;
+    }
+
     public initializeEmptyBoard() {
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            this.rows[y] = Array(BOARD_SIZE).fill(null);
+        for (let y = 0; y < BOARD_WIDTH; y++) {
+            this.rows[y] = Array(BOARD_WIDTH).fill(null);
             for (let x = 0; x < this.rows[y].length; x++) {
                 this.rows[y][x] = new CellData(CellValue.EMPTY, x as CellIndex, y as CellIndex);
             }
-
         }
+        this.numberOfFilledCells = 0;
     }
 
     public fillWithRandomCompleteSolution() {
@@ -54,18 +61,29 @@ export class Sudoku {
         }
     }
 
+    public getCell(x: CellIndex, y: CellIndex) {
+        return this.rows[y][x];
+    }
+
     public setValue(i: CellIndex, j: CellIndex, value: CellValue, fixed = false) {
         const cell = cloneDeep(this.rows[i][j]);
-        cell.value = value;
+        const wasFilled = cell.value !== CellValue.EMPTY;
         cell.isInitial = fixed;
+        cell.value = value;
         this.rows[i][j] = cell;
+        if (wasFilled && value === CellValue.EMPTY) {
+            this.numberOfFilledCells--;
+        }
+        else if (!wasFilled && value !== CellValue.EMPTY) {
+            this.numberOfFilledCells++;
+        }
     }
 
     public getRows(): readonly CellData[][] {
         return Object.freeze(this.rows);
     }
 
-    public getValuesFlat(): readonly CellValue[] {
+    public getFlatValues(): readonly CellValue[] {
         const res: CellValue[] = [];
         this.rows.forEach(row => {
             res.push(...row.map(cell => cell.value));
@@ -73,24 +91,30 @@ export class Sudoku {
         return res;
     }
 
+    public getFlatCells(): readonly CellData[] {
+        return this.rows.reduce((prev, curr) => {
+            return prev.concat(curr);
+        }, []);
+    }
+
     public getBlocks(): BlockData[] {
         const blocks: BlockData[] = [];
         //fill the blocks array
-        const numberOfBlocks = BOARD_SIZE_NUM_CELLS / Math.pow(BLOCK_SIZE, 2); //This must result in an int (field is a square).
+        const numberOfBlocks = BOARD_SIZE / Math.pow(BLOCK_WIDTH, 2); //This must result in an int (field is a square).
         // Gotcha time:
-        // Array.protoype.fill(new Block()) would use the same instance for every slot.
-        // Array.protoype.map and filter ignore empty slots.
+        // Array.prototype.fill(new Block()) would use the same instance for every slot.
+        // Array.prototype.map and filter ignore empty slots.
         for (let i = 0; i < numberOfBlocks; i++) {
-            blocks.push(new BlockData());
+            blocks.push(new BlockData(i));
         }
         for (let i = 0; i < this.rows.length; i++) {
-            const chunks: CellData[][] = arrayChunk(this.rows[i], BLOCK_SIZE);
+            const chunks: CellData[][] = arrayChunk(this.rows[i], BLOCK_WIDTH);
             chunks.forEach((chunk, chunkIndex) => {
-                const blockIndexForChunk = Math.floor(i / BLOCK_SIZE) * BLOCK_SIZE + chunkIndex;
+                const blockIndexForChunk = Math.floor(i / BLOCK_WIDTH) * BLOCK_WIDTH + chunkIndex;
                 const block = blocks[blockIndexForChunk];
                 block.cells.push(...chunk);
-                block.leftTopX = chunkIndex * BLOCK_SIZE as CellIndex;
-                block.leftTopY = (Math.floor(i / BLOCK_SIZE) * BLOCK_SIZE) as CellIndex;
+                block.leftTopX = chunkIndex * BLOCK_WIDTH as CellIndex;
+                block.leftTopY = (Math.floor(i / BLOCK_WIDTH) * BLOCK_WIDTH) as CellIndex;
             });
         }
         return blocks;
@@ -122,7 +146,7 @@ export class Sudoku {
         return this.rows[y];
     }
 
-    public getRowValues(y: CellIndex, excludeCol: CellIndex|false = EXCLUDE_NOTHING): CellValue[] {
+    public getRowValues(y: CellIndex, excludeCol: CellIndex | false = EXCLUDE_NOTHING): CellValue[] {
         if (excludeCol !== EXCLUDE_NOTHING) {
             return this.getRow(y)
                 .filter((v, i) => i as CellIndex !== excludeCol)
@@ -132,7 +156,7 @@ export class Sudoku {
         return this.getRow(y).map(cell => cell.value);
     }
 
-    public getColumnValues(x: CellIndex, excludeRow: CellIndex|false = EXCLUDE_NOTHING): CellValue[] {
+    public getColumnValues(x: CellIndex, excludeRow: CellIndex | false = EXCLUDE_NOTHING): CellValue[] {
         if (excludeRow !== false) {
             return Object.keys(this.rows)
                 .filter(i => Number(i) as CellIndex !== excludeRow)
@@ -186,8 +210,7 @@ export class Sudoku {
                 }
                 try {
                     res.push(this.rows[y][x].value);
-                }
-                catch {
+                } catch {
                     debugger;
                 }
 
@@ -206,5 +229,28 @@ export class Sudoku {
 
     public isCellValid(cell: CellData): boolean {
         return cell.value === CellValue.EMPTY || this.isCellValueValid(cell.value, cell.x, cell.y);
+    }
+
+    public isComplete(): boolean {
+        return this.numberOfFilledCells === BOARD_SIZE &&
+            this.getFlatCells().every(
+                cell => cell.value !== CellValue.EMPTY && this.isCellValid(cell)
+            );
+    }
+
+    public getFirstEmptyCell(): CellData {
+        let cell;
+        let x = 0 as CellIndex, y = 0 as CellIndex;
+        cell = this.getCell(x,y);
+        let i = 0;
+        while (cell.value !== CellValue.EMPTY && i < BOARD_SIZE) {
+            x++;
+            if (x > BOARD_WIDTH - 1) {
+                x = 0;
+                y++;
+            }
+            cell = this.getCell(x as CellIndex, y as CellIndex);
+        }
+        return cell;
     }
 }

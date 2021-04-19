@@ -2,8 +2,9 @@ import * as React from 'react';
 import Cell from "./Cell";
 import {BlockData} from "../../model/BlockData";
 import {CellData, CellValue} from '../../model/CellData';
-import {CellIndex} from "../../model/Sudoku";
+import {BLOCK_WIDTH, CellIndex} from "../../model/Sudoku";
 import {useEffect, useState} from "react";
+import {inputRefs} from "../Board/Board";
 
 interface BlockProps {
     block: BlockData,
@@ -17,15 +18,21 @@ export const Block = (props: BlockProps) => {
         setState(props)
     }, [props]);
     return <div className={"block"}>
-        {state.block.getRows().map((row, index) => {
-                return <div className={"row"} key={index}>
+        {state.block.getRows().map((row, blockRowIndex) => {
+                return <div className={"row"} key={blockRowIndex}>
                     {
-                        row.map((cell, index) => {
+                        row.map((cell, blockColIndex) => {
                             cell.isValid = state.cellValidityChecker(cell);
-                            return <Cell key={'cell' + index}
-                                             cell={cell}
-                                             setCellValue={v => state.setCellValue(cell.y, cell.x, v)}
-
+                            const key = `cell${blockColIndex}`;
+                            if (!inputRefs[cell.x]) {
+                                inputRefs[cell.x] = {};
+                            }
+                            inputRefs[cell.x][cell.y] = React.createRef();
+                            return <Cell
+                                ref={inputRefs[cell.x][cell.y]}
+                                key={key}
+                                cell={cell}
+                                setCellValue={v => state.setCellValue(cell.y, cell.x, v)}
                             />
                         })
                     }
@@ -33,4 +40,4 @@ export const Block = (props: BlockProps) => {
             })
         }
     </div>
-}
+};

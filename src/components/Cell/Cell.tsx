@@ -1,6 +1,7 @@
 import * as React from "react"
 import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
+import {ForwardedRef} from "react";
 
 interface CellProps {
     cell: CellData,
@@ -17,7 +18,7 @@ const NumInput = withStyles({
     }
 })(Input);
 
-const Cell = (props: CellProps) => {
+const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElement>) => {
 
     let className = `cell${props.cell.isInitial ? ' fixed' : ''}${props.cell.isValid ? '' : ' invalid'}`;
 
@@ -36,7 +37,8 @@ const Cell = (props: CellProps) => {
         }
     };
     return <div className={className}>
-        <NumInput className="value"
+        <NumInput inputRef={ref}
+                  className="value"
                   value={formattedValue}
                   onKeyPress={onKeyPress}
                   onKeyUp={onKeyUp}
@@ -45,5 +47,5 @@ const Cell = (props: CellProps) => {
         />
         {/*<small className="details">x:{props.cell.x} y:{props.cell.y}</small>*/}
     </div>
-}
+});
 export default Cell;
