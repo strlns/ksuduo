@@ -1,9 +1,10 @@
 import * as React from "react";
-import {Board} from "../Board/Board";
+import {Board, HighlightedCell} from "../Board/Board";
 import '../../css/app.css';
 import generateRandomSudokuWithPossiblyManySolutions, {DEFAULT_CLUES, MINIMUM_CLUES} from "../../generator/generator";
 import {ChangeEvent, useEffect, useState} from "react";
 import {
+    Box, CircularProgress,
     Container,
     FormControl,
     FormHelperText,
@@ -14,21 +15,20 @@ import {
 } from "@material-ui/core";
 import {Button} from "../Controls/Button";
 import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
-import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
+import {BOARD_SIZE, CELL_INDICES, flatIndexToCoords, Sudoku} from "../../model/Sudoku";
 import {Solution, SOLVERS, solveWithMattsSolver} from "../../solver/solver";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
-import {evilSudoku} from "../../examples/examples";
+import {cloneDeep} from "lodash-es";
 
 export const Game = () => {
     const [state, setState] = useState({
         sudoku: generateRandomSudokuWithPossiblyManySolutions(DEFAULT_CLUES),
-        // sudoku: new Sudoku(evilSudoku),
-        solutions: [] as Sudoku[],
         numberOfClues: DEFAULT_CLUES,
-        solver: SOLVERS.MATTFLOW,
-        errorMsg: ''
+        generatorSolver: SOLVERS.MATTFLOW,
+        errorMsg: '',
+        highlightedCell: undefined as HighlightedCell,
+        isWorking: false
     });
-    const [computedSolution, setComputedSolution] = useState(state.sudoku as Solution);
 
     const updateNumberOfClues = (e: ChangeEvent, numberOfClues: number): void => {
         setState(prevState => {
@@ -47,31 +47,18 @@ export const Game = () => {
         setState(prevState => ({...prevState, sudoku: prevState.sudoku.clearUserInput()}));
     }
 
-    const solveSudoku = async () => {
-        switch (state.solver) {
-            case SOLVERS.MATTFLOW:
-                    try {
-                        const solution = await solveWithMattsSolver(state.sudoku);
-                        setComputedSolution(solution);
-                    }
-                    catch (e) {
-                        setState(prevState => ({...prevState, errorMsg: e.message}));
-                    }
-                break;
-        }
+    const solveSudoku = () => {
+        const sudoku = cloneDeep(state.sudoku);
+        sudoku.showSolution();
+        setState(prevState => ({...prevState, sudoku}));
     }
 
     useEffect(() => {
-        if (computedSolution === null) return;
-        if (Array.isArray(computedSolution)) {
-            setState(prevState => ({...prevState, solutions: computedSolution}));
-        } else {
-            setState(prevState => ({...prevState, sudoku: computedSolution}));
-        }
-    }, [computedSolution])
+        updateCallback()
+    }, [state.highlightedCell, state.generatorSolver, state.sudoku]);
 
     const updateCallback = () => {
-        setState(prevState => ({...prevState, errorMsg: ''}));
+        setState(prevState => ({...prevState, errorMsg: '', isWorking: false}));
     }
 
     const selectSolver: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
@@ -84,14 +71,27 @@ export const Game = () => {
 
     const HardWarning = () => {
         return showClueNumWarning() ? <Typography component={"legend"} style={{color: '#aa0000'}}>
-                Are you sure you can handle this? The minimum number of clues for a Sudoku to be solvable
+                Are you sure you can handle this? The minimum number of clues for a solvable Sudoku
                 has been proven to be 17.
             </Typography> :
             null;
     }
+    const giveHint = () => {
+        if (!(state.sudoku.isSolved() || state.isWorking)) {
+            const cell = state.sudoku.getRandomEmptyOrInvalidCell();
+            const value = state.sudoku.getValueFromSolution(cell.x, cell.y);
+            if (value !== undefined) {
+                cell.value = value;
+                setState(prevState => ({...prevState, highlightedCell: cell}))
+                setTimeout(() => {
+                    setState(prevState => ({...prevState, highlightedCell: undefined}))
+                }, 1000);
+            }
+        }
+    }
     const percentFilled = () => `
         ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`
-    return <Container>
+    return <Container style={{position:'relative'}}>
         <Grid container spacing={3} justify={"center"}>
             <Grid item xs={12}>
                 <h1>Ksuduo</h1>
@@ -102,7 +102,10 @@ export const Game = () => {
                     <Typography>
                         {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
                     </Typography>
-                    <Board sudoku={state.sudoku} cellCallback={updateCallback}/>
+                    <Board sudoku={state.sudoku}
+                           cellCallback={updateCallback}
+                           highlightedCell={state.highlightedCell}
+                    />
                 </PaperBox>
             </Grid>
             <Grid item xs justify={"space-between"} alignItems={"stretch"} direction={"column"} container>
@@ -119,20 +122,20 @@ export const Game = () => {
                         <Button onClick={newSudoku} variant="contained" color="primary">
                             Generate Sudoku
                         </Button>
-                        <Button onClick={resetSudoku} variant="outlined" color="secondary">
-                            Reset Sudoku
-                        </Button>
-                    </PaperBox>
-                </Grid>
-                <Grid item>
-                    <PaperBox p={4} mt={2}>
-                        <Button onClick={solveSudoku} variant="outlined" color="primary">
-                            Solve
-                        </Button>
+                        <Box display={"flex"} justifyContent={"space-between"}>
+                            <Button style={{width:'auto'}} onClick={resetSudoku} variant="outlined" color="secondary">
+                                Reset Sudoku
+                            </Button>
+                            {state.isWorking ? <CircularProgress /> : null}
+                            <Button style={{width:'auto'}} onClick={giveHint} variant="outlined" color="default">
+                                Give me a hint (fill a cell)
+                            </Button>
+                        </Box>
+
                         <FormControl style={{width: '100%', marginTop: '1rem'}}>
-                            <InputLabel htmlFor="solver-select">Solver</InputLabel>
+                            <InputLabel htmlFor="solver-select">Generation strategy</InputLabel>
                             <NativeSelect
-                                value={state.solver}
+                                value={state.generatorSolver}
                                 onChange={selectSolver}
                                 inputProps={{
                                     name: 'solver',
@@ -141,8 +144,15 @@ export const Game = () => {
                             >
                                 <option value={SOLVERS.MATTFLOW}>@mattflow/sudoku-solver</option>
                             </NativeSelect>
-                            <FormHelperText>Select a solver algorithm</FormHelperText>
+                            <FormHelperText>Select a solver algorithm to assist with Sudoku generation</FormHelperText>
                         </FormControl>
+                    </PaperBox>
+                </Grid>
+                <Grid item>
+                    <PaperBox p={4} mt={2}>
+                        <Button disabled={state.sudoku.isSolved()} onClick={solveSudoku} variant="outlined" color="primary">
+                            Solve
+                        </Button>
                         {state.errorMsg.length ?
                             <Typography style={{color: 'red', fontWeight: 'bold'}}>{state.errorMsg}</Typography>
                             : null}

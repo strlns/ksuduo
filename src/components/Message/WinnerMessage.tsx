@@ -1,4 +1,4 @@
-import {Typography, withStyles} from "@material-ui/core";
+import {Box, withStyles} from "@material-ui/core";
 
 export const WinnerMessage = withStyles(
     {
@@ -12,8 +12,10 @@ export const WinnerMessage = withStyles(
             padding: '1rem',
             borderRadius: '.75rem',
             maxWidth: '30rem',
-            left: '2rem',
-            filter: 'drop-shadow(2px 4px 6px black)'
+            left: '50%',
+            transform: 'translateX(-50%)',
+            filter: 'drop-shadow(2px 4px 6px black)',
+            zIndex: 99
         }
     }
-)(Typography);
+)(Box);

@@ -10,7 +10,8 @@ interface BlockProps {
     block: BlockData,
     cellValidityChecker(cell: CellData): boolean,
     setCellValue(x: CellIndex, y: CellIndex, v: CellValue): void,
-    setFocusedCell: React.Dispatch<SetStateAction<CellData>>
+    setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
+    highlightedCell: CellData|undefined
 }
 
 export const Block = (props: BlockProps) => {
@@ -35,6 +36,7 @@ export const Block = (props: BlockProps) => {
                                 cell={cell}
                                 setCellValue={v => state.setCellValue(cell.x, cell.y, v)}
                                 setFocusedCell={state.setFocusedCell}
+                                isHighlighted={state.highlightedCell === cell}
                             />
                         })
                     }

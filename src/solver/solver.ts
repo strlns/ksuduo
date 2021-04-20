@@ -1,5 +1,8 @@
-import {flatIndexToCoords, Sudoku} from "../model/Sudoku";
+import {BOARD_SIZE, flatIndexToCoords, Sudoku} from "../model/Sudoku";
 import {cloneDeep} from "lodash-es";
+import assert from "../utility/assert";
+import {CellValue} from "../model/CellData";
+
 let mattsSolver = require('@mattflow/sudoku-solver/index');
 /**
  * This function should return all solutions to a sudoku, or an empty array
@@ -15,19 +18,12 @@ export enum SOLVERS {
     MATTFLOW
 }
 
-export type Solution = Sudoku[] | Sudoku;
+export type Solution = CellValue[];
 
 export async function solveWithMattsSolver(sudoku: Sudoku): Promise<Solution> {
     try {
-        const solutionData: number[] = mattsSolver(sudoku.getFlatValues().map(val => val as number), {outputArray: true});
-        const solution = cloneDeep(sudoku);
-        solutionData.forEach((value, index) => {
-            const [x, y] = flatIndexToCoords(index);
-            const cell = solution.getCell(x, y);
-            if (!cell.isInitial) {
-                cell.value = value;
-            }
-        });
+        const solution: number[] = mattsSolver(sudoku.getFlatValues().map(val => val as number), {outputArray: true});
+        assert(solution.length === BOARD_SIZE);
         return solution;
     }
     finally {

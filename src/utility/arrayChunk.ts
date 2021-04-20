@@ -1,5 +1,7 @@
+import assert from "./assert";
+
 export default function arrayChunk(arr: any[], chunkSize: number): any[][] {
-    if(Math.floor(chunkSize) !== chunkSize || chunkSize < 0) throw new Error();
+    assert(Math.floor(chunkSize) === chunkSize && chunkSize > 0);
     const res = [];
     let pos = 0;
     while (pos < arr.length) {

@@ -6,7 +6,8 @@ import {ForwardedRef, SetStateAction} from "react";
 interface CellProps {
     cell: CellData,
     setCellValue(v: CellValue): void,
-    setFocusedCell: React.Dispatch<SetStateAction<CellData>>
+    setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
+    isHighlighted: boolean
 }
 
 const NumInput = withStyles({
@@ -21,9 +22,12 @@ const NumInput = withStyles({
 
 const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElement>) => {
 
-    let className = `cell${props.cell.isInitial ? ' fixed' : ''}${props.cell.isValid ? '' : ' invalid'}`;
+    let className = `cell${props.cell.isInitial ? ' fixed' : ''}\
+    ${props.cell.isValid ? '' : ' invalid'}\
+    ${props.isHighlighted ? 'hint' : ''}
+    `;
 
-    let formattedValue = props.cell.value === CellValue.EMPTY ? '' : props.cell.value;
+    let formattedValue = props.cell.isEmpty() ? '' : props.cell.value;
 
     const onKeyPress: React.KeyboardEventHandler = event => {
         if (props.cell.isInitial) return;

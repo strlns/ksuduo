@@ -2,6 +2,9 @@ import {CellData, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
 import {cloneDeep} from "lodash-es";
+import pickRandomArrayValue from "../utility/pickRandom";
+import assert from "../utility/assert";
+import {Solution} from "../solver/solver";
 
 export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -19,6 +22,10 @@ export const flatIndexToCoords = (index: number): [CellIndex, CellIndex] => {
     return [x, y];
 }
 
+export const coordsToFlatIndex = (x: CellIndex, y: CellIndex): number => {
+    return y * BOARD_WIDTH + x;
+}
+
 export class Sudoku {
     /**
      * main source of truth.
@@ -26,13 +33,51 @@ export class Sudoku {
      */
     private readonly rows: CellData[][];
 
+    private history: CellValue[][];
+
+    private solution: Solution;
+
+    public setSolution(solution: Solution) {
+        this.solution = solution;
+    }
+
+    public getSolution(): Solution {
+        return this.solution;
+    }
+
+    public showSolution(): void {
+        for (let solutionData of this.getSolution().map(
+            (val, index) =>
+                ({
+                    cell: this.getCell(...flatIndexToCoords(index)),
+                    val
+                })
+        ).filter(data => !data.cell.isInitial)) {
+            this.setValue(solutionData.cell.x, solutionData.cell.y, solutionData.val);
+        }
+    }
+
+    public getValueFromSolution(x: CellIndex, y: CellIndex): CellValue | undefined {
+        if (this.solution !== undefined) {
+            return this.solution[coordsToFlatIndex(x, y)];
+        }
+    }
+
     /**
-     * shortcut to make the constant calls to {@link isComplete} less wasteful
+     * history stored as array of flat board states (2nd dimension contains Array(81)<CellValue>).
+     * history is only filled for user input and hints (not while generating) and cleared on reset.
+     * @private
      */
+
+    /**
+     * shortcut to make calls to {@link isSolved} and similar methods less wasteful.
+     * in retrospect it is also a huge annoyance and design flaw
+     * */
     private numberOfFilledCells = 0;
 
     constructor(flatValues?: number[]) {
         this.rows = [];
+        this.history = [];
         this.initializeEmptyBoard();
         if (flatValues) {
             this.initWithFlatArray(flatValues);
@@ -46,6 +91,12 @@ export class Sudoku {
             cell.value = value;
             cell.isInitial = value as CellValue !== CellValue.EMPTY;
         });
+    }
+
+    public undo() {
+        assert(this.history.length > 0, 'Cannot undo, history empty.');
+        const values = this.history.pop();
+        this.initWithFlatArray(values as number[]);
     }
 
     public getNumberOfFilledCells(): number {
@@ -79,7 +130,7 @@ export class Sudoku {
                 return;
             }
             for (let x = 0; x < row.length; x++) {
-                const val = this.getRandomAllowedCellValue(y as CellIndex, x as CellIndex);
+                const val = this.getAllowedCellValue(y as CellIndex, x as CellIndex);
                 if (val === CellValue.EMPTY) {
                     itsUnsolvable = true;
                     break;
@@ -106,7 +157,7 @@ export class Sudoku {
      * @param value
      * @param fixed
      */
-    public setValue(x: CellIndex, y: CellIndex, value: CellValue, fixed = false) {
+    public setValue(x: CellIndex, y: CellIndex, value: CellValue, fixed = false, useHistory = true) {
         const cell = this.rows[y][x];
         const newCell = cloneDeep(cell);
         const wasFilled = cell.value !== CellValue.EMPTY;
@@ -115,17 +166,21 @@ export class Sudoku {
         this.rows[y][x] = newCell;
         if (wasFilled && value === CellValue.EMPTY) {
             this.numberOfFilledCells--;
-        }
-        else if (!wasFilled && value !== CellValue.EMPTY) {
+        } else if (!wasFilled && value !== CellValue.EMPTY) {
             this.numberOfFilledCells++;
         }
+        this.history.push(this.getFlatValues());
+    }
+
+    public setCell(cell: CellData, useHistory = true): void {
+        this.setValue(cell.x, cell.y, cell.value, cell.isInitial, useHistory);
     }
 
     public getRows(): readonly CellData[][] {
         return Object.freeze(this.rows);
     }
 
-    public getFlatValues(): readonly CellValue[] {
+    public getFlatValues(): CellValue[] {
         const res: CellValue[] = [];
         this.rows.forEach(row => {
             res.push(...row.map(cell => cell.value));
@@ -208,7 +263,21 @@ export class Sudoku {
             )
     }
 
-    public getRandomAllowedCellValue(y: CellIndex, x: CellIndex): CellValue {
+    public getEmptyCells(): CellData[] {
+        return this.getFlatCells().filter(cell => cell.isEmpty());
+    }
+
+    public getRandomEmptyOrInvalidCell(): CellData {
+        assert(!this.isSolved(), "Sudoku is already completed, there are no empty cells");
+        const res = pickRandomArrayValue(this.getEmptyCells()) ||
+            this.getFlatCells().find(cell => !cell.isValid);
+        if (!res) {
+            throw new Error("Oops, no invalid cells, no empty cells and not solved??")
+        }
+        return res;
+    }
+
+    public getAllowedCellValue(y: CellIndex, x: CellIndex): CellValue {
         let candidates = CellValues.filter(
             value => !(
                 value === CellValue.EMPTY ||
@@ -217,10 +286,8 @@ export class Sudoku {
                 || this.getFlatBlockValuesForCoords(x, y).includes(value)
             )
         );
-        if (candidates.length === 0) {
-            return CellValue.EMPTY;
-        }
-        return candidates[Math.floor(Math.random() * candidates.length)];
+        return pickRandomArrayValue(candidates) || CellValue.EMPTY;
+        ;
     }
 
     // noinspection JSUnusedLocalSymbols
@@ -267,49 +334,50 @@ export class Sudoku {
     }
 
     public isCellValid(cell: CellData): boolean {
-        return cell.value === CellValue.EMPTY || this.isCellValueValid(cell.value, cell.x, cell.y);
+        return cell.isEmpty() || this.isCellValueValid(cell.value, cell.x, cell.y);
     }
 
-    public isComplete(): boolean {
+    public isSolved(): boolean {
         return this.numberOfFilledCells === BOARD_SIZE &&
             this.getFlatCells().every(
                 cell => cell.value !== CellValue.EMPTY && this.isCellValid(cell)
             );
     }
 
-    public getFirstEmptyCell(): CellData {
+    public getInitialFocusCell(): CellData {
         let cell;
         let x = 0 as CellIndex, y = 0 as CellIndex;
-        cell = this.getCell(x,y);
-        while (cell.value !== CellValue.EMPTY && y < BOARD_WIDTH - 1) {
+        cell = this.getCell(x, y);
+        while (!cell.isEmpty() && y < BOARD_WIDTH - 1) {
             if (x > BOARD_WIDTH - 1) {
                 x = 0;
                 y++;
             }
-            try {
-                cell = this.getCell(x as CellIndex, y as CellIndex);
-            }
-            catch (e) {
-                console.error(e);
-                console.log(x, y);
-            }
+            assert(x < BOARD_WIDTH && y < BOARD_WIDTH, `${x} is not a valid row index and / or ${y} is not a valid col index`);
+            cell = this.getCell(x as CellIndex, y as CellIndex);
             x++;
         }
-        if (cell.value !== CellValue.EMPTY) {
+        // assert(cell.isEmpty(), 'No empty cell found.');
+        if (!cell.isEmpty()) {
             return this.getCell(0, 0);
         }
         return cell;
     }
 
     /**
-     * Clear user input. Cloning is not needed because of useEffect in {@link Board} component
+     * Clear user input / hints.
      */
     public clearUserInput(): Sudoku {
         for (let cell of this.getFlatCells()) {
             if (!cell.isInitial) {
                 cell.value = CellValue.EMPTY;
+                /**
+                 * these annoyances are currently needed to keep {@link numberOfFilledCells} in sync.
+                 */
+                this.setCell(cell, false);
             }
         }
+        this.history.length = 0; //clear without creating new instance
         return this;
     }
 }

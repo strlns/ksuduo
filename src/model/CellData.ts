@@ -45,4 +45,8 @@ export class CellData {
         this.isValid = true
         this.isFirstEmptyCell = false;
     }
+
+    public isEmpty(): boolean {
+        return this.value === CellValue.EMPTY;
+    }
 }
