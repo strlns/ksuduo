@@ -13,6 +13,12 @@ export const BOARD_WIDTH = CELL_INDICES.length;
 export const BOARD_SIZE = Math.pow(BOARD_WIDTH, 2);
 export const BLOCK_WIDTH = 3;
 
+export const flatIndexToCoords = (index: number): [CellIndex, CellIndex] => {
+    const x = index % BOARD_WIDTH as CellIndex;
+    const y = Math.floor(index / BOARD_WIDTH) as CellIndex;
+    return [x, y];
+}
+
 export class Sudoku {
     /**
      * main source of truth.
@@ -273,14 +279,22 @@ export class Sudoku {
         let cell;
         let x = 0 as CellIndex, y = 0 as CellIndex;
         cell = this.getCell(x,y);
-        let i = 0;
-        while (cell.value !== CellValue.EMPTY && i < BOARD_SIZE) {
-            x++;
+        while (cell.value !== CellValue.EMPTY && y < BOARD_WIDTH - 1) {
             if (x > BOARD_WIDTH - 1) {
                 x = 0;
                 y++;
             }
-            cell = this.getCell(x as CellIndex, y as CellIndex);
+            try {
+                cell = this.getCell(x as CellIndex, y as CellIndex);
+            }
+            catch (e) {
+                console.error(e);
+                console.log(x, y);
+            }
+            x++;
+        }
+        if (cell.value !== CellValue.EMPTY) {
+            return this.getCell(0, 0);
         }
         return cell;
     }
@@ -297,4 +311,5 @@ export class Sudoku {
         return this;
     }
 }
+
 

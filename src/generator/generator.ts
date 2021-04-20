@@ -1,12 +1,13 @@
-import {BOARD_WIDTH, BOARD_SIZE, CellIndex, Sudoku} from '../model/Sudoku';
-import {CellData, CellValue} from "../model/CellData";
-import {first} from "lodash-es";
+import {BOARD_SIZE, BOARD_WIDTH, CellIndex, Sudoku} from '../model/Sudoku';
+import {CellValue} from "../model/CellData";
 
 //Probably must be increased. Im afraid this app will be too dumb to solve HARD sudokus.
 export const MINIMUM_CLUES = 17;
+export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
+export const MAXIMUM_CLUES = Math.min(Math.floor(BOARD_SIZE / 2) + 8, BOARD_SIZE);
 
 export default function generateSudoku(numberOfClues: number): Sudoku {
-    numberOfClues = sanitizeNumberOfClues(numberOfClues);
+    numberOfClues = Math.floor(numberOfClues);
     const coordsGenerator = randomCoordinatesGenerator();
     const board = new Sudoku();
     let numDeletedCells = 0;
@@ -21,15 +22,6 @@ export default function generateSudoku(numberOfClues: number): Sudoku {
         firstEmptyCell.isFirstEmptyCell = true;
     }
     return board;
-}
-
-
-const sanitizeNumberOfClues = (numberOfClues: number): number => {
-    const numClues = Math.floor(numberOfClues);
-    if (numClues < MINIMUM_CLUES) throw new Error(`I am dumb and I refuse to work with less than ${MINIMUM_CLUES}.
-    Also, Sudokus with less than 17 clues have been proven to not be uniquely solvable in general.
-    `)
-    return numClues;
 }
 
 const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<number[]>): void => {

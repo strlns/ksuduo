@@ -1,11 +1,12 @@
 import * as React from "react";
-import {BOARD_SIZE, BOARD_WIDTH, CellIndex, Sudoku} from "../../model/Sudoku";
+import {BOARD_WIDTH, CellIndex, Sudoku} from "../../model/Sudoku";
 
 import {ForwardedRef, KeyboardEventHandler, useEffect, useState} from "react";
 import {Block} from "../Cell/Block";
 import {CellData, CellValue} from "../../model/CellData";
 import {WinnerMessage} from "../Message/WinnerMessage";
 import {Box, Paper} from "@material-ui/core";
+import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
 
 interface BoardProps {
     sudoku: Sudoku,
@@ -74,7 +75,7 @@ export const Board = (props: BoardProps) => {
 
 
 
-    return <Box component={Paper} p={4} className={'board'} onKeyUp={onKeyUp} style={{margin: 'auto'}}>
+    return <PaperBox p={2} elevation={16} className={'board'} onKeyUp={onKeyUp} style={{margin: 'auto'}}>
         {
             state.sudoku.getBlocks().map(
                 (block, index) => {
@@ -93,5 +94,5 @@ export const Board = (props: BoardProps) => {
                     Congratulations! You completed the Sudoku successfully.
                 </WinnerMessage> : null
         }
-    </Box>
+    </PaperBox>
 };
