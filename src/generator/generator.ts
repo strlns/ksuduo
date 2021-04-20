@@ -6,7 +6,7 @@ export const MINIMUM_CLUES = 17;
 export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
 export const MAXIMUM_CLUES = Math.min(Math.floor(BOARD_SIZE / 2) + 8, BOARD_SIZE);
 
-export default function generateSudoku(numberOfClues: number): Sudoku {
+export default function generateRandomSudokuWithPossiblyManySolutions(numberOfClues: number): Sudoku {
     numberOfClues = Math.floor(numberOfClues);
     const coordsGenerator = randomCoordinatesGenerator();
     const board = new Sudoku();

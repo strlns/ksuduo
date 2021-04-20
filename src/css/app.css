@@ -1,6 +1,13 @@
 :root {
     font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
 }
+@font-face {
+    font-family: "Bangers Regular";
+    src: url('../../assets/fonts/Bangers-Regular.woff2')
+}
+* {
+    box-sizing: border-box;
+}
 main {
     padding-bottom: 1.5em;
 }
@@ -10,7 +17,7 @@ footer {
     text-align:right;
     right:0;
     font-size: .75rem;
-    background-color: navy;
+    background-color: #162467;
     padding: .5em;
     border-radius: .75rem 0 0 0;
     color: #cfcfcf;
@@ -27,7 +34,7 @@ input::-webkit-inner-spin-button {
     display: inline-grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: flex-start;
-    min-width: 24rem;
+    max-width: 100%;
 }
 .block {
     display: table;
@@ -38,25 +45,36 @@ input::-webkit-inner-spin-button {
     display: table-row;
 }
 .cell {
-    color: navy;
+    color: #162467;
     display: table-cell;
     vertical-align: middle;
     text-align: center;
     border: 2px solid grey;
     position: relative;
-    font-size: 1.5rem;
-    width: 2.5rem;
-    height: 2.5rem;
+    transition: background .75s ease, border .25s ease;
+    width: 1.75rem;
+    height: 1.75rem;
+}
+@media (max-width: 960px) {
+    .MuiInputBase-input {
+        padding: 0 !important;
+    }
+}
+@media (min-width: 800px) {
+    .board {
+        min-width: 24rem;
+    }
+    .cell {
+        font-size: 1.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
 }
 @media (min-width: 1024px) {
     .cell {
         width: 3.5rem;
         height: 3.5rem;
     }
-}
-
-.cell:focus-within {
-    border-color: blue;
 }
 /*.cell .details {
     opacity: 0.5;
@@ -85,8 +103,7 @@ input::-webkit-inner-spin-button {
     cursor: none;
 }
 .cell.invalid {
-    background-color: #ff2f2f;
-    color: black;
+    color: red;
     font-weight: bold;
 }
 .cell.invalid input {
@@ -98,6 +115,18 @@ input::-webkit-inner-spin-button {
     background-color: #f0bf9f;
     box-shadow: inset 0 0 0 4px #ff2f2f;
 }
+.cell:focus-within {
+    border-color: #3f51b5;
+    border-width: 5px;
+}
+.cell.fixed:focus-within {
+    border-color: inherit;
+    border-width: 3px;
+}
+.cell.invalid:focus-within {
+    border-color: #30236d;
+}
 h1, h2 {
+    font-family: "Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif;
     text-align: center;
 }

@@ -1,17 +1,15 @@
 import * as React from "react";
 import {Board} from "../Board/Board";
 import '../../css/app.css';
-import generateSudoku, {DEFAULT_CLUES, MINIMUM_CLUES} from "../../generator/generator";
+import generateRandomSudokuWithPossiblyManySolutions, {DEFAULT_CLUES, MINIMUM_CLUES} from "../../generator/generator";
 import {ChangeEvent, useEffect, useState} from "react";
 import {
-    Box, Card, CardContent, CardHeader,
     Container,
     FormControl,
     FormHelperText,
     Grid,
     InputLabel,
     NativeSelect,
-    Paper,
     Typography
 } from "@material-ui/core";
 import {Button} from "../Controls/Button";
@@ -19,16 +17,18 @@ import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
 import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
 import {Solution, SOLVERS, solveWithMattsSolver} from "../../solver/solver";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
+import {evilSudoku} from "../../examples/examples";
 
 export const Game = () => {
     const [state, setState] = useState({
-        sudoku: generateSudoku(DEFAULT_CLUES),
+        sudoku: generateRandomSudokuWithPossiblyManySolutions(DEFAULT_CLUES),
+        // sudoku: new Sudoku(evilSudoku),
         solutions: [] as Sudoku[],
         numberOfClues: DEFAULT_CLUES,
         solver: SOLVERS.MATTFLOW,
         errorMsg: ''
     });
-    const [computedSolution, setComputedSolution] = useState(null as Solution);
+    const [computedSolution, setComputedSolution] = useState(state.sudoku as Solution);
 
     const updateNumberOfClues = (e: ChangeEvent, numberOfClues: number): void => {
         setState(prevState => {
@@ -40,7 +40,7 @@ export const Game = () => {
     };
 
     const newSudoku = () => {
-        setState(prevState => ({...prevState, sudoku: generateSudoku(state.numberOfClues)}));
+        setState(prevState => ({...prevState, sudoku: generateRandomSudokuWithPossiblyManySolutions(state.numberOfClues)}));
     }
 
     const resetSudoku = () => {
@@ -50,12 +50,13 @@ export const Game = () => {
     const solveSudoku = async () => {
         switch (state.solver) {
             case SOLVERS.MATTFLOW:
-                try {
-                    const solution = await solveWithMattsSolver(state.sudoku);
-                    setComputedSolution(solution);
-                } catch (e) {
-                    // setState(prevState => ({...prevState, errorMsg: e.message}));
-                }
+                    try {
+                        const solution = await solveWithMattsSolver(state.sudoku);
+                        setComputedSolution(solution);
+                    }
+                    catch (e) {
+                        setState(prevState => ({...prevState, errorMsg: e.message}));
+                    }
                 break;
         }
     }
@@ -97,7 +98,7 @@ export const Game = () => {
                 <h2>Sudoku Toy Project</h2>
             </Grid>
             <Grid item xs={12} md={8} lg={6} justify={"center"} container>
-                <PaperBox p={2}>
+                <PaperBox p={2} maxWidth={"100%"}>
                     <Typography>
                         {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
                     </Typography>

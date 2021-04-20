@@ -2,14 +2,15 @@ import * as React from 'react';
 import Cell from "./Cell";
 import {BlockData} from "../../model/BlockData";
 import {CellData, CellValue} from '../../model/CellData';
-import {BLOCK_WIDTH, CellIndex} from "../../model/Sudoku";
-import {useEffect, useState} from "react";
+import {CellIndex} from "../../model/Sudoku";
+import {SetStateAction, useEffect, useState} from "react";
 import {inputRefs} from "../Board/Board";
 
 interface BlockProps {
     block: BlockData,
     cellValidityChecker(cell: CellData): boolean,
-    setCellValue(x: CellIndex, y: CellIndex, v: CellValue): void
+    setCellValue(x: CellIndex, y: CellIndex, v: CellValue): void,
+    setFocusedCell: React.Dispatch<SetStateAction<CellData>>
 }
 
 export const Block = (props: BlockProps) => {
@@ -33,6 +34,7 @@ export const Block = (props: BlockProps) => {
                                 key={key}
                                 cell={cell}
                                 setCellValue={v => state.setCellValue(cell.x, cell.y, v)}
+                                setFocusedCell={state.setFocusedCell}
                             />
                         })
                     }

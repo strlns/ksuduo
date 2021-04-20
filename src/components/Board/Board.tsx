@@ -5,7 +5,6 @@ import {ForwardedRef, KeyboardEventHandler, useEffect, useState} from "react";
 import {Block} from "../Cell/Block";
 import {CellData, CellValue} from "../../model/CellData";
 import {WinnerMessage} from "../Message/WinnerMessage";
-import {Box, Paper} from "@material-ui/core";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
 
 interface BoardProps {
@@ -34,16 +33,15 @@ export const Board = (props: BoardProps) => {
         });
     }
 
-    //make sure that a new Sudoku object triggers re-render, focus first empty cell again
+    //make sure that a new Sudoku object triggers re-render, focus first empty cell again if possible
     useEffect(() => {
         setState(props);
         setFocusedCell(state.sudoku.getFirstEmptyCell())
     }, [props]);
 
-    //some VERY ugly and brittle stuff to allow arrow key navigation
+    // brittle code to allow arrow key navigation.
+    // usage of the "global" CellRefMap is non-standard but works.
     let [focusedCell, setFocusedCell] = useState(state.sudoku.getFirstEmptyCell());
-    // let focusedCell = state.sudoku.getFirstEmptyCell();
-    /*Reacts synthetic events differ from e.g. the native KeyboardEvent.*/
     const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
         let newY, newX: CellIndex;
         let newCell: CellData = focusedCell;
@@ -84,6 +82,7 @@ export const Board = (props: BoardProps) => {
                         key={index}
                         cellValidityChecker={state.sudoku.isCellValid.bind(state.sudoku)}
                         setCellValue={setCellValue}
+                        setFocusedCell={setFocusedCell}
                     />
                 }
             )

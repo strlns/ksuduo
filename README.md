@@ -3,38 +3,24 @@
 
 https://strlns.github.io/ksuduo/index.html
 
-This is a toy project so I can get a basic understanding of:
+This is a toy/learning project so I can get a basic understanding of:
 
 * **TypeScript**
 * **React** (without using _create-react-app_)
+* **React Hooks / Function components**
 * myself (no not really)
 
 ## What does it do?
 
-It generates Sudokus.
-
+It's a Sudoku game and generator.
 The number of clues is configurable. 
 It works by generating a full grid and then deleting some cells.
 
-Until a solver is integrated, there is no guarantee that the solutions are unique.
-But the output always has at least one solution.
-
----
-## What can you do with it?
-You could print the Sudokus to play, but I must admit that there are probably a plethora of better similar apps.
-This of course does not require any internet connection.
-
-### What does it not do but should do? 
-
-* Allow to actually play the game
-* Integrate a solver
-
-I could probably use a battle-proven implementation
-of a solving algorithm (e.g. dancing links).
-I'll probably try to implement an algorithm myself instead. 
-(This is a learning project)
-
-
+#####Current caveats / ToDo-list:
+* currently only one solver algorithm which I didn't write myself (https://github.com/mattflow/sudoku-solver)
+* no solver available that returns/detects multiple solutions to a puzzle
+* for this reason, the generated puzzles are not necessarily fun to play and possibly have multiple solutions
+* solver doesn't run in a WebWorker, so when a really hard puzzle is generated, it blocks the UI.
 
 ---
 

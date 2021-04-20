@@ -1,11 +1,12 @@
 import * as React from "react"
 import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
-import {ForwardedRef} from "react";
+import {ForwardedRef, SetStateAction} from "react";
 
 interface CellProps {
     cell: CellData,
-    setCellValue(v: CellValue): void
+    setCellValue(v: CellValue): void,
+    setFocusedCell: React.Dispatch<SetStateAction<CellData>>
 }
 
 const NumInput = withStyles({
@@ -36,6 +37,9 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
             props.setCellValue(CellValue.EMPTY);
         }
     };
+    const onFocus: React.FocusEventHandler<HTMLInputElement> = () => {
+        props.setFocusedCell(props.cell)
+    }
     return <div className={className}>
         <NumInput inputRef={ref}
                   className="value"
@@ -43,6 +47,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                   value={formattedValue}
                   onKeyPress={onKeyPress}
                   onKeyUp={onKeyUp}
+                  onFocus={onFocus}
                   disableUnderline={true}
                   readOnly={props.cell.isInitial}
         />

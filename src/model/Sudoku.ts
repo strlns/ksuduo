@@ -26,21 +26,26 @@ export class Sudoku {
      */
     private readonly rows: CellData[][];
 
-    // /**
-    //  * For reverse lookup
-    //  * @private
-    //  */
-    // private readonly cellMap: Map<CellData, [CellIndex, CellIndex]>;
-
     /**
      * shortcut to make the constant calls to {@link isComplete} less wasteful
      */
     private numberOfFilledCells = 0;
 
-    constructor() {
-        // this.cellMap = new Map<CellData, [CellIndex, CellIndex]>();
+    constructor(flatValues?: number[]) {
         this.rows = [];
         this.initializeEmptyBoard();
+        if (flatValues) {
+            this.initWithFlatArray(flatValues);
+        }
+    }
+
+    public initWithFlatArray(values: number[]) {
+        values.forEach((value, index) => {
+            const [x, y] = flatIndexToCoords(index);
+            const cell = this.getCell(x, y);
+            cell.value = value;
+            cell.isInitial = value as CellValue !== CellValue.EMPTY;
+        });
     }
 
     public getNumberOfFilledCells(): number {
@@ -55,11 +60,9 @@ export class Sudoku {
      */
     private addCell(cell: CellData) {
         this.rows[cell.y][cell.x] = cell;
-        // this.cellMap.set(cell, [cell.x, cell.y]);
     }
 
     public initializeEmptyBoard() {
-        // this.cellMap.clear();
         for (let y = 0; y < BOARD_WIDTH; y++) {
             this.rows[y] = Array(BOARD_WIDTH).fill(null);
             for (let x = 0; x < this.rows[y].length; x++) {
@@ -107,7 +110,6 @@ export class Sudoku {
         const cell = this.rows[y][x];
         const newCell = cloneDeep(cell);
         const wasFilled = cell.value !== CellValue.EMPTY;
-        // this.cellMap.delete(cell);
         newCell.isInitial = fixed;
         newCell.value = value;
         this.rows[y][x] = newCell;
@@ -117,7 +119,6 @@ export class Sudoku {
         else if (!wasFilled && value !== CellValue.EMPTY) {
             this.numberOfFilledCells++;
         }
-        // this.cellMap.set(newCell, [x, y]);
     }
 
     public getRows(): readonly CellData[][] {
@@ -222,6 +223,7 @@ export class Sudoku {
         return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
+    // noinspection JSUnusedLocalSymbols
     private getFlatBlockValuesForCell(cell: CellData) {
         return this.getFlatBlockValuesForCoords(cell.x, cell.y);
     }
