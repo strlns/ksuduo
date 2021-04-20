@@ -1,7 +1,7 @@
 {
   "author": "Moritz Rehbach",
   "description": "toy project",
-  "devDependencies": {
+  "dependencies": {
     "@types/webpack-dev-server": "2.9.4",
     "@types/html-webpack-plugin": "2.30.3",
     "@types/react": "^17.0.3",

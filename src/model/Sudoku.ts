@@ -14,14 +14,26 @@ export const BOARD_SIZE = Math.pow(BOARD_WIDTH, 2);
 export const BLOCK_WIDTH = 3;
 
 export class Sudoku {
+    /**
+     * main source of truth.
+     * @private
+     */
+    private readonly rows: CellData[][];
 
-    private rows: CellData[][] = [];
+    // /**
+    //  * For reverse lookup
+    //  * @private
+    //  */
+    // private readonly cellMap: Map<CellData, [CellIndex, CellIndex]>;
+
     /**
      * shortcut to make the constant calls to {@link isComplete} less wasteful
      */
     private numberOfFilledCells = 0;
 
     constructor() {
+        // this.cellMap = new Map<CellData, [CellIndex, CellIndex]>();
+        this.rows = [];
         this.initializeEmptyBoard();
     }
 
@@ -29,11 +41,23 @@ export class Sudoku {
         return this.numberOfFilledCells;
     }
 
+    /**
+     * Add a cell. The cell object contains its coordinates, if another Cell
+     * with the same coordinates is present, it is replaced
+     * @param cell
+     * @private
+     */
+    private addCell(cell: CellData) {
+        this.rows[cell.y][cell.x] = cell;
+        // this.cellMap.set(cell, [cell.x, cell.y]);
+    }
+
     public initializeEmptyBoard() {
+        // this.cellMap.clear();
         for (let y = 0; y < BOARD_WIDTH; y++) {
             this.rows[y] = Array(BOARD_WIDTH).fill(null);
             for (let x = 0; x < this.rows[y].length; x++) {
-                this.rows[y][x] = new CellData(CellValue.EMPTY, x as CellIndex, y as CellIndex);
+                this.addCell(new CellData(CellValue.EMPTY, x as CellIndex, y as CellIndex));
             }
         }
         this.numberOfFilledCells = 0;
@@ -51,7 +75,7 @@ export class Sudoku {
                     itsUnsolvable = true;
                     break;
                 } else {
-                    this.setValue(y as CellIndex, x as CellIndex, val, true);
+                    this.setValue(x as CellIndex, y as CellIndex, val, true);
                 }
             }
         });
@@ -65,18 +89,29 @@ export class Sudoku {
         return this.rows[y][x];
     }
 
-    public setValue(i: CellIndex, j: CellIndex, value: CellValue, fixed = false) {
-        const cell = cloneDeep(this.rows[i][j]);
+    /**
+     * set a new cell value by coordinates.
+     * The previous cell object is replaced to trigger a re-render.
+     * @param x
+     * @param y
+     * @param value
+     * @param fixed
+     */
+    public setValue(x: CellIndex, y: CellIndex, value: CellValue, fixed = false) {
+        const cell = this.rows[y][x];
+        const newCell = cloneDeep(cell);
         const wasFilled = cell.value !== CellValue.EMPTY;
-        cell.isInitial = fixed;
-        cell.value = value;
-        this.rows[i][j] = cell;
+        // this.cellMap.delete(cell);
+        newCell.isInitial = fixed;
+        newCell.value = value;
+        this.rows[y][x] = newCell;
         if (wasFilled && value === CellValue.EMPTY) {
             this.numberOfFilledCells--;
         }
         else if (!wasFilled && value !== CellValue.EMPTY) {
             this.numberOfFilledCells++;
         }
+        // this.cellMap.set(newCell, [x, y]);
     }
 
     public getRows(): readonly CellData[][] {
@@ -99,11 +134,7 @@ export class Sudoku {
 
     public getBlocks(): BlockData[] {
         const blocks: BlockData[] = [];
-        //fill the blocks array
         const numberOfBlocks = BOARD_SIZE / Math.pow(BLOCK_WIDTH, 2); //This must result in an int (field is a square).
-        // Gotcha time:
-        // Array.prototype.fill(new Block()) would use the same instance for every slot.
-        // Array.prototype.map and filter ignore empty slots.
         for (let i = 0; i < numberOfBlocks; i++) {
             blocks.push(new BlockData(i));
         }
@@ -253,4 +284,17 @@ export class Sudoku {
         }
         return cell;
     }
+
+    /**
+     * Clear user input. Cloning is not needed because of useEffect in {@link Board} component
+     */
+    public clearUserInput(): Sudoku {
+        for (let cell of this.getFlatCells()) {
+            if (!cell.isInitial) {
+                cell.value = CellValue.EMPTY;
+            }
+        }
+        return this;
+    }
 }
+

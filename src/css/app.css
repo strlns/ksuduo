@@ -15,14 +15,23 @@ footer {
     border-radius: .75rem 0 0 0;
     color: #cfcfcf;
 }
+input[type='number'] {
+    -moz-appearance:textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
 .board {
     display: inline-grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: flex-start;
-    grid-auto-flow: row dense;
+    min-width: 24rem;
 }
 .block {
     display: table;
+    table-layout: fixed;
     border: 3px solid black;
 }
 .block .row {
@@ -35,10 +44,17 @@ footer {
     text-align: center;
     border: 2px solid grey;
     position: relative;
-    width: 3.5rem;
-    height: 3.5rem;
     font-size: 1.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
 }
+@media (min-width: 1024px) {
+    .cell {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+}
+
 .cell:focus-within {
     border-color: blue;
 }
@@ -71,44 +87,17 @@ footer {
 .cell.invalid {
     background-color: #ff2f2f;
     color: black;
-    font-style: italic;
+    font-weight: bold;
+}
+.cell.invalid input {
+    font-weight: bold;
 }
 .cell.invalid.fixed {
+    font-style: italic;
     cursor: not-allowed;
     background-color: #f0bf9f;
     box-shadow: inset 0 0 0 4px #ff2f2f;
 }
 h1, h2 {
     text-align: center;
-}
-.app-main {
-    margin: auto;
-    width: 100%;
-    padding: 2rem;
-}
-@media (min-width: 1200px) {
-    .app-main {
-        max-width: 1024px;
-    }
-}
-@media (min-width: 1920px) {
-    .app-main {
-        max-width: 1600px;
-    }
-}
-@media (min-width: 1920px) {
-    .app-main {
-        max-width: 75vw;
-    }
-}
-.app-view {
-    position: relative;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.app-create {
-    display: flex;
-    padding: 1rem;
-    align-items: flex-end;
 }

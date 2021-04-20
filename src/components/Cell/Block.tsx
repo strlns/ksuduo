@@ -9,7 +9,7 @@ import {inputRefs} from "../Board/Board";
 interface BlockProps {
     block: BlockData,
     cellValidityChecker(cell: CellData): boolean,
-    setCellValue(y: CellIndex, x: CellIndex, v: CellValue): void
+    setCellValue(x: CellIndex, y: CellIndex, v: CellValue): void
 }
 
 export const Block = (props: BlockProps) => {
@@ -32,7 +32,7 @@ export const Block = (props: BlockProps) => {
                                 ref={inputRefs[cell.x][cell.y]}
                                 key={key}
                                 cell={cell}
-                                setCellValue={v => state.setCellValue(cell.y, cell.x, v)}
+                                setCellValue={v => state.setCellValue(cell.x, cell.y, v)}
                             />
                         })
                     }

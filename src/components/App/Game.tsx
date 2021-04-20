@@ -1,10 +1,13 @@
 import * as React from "react";
-import Board from "../Board/Board";
+import {Board} from "../Board/Board";
 import '../../css/app.css';
-import CreateNew, {DEFAULT_NUMBER_OF_CLUES} from "../Controls/CreateNew";
+import {DEFAULT_NUMBER_OF_CLUES} from "../Controls/GeneratorConfiguration";
 import generateSudoku, {MINIMUM_CLUES} from "../../generator/generator";
-import {ChangeEvent, useState} from "react";
-import {Typography} from "@material-ui/core";
+import {ChangeEvent, useEffect, useState} from "react";
+import {Box, Container, Grid, Paper, Typography} from "@material-ui/core";
+import {Button} from "../Controls/Button";
+import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
+import {BOARD_SIZE} from "../../model/Sudoku";
 
 export const Game = () => {
     const [state, setState] = useState({
@@ -25,6 +28,10 @@ export const Game = () => {
         setState(prevState => ({...prevState, sudoku: generateSudoku(state.numberOfClues)}));
     }
 
+    const resetSudoku = () => {
+        setState(prevState => ({...prevState, sudoku: prevState.sudoku.clearUserInput()}));
+    }
+
     const isVeryHard = () => state.numberOfClues <= MINIMUM_CLUES;
     const HardWarning = () => {
         return isVeryHard() ? <Typography style={{fontWeight: 'bold', color: '#aa0000'}}>
@@ -33,17 +40,34 @@ export const Game = () => {
             </Typography> :
             null;
     }
-
-    return <div className={"app-main"}>
-        <h1>Ksuduo</h1>
-        <h2>Sudoku Toy Project</h2>
-        <div className={"app-view"}>
-            <Board sudoku={state.sudoku}/>
-            <CreateNew setNumberOfClues={updateNumberOfClues}
-                       submit={newSudoku}/>
-        </div>
-        {isVeryHard() ?
-            <HardWarning/> : null
-        }
-    </div>
+    const percentFilled = () => `
+        ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`
+    return <Container>
+        <Grid container spacing={3} justify={"center"}>
+            <Grid item xs={12}>
+                <h1>Ksuduo</h1>
+                <h2>Sudoku Toy Project</h2>
+            </Grid>
+            <Grid item xs={12} md={8} lg={6}>
+                <Typography>
+                    {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
+                </Typography>
+                <Board sudoku={state.sudoku} cellCallback={() => setState(pS => ({...pS}))}/>
+            </Grid>
+            <Grid item xs={12} md={4} lg={6}>
+                <Box component={Paper} p={4}>
+                    <GeneratorConfiguration setNumberOfClues={updateNumberOfClues} />
+                    {isVeryHard() ?
+                        <HardWarning/> : null
+                    }
+                </Box>
+                <Button onClick={newSudoku} variant="contained" color="primary">
+                    Generate Sudoku
+                </Button>
+                <Button onClick={resetSudoku} variant="contained" color="secondary">
+                    Reset Sudoku
+                </Button>
+            </Grid>
+        </Grid>
+    </Container>
 }

@@ -39,6 +39,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     return <div className={className}>
         <NumInput inputRef={ref}
                   className="value"
+                  type="number"
                   value={formattedValue}
                   onKeyPress={onKeyPress}
                   onKeyUp={onKeyUp}

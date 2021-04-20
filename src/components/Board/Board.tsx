@@ -5,9 +5,11 @@ import {ForwardedRef, KeyboardEventHandler, useEffect, useState} from "react";
 import {Block} from "../Cell/Block";
 import {CellData, CellValue} from "../../model/CellData";
 import {WinnerMessage} from "../Message/WinnerMessage";
+import {Box, Paper} from "@material-ui/core";
 
 interface BoardProps {
-    sudoku: Sudoku
+    sudoku: Sudoku,
+    cellCallback?: Function
 }
 
 interface CellRefMap {
@@ -18,15 +20,24 @@ interface CellRefMap {
 
 export const inputRefs: CellRefMap = {};
 
-const Board = (props: BoardProps) => {
+export const Board = (props: BoardProps) => {
     const [state, setState] = useState(props);
 
-    const setCellValue = (i: CellIndex, j: CellIndex, v: CellValue) => {
+    const setCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
         setState(prevState => {
-            prevState.sudoku.setValue(i, j, v);
+            prevState.sudoku.setValue(x, y, v);
+            if (props.cellCallback) {
+                props.cellCallback.call(state);
+            }
             return {...prevState};
         });
     }
+
+    //make sure that a new Sudoku object triggers re-render, focus first empty cell again
+    useEffect(() => {
+        setState(props);
+        setFocusedCell(state.sudoku.getFirstEmptyCell())
+    }, [props]);
 
     //some VERY ugly and brittle stuff to allow arrow key navigation
     let [focusedCell, setFocusedCell] = useState(state.sudoku.getFirstEmptyCell());
@@ -37,22 +48,18 @@ const Board = (props: BoardProps) => {
         let newCell: CellData = focusedCell;
         switch (e.key) {
             case 'ArrowUp':
-                console.log('ArrowUp')
                 newY = Math.max(focusedCell.y - 1, 0) as CellIndex;
                 newCell = state.sudoku.getCell(focusedCell.x, newY);
                 break;
             case 'ArrowRight':
-                console.log('ArrowRight')
                 newX = Math.min(focusedCell.x + 1, BOARD_WIDTH - 1) as CellIndex;
                 newCell = state.sudoku.getCell(newX, focusedCell.y);
                 break;
             case 'ArrowDown':
-                console.log('ArrowDown')
                 newY = Math.min(focusedCell.y + 1, BOARD_WIDTH - 1) as CellIndex;
                 newCell = state.sudoku.getCell(focusedCell.x, newY);
                 break;
             case 'ArrowLeft':
-                console.log('ArrowLeft')
                 newX = Math.max(focusedCell.x - 1, 0) as CellIndex;
                 newCell = state.sudoku.getCell(newX, focusedCell.y);
                 break;
@@ -66,13 +73,8 @@ const Board = (props: BoardProps) => {
     }, [focusedCell]);
 
 
-    //make sure that a new Sudoku object triggers re-render, focus first empty cell again
-    useEffect(() => {
-        setState(props);
-        setFocusedCell(state.sudoku.getFirstEmptyCell())
-    }, [props]);
 
-    return <div className={'board'} onKeyUp={onKeyUp}>
+    return <Box component={Paper} p={4} className={'board'} onKeyUp={onKeyUp} style={{margin: 'auto'}}>
         {
             state.sudoku.getBlocks().map(
                 (block, index) => {
@@ -85,13 +87,11 @@ const Board = (props: BoardProps) => {
                 }
             )
         }
-        {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE}
         {
             state.sudoku.isComplete() ?
                 <WinnerMessage>
                     Congratulations! You completed the Sudoku successfully.
                 </WinnerMessage> : null
         }
-    </div>
+    </Box>
 };
-export default Board;
