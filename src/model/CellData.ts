@@ -35,7 +35,6 @@ export class CellData {
     public y: CellIndex;
     public isInitial: boolean;
     public isValid: boolean;
-    public isFirstEmptyCell: boolean;
 
     constructor(value: CellValue, x: CellIndex, y: CellIndex, isInitial = false) {
         this.value = value;
@@ -43,7 +42,6 @@ export class CellData {
         this.y = y;
         this.isInitial = isInitial;
         this.isValid = true
-        this.isFirstEmptyCell = false;
     }
 
     public isEmpty(): boolean {

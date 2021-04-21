@@ -7,8 +7,9 @@
     "noImplicitAny": true,
     "module": "es6",
     "moduleResolution": "node",
-    "target": "es6",
+    "target": "es5",
     "allowJs": true,
+    "sourceMap": true,
     "jsx": "react"
   }
 }

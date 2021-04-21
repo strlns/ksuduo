@@ -1,13 +1,13 @@
 import * as React from "react"
 import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
-import {ForwardedRef, SetStateAction} from "react";
+import {ForwardedRef, SetStateAction, useEffect, useState} from "react";
 
 interface CellProps {
     cell: CellData,
     setCellValue(v: CellValue): void,
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
-    isHighlighted: boolean
+    isHighlightedCell(c: CellData): boolean
 }
 
 const NumInput = withStyles({
@@ -21,13 +21,13 @@ const NumInput = withStyles({
 })(Input);
 
 const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElement>) => {
-
-    let className = `cell${props.cell.isInitial ? ' fixed' : ''}\
+    const isHighlighted = () => props.isHighlightedCell(props.cell);
+    const className = `cell${props.cell.isInitial ? ' fixed' : ''}\
     ${props.cell.isValid ? '' : ' invalid'}\
-    ${props.isHighlighted ? 'hint' : ''}
+    ${isHighlighted() ? 'hint' : ''}\
     `;
 
-    let formattedValue = props.cell.isEmpty() ? '' : props.cell.value;
+    const formattedValue = props.cell.isEmpty() ? '' : props.cell.value;
 
     const onKeyPress: React.KeyboardEventHandler = event => {
         if (props.cell.isInitial) return;

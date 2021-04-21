@@ -1,10 +1,14 @@
+/*
+ * (c) 2021 Moritz Rehbach. See LICENSE.txt
+ */
+
 import {CellData, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
 import {cloneDeep} from "lodash-es";
 import pickRandomArrayValue from "../utility/pickRandom";
 import assert from "../utility/assert";
-import {Solution} from "../solver/solver";
+import {Solution, solveWithMattsSolver} from "../solver/solver";
 
 export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -35,7 +39,16 @@ export class Sudoku {
 
     private history: CellValue[][];
 
-    private solution: Solution;
+    private solution: Solution = [];
+
+    constructor(flatValues?: number[]) {
+        this.rows = [];
+        this.history = [];
+        this.initializeEmptyBoard();
+        if (flatValues) {
+            this.initWithFlatArray(flatValues);
+        }
+    }
 
     public setSolution(solution: Solution) {
         this.solution = solution;
@@ -46,6 +59,7 @@ export class Sudoku {
     }
 
     public showSolution(): void {
+
         for (let solutionData of this.getSolution().map(
             (val, index) =>
                 ({
@@ -75,22 +89,18 @@ export class Sudoku {
      * */
     private numberOfFilledCells = 0;
 
-    constructor(flatValues?: number[]) {
-        this.rows = [];
-        this.history = [];
-        this.initializeEmptyBoard();
-        if (flatValues) {
-            this.initWithFlatArray(flatValues);
-        }
-    }
-
     public initWithFlatArray(values: number[]) {
+        this.numberOfFilledCells = 0;
         values.forEach((value, index) => {
             const [x, y] = flatIndexToCoords(index);
             const cell = this.getCell(x, y);
             cell.value = value;
-            cell.isInitial = value as CellValue !== CellValue.EMPTY;
+            if (value as CellValue !== CellValue.EMPTY) {
+                cell.isInitial = true;
+                this.numberOfFilledCells++;
+            }
         });
+        this.solution = solveWithMattsSolver(values);
     }
 
     public undo() {
@@ -130,7 +140,7 @@ export class Sudoku {
                 return;
             }
             for (let x = 0; x < row.length; x++) {
-                const val = this.getAllowedCellValue(y as CellIndex, x as CellIndex);
+                const val = this.getAllowedCellValue(x as CellIndex, y as CellIndex);
                 if (val === CellValue.EMPTY) {
                     itsUnsolvable = true;
                     break;
@@ -169,7 +179,9 @@ export class Sudoku {
         } else if (!wasFilled && value !== CellValue.EMPTY) {
             this.numberOfFilledCells++;
         }
-        this.history.push(this.getFlatValues());
+        if (useHistory) {
+            this.history.push(this.getFlatValues().slice());
+        }
     }
 
     public setCell(cell: CellData, useHistory = true): void {
@@ -180,7 +192,7 @@ export class Sudoku {
         return Object.freeze(this.rows);
     }
 
-    public getFlatValues(): CellValue[] {
+    public getFlatValues(): readonly CellValue[] {
         const res: CellValue[] = [];
         this.rows.forEach(row => {
             res.push(...row.map(cell => cell.value));
@@ -277,7 +289,7 @@ export class Sudoku {
         return res;
     }
 
-    public getAllowedCellValue(y: CellIndex, x: CellIndex): CellValue {
+    public getAllowedCellValue(x: CellIndex, y: CellIndex): CellValue {
         let candidates = CellValues.filter(
             value => !(
                 value === CellValue.EMPTY ||
@@ -287,7 +299,6 @@ export class Sudoku {
             )
         );
         return pickRandomArrayValue(candidates) || CellValue.EMPTY;
-        ;
     }
 
     // noinspection JSUnusedLocalSymbols
@@ -323,6 +334,10 @@ export class Sudoku {
             }
         }
         return res;
+    }
+
+    public permutate() {
+
     }
 
     private isCellValueValid(cellValue: CellValue, x: CellIndex, y: CellIndex) {
@@ -371,14 +386,17 @@ export class Sudoku {
         for (let cell of this.getFlatCells()) {
             if (!cell.isInitial) {
                 cell.value = CellValue.EMPTY;
-                /**
-                 * these annoyances are currently needed to keep {@link numberOfFilledCells} in sync.
-                 */
                 this.setCell(cell, false);
+                /**shouldn't be needed in theory {@link setCell}, but this spaghetti has some hairs in it*/
+                this.numberOfFilledCells--;
             }
         }
         this.history.length = 0; //clear without creating new instance
         return this;
+    }
+
+    public hasSolutionSet(): boolean {
+        return this.solution.length === BOARD_SIZE;
     }
 }
 

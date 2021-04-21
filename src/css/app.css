@@ -35,6 +35,12 @@ input::-webkit-inner-spin-button {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: flex-start;
     max-width: 100%;
+    transition: opacity .25s;
+    opacity: 1;
+}
+.working {
+    opacity: .5;
+    pointer-events: none;
 }
 .block {
     display: table;

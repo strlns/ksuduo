@@ -1,6 +1,16 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
+    devtool: 'source-map',
+    devServer: {
+        contentBase: path.join(__dirname, 'dist'),
+        compress: true,
+        hot: true,
+        hotOnly: true,
+        liveReload: true,
+        port: 8080,
+        watchContentBase: true
+    },
     entry: {
         'main': path.resolve(__dirname, './src/index.tsx')
     },
@@ -16,23 +26,8 @@ module.exports = {
                 test: /\.css$/i,
                 use: [
                     "style-loader",
-                    "css-loader"]
-                /*,{
-                        loader: "postcss-loader",
-                        options: {
-                            postcssOptions: {
-                                plugins: [
-                                    [
-                                        "postcss-preset-env",
-                                        {
-                                            // Options
-                                        },
-                                    ],
-                                ],
-                            },
-                        },
-                    },
-                ],*/
+                    "css-loader"
+                ]
             },
             {
                 test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
@@ -45,7 +40,11 @@ module.exports = {
                         }
                     }
                 ]
-            }
+            },
+            // {
+            //     test: /\.worker\.js$/,
+            //     use: { loader: "worker-loader" },
+            // },
         ],
     },
 
@@ -56,5 +55,11 @@ module.exports = {
     ],
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
-    }
+    },
+    // output: {
+    //     // This is required so workers are known where to be loaded from
+    //     publicPath: "./dist/",
+    //     filename: "./bundle.js",
+    //     path: path.resolve("dist", __dirname),
+    // },
 };

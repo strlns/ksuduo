@@ -12,7 +12,8 @@ import {ThumbUp} from "@material-ui/icons";
 interface BoardProps {
     sudoku: Sudoku,
     cellCallback?: Function,
-    highlightedCell: CellData | undefined,
+    highlightedCell: OptionalCell,
+    forceFocus: OptionalCell
 }
 
 interface CellRefMap {
@@ -23,10 +24,13 @@ interface CellRefMap {
 
 export const inputRefs: CellRefMap = {};
 
-export type HighlightedCell = CellData|undefined;
+export type OptionalCell = CellData|undefined;
 
 export const Board = (props: BoardProps) => {
     const [state, setState] = useState(props);
+    useEffect(() => {
+        setState(props);
+    }, [props]);
 
     const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
 
@@ -43,15 +47,18 @@ export const Board = (props: BoardProps) => {
     //make sure that a new Sudoku object triggers re-render, focus first empty cell again if possible
     useEffect(() => {
         setFocusedCell(state.sudoku.getInitialFocusCell())
-    }, [props.sudoku]);
+    }, [state.sudoku]);
+
 
     useEffect(() => {
-        setState(props);
-    }, [props]);
+        setWinnerModalOpen(state.sudoku.isSolved());
+    }, [state.sudoku.isSolved()]);
 
     useEffect(() => {
-        setWinnerModalOpen(props.sudoku.isSolved());
-    }, [props.sudoku]);
+        if (state.forceFocus instanceof CellData) {
+            setFocusedCell(state.forceFocus);
+        }
+    }, [state.forceFocus]);
 
     // brittle code to allow arrow key navigation.
     // usage of the "global" CellRefMap is non-standard but works.
