@@ -1,49 +1,58 @@
 /*
- * (c) 2021 Moritz Rehbach. See LICENSE.txt
+ * (c) 2021 Moritz Rehbach. GPLv3. See LICENSE.txt
  */
 
-import {BOARD_SIZE, BOARD_WIDTH, CellIndex, coordsToFlatIndex, Sudoku} from '../model/Sudoku';
-import {CellValue} from "../model/CellData";
+import {BOARD_SIZE, BOARD_WIDTH, CellIndex, coordsToFlatIndex, flatIndexToCoords, Sudoku} from '../model/Sudoku';
+import {CellData, CellValue} from "../model/CellData";
 import assert from "../utility/assert";
 import intRange from "../utility/numberRange";
 import pickRandomArrayValue from "../utility/pickRandom";
-import {Solution, solveWithMattsSolver} from "../solver/solver";
+import {Solution, solve, solveWithMattsSolver} from "../solver/solver";
 import arraysEqualSimple from "../utility/arraysEqualSimple";
-import {Simulate} from "react-dom/test-utils";
-import waiting = Simulate.waiting;
+import Cell from "../components/Cell/Cell";
 
 export const MINIMUM_CLUES = 17;
 export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
 export const MAXIMUM_CLUES = Math.min(Math.floor(BOARD_SIZE / 2) + 8, BOARD_SIZE);
 
+class InitiallyUnsolvableError extends Error {
+
+}
+
 /**
  * @param numberOfClues
  */
-
 export default function generateRandomSudoku(numberOfClues: number): Sudoku {
     numberOfClues = Math.floor(numberOfClues);
     const target = BOARD_SIZE - numberOfClues;
     let achievedNumberOfEmptyCells = 0;
-    let board = new Sudoku();
-    const MAX_TOPLEVEL_ITERATIONS = BOARD_SIZE;
+    const MAX_TOPLEVEL_ITERATIONS = 1 << 8;
     let it = 0;
+    let board = new Sudoku();
     while (achievedNumberOfEmptyCells < target && it < MAX_TOPLEVEL_ITERATIONS) {
-        board.initializeEmptyBoard();
+        // console.log("testing a new board. the previous one sucked.");
+        board = new Sudoku();
         let numberOfDeleteTries = 0;
         board.fillWithRandomCompleteSolution();
         board.setSolution(board.getFlatValues() as Solution);
-        const coordsGenerator = randomCoordinatesGenerator(true);
-        while (BOARD_SIZE - numberOfDeleteTries > numberOfClues) {
-            clearCellButOnlyIfSolutionsDontExplode(board, coordsGenerator);
-            //for the majority of initial boards it is impossible to delete the desired number of cells without
+        // const coordsGenerator = randomCoordinatesGenerator(true);
+        while (numberOfDeleteTries < (1 << 8)) {
+            clearCellButOnlyIfSolutionsDontExplode(board);
+            achievedNumberOfEmptyCells = BOARD_SIZE - board.getNumberOfFilledCells();
+            //for many initial boards it is impossible to delete the desired number of cells without
             //making the board an invalid sudoku (multiple solutions, or not solvable by algo)
             numberOfDeleteTries++;
+            if (achievedNumberOfEmptyCells === target) break;
+            // console.log("achieved", achievedNumberOfEmptyCells, "target", target);
         }
-        achievedNumberOfEmptyCells = BOARD_SIZE - board.getNumberOfFilledCells();
         it++;
     }
+    /**
+     * history is used in generator for backtracing. after generating, we clear it.
+     */
+    board.clearHistory();
     if (achievedNumberOfEmptyCells < target) {
-        console.error("SORRY :( I couldn't generate a valid Sudoku.")
+        console.error("SORRY ;( I couldn't generate a valid Sudoku.")
     }
     return board;
 }
@@ -51,34 +60,73 @@ export default function generateRandomSudoku(numberOfClues: number): Sudoku {
 /**
  * Try to estimate if a puzzle has multiple solutions. (a valid Sudoku must have only 1 solution).
  * Add a legal value to a Puzzle, then check if the solution differs from the original.
- * If the maxIterations parameter is kept at its default, EXTREME combinatorial explosion happens.
+ * Combinatorial explosion in JavaScript is a GREAT idea, I know <3
  */
-function hasMultipleSolutionsOrIsUnsolvable(board: Sudoku, maxIterations = 1 << 8): boolean {
+function hasMultipleSolutionsOrIsUnsolvable(board: Sudoku, maxIterations = (1 << 8)): boolean {
     assert(!board.isSolved());
     const flatPuzzle = board.getFlatValues().slice();
+    try {
+        solve(flatPuzzle)
+    } catch (e) {
+        /**
+         * Already unsolvable without filling any more cells.
+         *"Unsolvable" means that the algo can't solve it (so a human can't either.)
+         * Instead of returning true, we throw a special Error.
+         * That's useful because we can cheat in the generator by adding a cell from the solution
+         * and removing another cell instead of starting over with a completely fresh board.
+         */
+        throw new InitiallyUnsolvableError();
+    }
     const solution = board.getSolution();
-    // const triedCoords: string[] = []
+    const cellValuePossibilities = new Map<CellData, CellValue[]>();
+    const emptyCells = board.getEmptyCells();
+    emptyCells.forEach(
+        cell => cellValuePossibilities.set(
+            cell,
+            board.getAllowedCellValues(cell)
+        )
+    );
+    let deadEndCount = 0;
     for (let i = 0; i < maxIterations; i++) {
-        const currentCell = board.getRandomEmptyOrInvalidCell();
-        const currentCoords: [CellIndex, CellIndex] = [currentCell.x, currentCell.y]; //type inference doesnt work here for some reason
-        const newLegalValue = board.getAllowedCellValue(...currentCoords);
-        const currentFlatIndex = coordsToFlatIndex(...currentCoords);
+        const cell = pickRandomArrayValue(emptyCells);
+        if (!cell) {
+            break; //no more cells left (unlikely considering the combinatorial explosion...)
+        }
+        //cast needed because TypeScript can't analyze the populated Map
+        const possibleValuesForThisCell = cellValuePossibilities.get(cell) as CellValue[];
+        const newLegalValue = possibleValuesForThisCell.pop();
+        // //the new length of the array after pop === the index of the value we obtained.
+        // //avoids another indexOf call later.
+        // const currentCellValuePossibilityIndex = possibleValuesForThisCell.length;
+        if (newLegalValue === undefined) {
+            //possible values exhausted, again relatively unlikely.
+            //in this case, the cell is not interesting anymore
+            emptyCells.splice(emptyCells.indexOf(cell), 1);
+            continue;
+        }
+        const currentFlatIndex = coordsToFlatIndex(cell.x, cell.y);
+        //try out a new legal value to test for a new solution.
         flatPuzzle[currentFlatIndex] = newLegalValue;
         try {
-            const solutionAfterAdd = solveWithMattsSolver(flatPuzzle, 1 << 10);
+            const solutionAfterAdd = solveWithMattsSolver(flatPuzzle);
             //if we found a new solution after adding a legal value,
-            //we have multiple solutions - bad.
+            //we have multiple solutions and can return!
             if (!arraysEqualSimple(solution, solutionAfterAdd)) {
-                // console.log("found a 2nd solution");
+                // console.log("found a 2nd solution, backtracking")
                 return true;
             }
-            //if the solution didn't change, reset the modified cell and continue trying
+                //if the solution didn't change, we can ignore this possible value and unset it.
+                //we assume that a new solution arises from ONE added cell.
+            //so we revert the cell to empty if the tested new value didn't lead to a new solution.
             else {
                 flatPuzzle[currentFlatIndex] = CellValue.EMPTY;
             }
         } catch (e) {
-            //sudoku solver couldn't solve it. call it unsolvable.
-            return true;
+            //sudoku solver couldn't solve it.
+            //I'm not sure yet what to do in this case.
+            //It doesn't mean that the puzzle is unsolvable.
+            //(you can add lots of legal values that lead to dead ends)
+            deadEndCount++;
         }
     }
     return false;
@@ -96,27 +144,46 @@ const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<CellIndex[]>
         sudoku.setValue(coords[0], coords[1], CellValue.EMPTY, false);
     }
 }
-/**
- *
- * @param sudoku
- * @param coordsGenerator
- */
-const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, coordsGenerator: Generator<[CellIndex, CellIndex]>): void => {
-    const coords = coordsGenerator.next();
-    if (!coords.done) {
-        //maybe try to work on flat puzzles here (performance, this is done often)
-        sudoku.setValue(coords.value[0], coords.value[1], CellValue.EMPTY, false);
-        if (hasMultipleSolutionsOrIsUnsolvable(sudoku)) {
-            try {
-                sudoku.undo();
-            }
-            catch (e) {
-                //its hopeless, even after undo
-            }
+
+const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku): void => {
+    let maxIterations = 1 << 16;
+    const candidates = sudoku.getFilledCells();
+    for (let i = 0; i < maxIterations; i++) {
+        const cell = pickRandomArrayValue(candidates);
+        if (!cell) {
+            return;
         }
-    } else {
-        //currently obsolete since generator is set to infinite
-        throw new Error("could not clear interesting cell, coordinates exhausted");
+        //Try to clear the cell. Then we test if the puzzle still (probably) has a unique solution
+        sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
+        let isAmbiguousOrInterestinglyUnsolvable: boolean;
+        try {
+            isAmbiguousOrInterestinglyUnsolvable = hasMultipleSolutionsOrIsUnsolvable(sudoku);
+        } catch (e) {
+            //swap a removed cell with a cell from the solution
+            if (e instanceof InitiallyUnsolvableError) {
+                const solutionCellsAlreadyRemoved = sudoku.getSolution().map(
+                    (cellValue, flatIndex) => sudoku.getCell(...flatIndexToCoords(flatIndex)))
+                    .filter(cell => cell.isEmpty());
+                const cellToAdd = pickRandomArrayValue(solutionCellsAlreadyRemoved);
+                assert(cellToAdd instanceof CellData);
+                sudoku.setCell(
+                    cellToAdd as CellData, false
+                );
+                /** no need to remove another cell instead.
+                 * the cell we re-added is not in the candidates array anymore,
+                 and the loop continues to try removing other cells.*/
+            }
+            isAmbiguousOrInterestinglyUnsolvable = false;
+        }
+
+        if (isAmbiguousOrInterestinglyUnsolvable) {
+            sudoku.undo();
+            //seems like we shouldnt remove this cell.
+            candidates.splice(candidates.indexOf(cell), 1);
+        } else {
+            // console.log("cleared cell", cell.x, cell.y)
+            break;
+        }
     }
 }
 

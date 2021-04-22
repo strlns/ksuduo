@@ -57,9 +57,10 @@ input::-webkit-inner-spin-button {
     text-align: center;
     border: 2px solid grey;
     position: relative;
-    transition: background .5s ease, border .25s ease;
+    transition: background .5s ease, box-shadow .25s ease;
     width: 1.75rem;
     height: 1.75rem;
+    box-shadow: inset 0 0 0 0 grey;
 }
 @media (max-width: 960px) {
     .MuiInputBase-input {
@@ -122,18 +123,18 @@ input::-webkit-inner-spin-button {
     box-shadow: inset 0 0 0 4px #ff2f2f;
 }
 .cell:focus-within {
-    border-color: #3f51b5;
-    border-width: 5px;
+    /*border-color: #3f51b5;*/
+    box-shadow: inset 0 0 0 4px #3f51b5;
 }
 .cell.fixed:focus-within {
-    border-color: inherit;
-    border-width: 3px;
+    box-shadow: inset 0 0 0 4px #3f51b5;
 }
 .cell.invalid:focus-within {
-    border-color: #30236d;
+    box-shadow: inset 0 0 0 4px #30236d;
 }
 .cell.hint {
-    background-color: lime;
+    background-color: #a2ffa2;
+    box-shadow: inset 0 0 0 4px #37de95;
 }
 h1, h2 {
     font-family: "Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif;

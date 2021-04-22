@@ -2,15 +2,15 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
     devtool: 'source-map',
-    devServer: {
-        contentBase: path.join(__dirname, 'dist'),
-        compress: true,
-        hot: true,
-        hotOnly: true,
-        liveReload: true,
-        port: 8080,
-        watchContentBase: true
-    },
+    // devServer: {
+    //     contentBase: path.join(__dirname, 'dist'),
+    //     compress: true,
+    //     hot: true,
+    //     hotOnly: true,
+    //     liveReload: true,
+    //     port: 8080,
+    //     watchContentBase: true
+    // },
     entry: {
         'main': path.resolve(__dirname, './src/index.tsx')
     },
@@ -41,10 +41,10 @@ module.exports = {
                     }
                 ]
             },
-            // {
-            //     test: /\.worker\.js$/,
-            //     use: { loader: "worker-loader" },
-            // },
+            {
+                test: /\.worker\.(js)$/,
+                use: { loader: "worker-loader" },
+            },
         ],
     },
 

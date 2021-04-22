@@ -5,7 +5,8 @@ const ctx: Worker = self as any;
 
 export enum WORKER_ACTIONS {
     SOLVE,
-    GENERATE
+    GENERATE,
+    TEST
 }
 
 export const MSGEVT_SOURCE = 'ksuduo';
@@ -19,6 +20,9 @@ ctx.addEventListener("message", (msgEvent: MessageEvent) => {
         case WORKER_ACTIONS.GENERATE:
             const sudoku = generateRandomSudoku(msgEvent.data.data[1]);
             ctx.postMessage(sudoku.getFlatValues().map(cellValue => cellValue as number))
+            break;
+        case WORKER_ACTIONS.TEST:
+            ctx.postMessage("Test successful.");
             break;
         default:
             console.error(msgEvent);

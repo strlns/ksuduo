@@ -2,6 +2,8 @@ import {BOARD_SIZE, Sudoku} from "../model/Sudoku";
 import assert from "../utility/assert";
 import {CellValue} from "../model/CellData";
 
+export type Puzzle = Sudoku|CellValue[]|number[];
+
 let mattsSolver = require('@mattflow/sudoku-solver/index');
 /**
  * This function should return all solutions to a sudoku, or an empty array
@@ -9,7 +11,7 @@ let mattsSolver = require('@mattflow/sudoku-solver/index');
  * @param sudoku
  * @param solver
  */
-export function solve(sudoku: Sudoku, solver: SOLVERS = SOLVERS.MATTFLOW): Solution {
+export function solve(sudoku: Puzzle, solver: SOLVERS = SOLVERS.MATTFLOW): Solution {
     switch (solver) {
         case SOLVERS.MATTFLOW:
             return solveWithMattsSolver(sudoku);

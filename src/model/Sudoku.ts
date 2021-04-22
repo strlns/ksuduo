@@ -8,7 +8,7 @@ import arrayChunk from "../utility/arrayChunk";
 import {cloneDeep} from "lodash-es";
 import pickRandomArrayValue from "../utility/pickRandom";
 import assert from "../utility/assert";
-import {Solution, solveWithMattsSolver} from "../solver/solver";
+import {Solution, solve, solveWithMattsSolver} from "../solver/solver";
 
 export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -30,6 +30,10 @@ export const coordsToFlatIndex = (x: CellIndex, y: CellIndex): number => {
     return y * BOARD_WIDTH + x;
 }
 
+export class CouldNotSolveSudokuPassedToConstructorError extends Error {
+
+}
+
 export class Sudoku {
     /**
      * main source of truth.
@@ -37,7 +41,12 @@ export class Sudoku {
      */
     private readonly rows: CellData[][];
 
-    private history: CellValue[][];
+    /**
+     * history stored as array of flat board states (2nd dimension contains Array(81)<CellData>).
+     * history is only filled for user input and hints (not while generating) and cleared on reset.
+     * @private
+     */
+    private history: CellData[][];
 
     private solution: Solution = [];
 
@@ -46,7 +55,12 @@ export class Sudoku {
         this.history = [];
         this.initializeEmptyBoard();
         if (flatValues) {
-            this.initWithFlatArray(flatValues);
+            try {
+                this.initWithNumbers(flatValues);
+            }
+            catch (e) {
+                throw new CouldNotSolveSudokuPassedToConstructorError();
+            }
         }
     }
 
@@ -58,6 +72,14 @@ export class Sudoku {
         return this.solution;
     }
 
+    public clearHistory(): void {
+        this.history.length = 0;
+    }
+
+    public isHistoryEmpty(): boolean {
+        return this.history.length === 0;
+    }
+
     public showSolution(): void {
 
         for (let solutionData of this.getSolution().map(
@@ -67,7 +89,7 @@ export class Sudoku {
                     val
                 })
         ).filter(data => !data.cell.isInitial)) {
-            this.setValue(solutionData.cell.x, solutionData.cell.y, solutionData.val);
+            this.setValue(solutionData.cell.x, solutionData.cell.y, solutionData.val, false);
         }
     }
 
@@ -77,40 +99,51 @@ export class Sudoku {
         }
     }
 
-    /**
-     * history stored as array of flat board states (2nd dimension contains Array(81)<CellValue>).
-     * history is only filled for user input and hints (not while generating) and cleared on reset.
-     * @private
-     */
-
-    /**
-     * shortcut to make calls to {@link isSolved} and similar methods less wasteful.
-     * in retrospect it is also a huge annoyance and design flaw
-     * */
-    private numberOfFilledCells = 0;
-
-    public initWithFlatArray(values: number[]) {
-        this.numberOfFilledCells = 0;
+    public initWithNumbers(values: number[]) {
         values.forEach((value, index) => {
             const [x, y] = flatIndexToCoords(index);
             const cell = this.getCell(x, y);
             cell.value = value;
             if (value as CellValue !== CellValue.EMPTY) {
                 cell.isInitial = true;
-                this.numberOfFilledCells++;
             }
         });
-        this.solution = solveWithMattsSolver(values);
+        try {
+            this.solution = solve(values);
+        }
+        catch (e) {
+            throw e;
+        }
+
+    }
+
+    public initWithFlatCellData(cells: CellData[]) {
+        cells.forEach((cell, index) => {
+            const [x, y] = flatIndexToCoords(index);
+            this.setCell(cell, false);
+        });
     }
 
     public undo() {
         assert(this.history.length > 0, 'Cannot undo, history empty.');
         const values = this.history.pop();
-        this.initWithFlatArray(values as number[]);
+        // cast needed because TypeScript doesn't understand my custom assert()
+        // (which guarantees the result of pop() cannot be undefined)
+        this.initWithFlatCellData(values as CellData[]);
     }
 
+    /**
+     * Previously, I did this with a dedicated variable keeping track of the filled cells.
+     * But this "functional" approach is way less error-prone.
+     * The many array iterations are not optimized -
+     * in practise it does not impact performance at all here. Array chaining methods FTW!
+     */
     public getNumberOfFilledCells(): number {
-        return this.numberOfFilledCells;
+        return this.getFilledCells().length;
+    }
+
+    public getFilledCells(): CellData[] {
+        return this.getFlatCells().filter(cell => cell.value !== CellValue.EMPTY);
     }
 
     /**
@@ -130,7 +163,6 @@ export class Sudoku {
                 this.addCell(new CellData(CellValue.EMPTY, x as CellIndex, y as CellIndex));
             }
         }
-        this.numberOfFilledCells = 0;
     }
 
     public fillWithRandomCompleteSolution() {
@@ -162,26 +194,21 @@ export class Sudoku {
     /**
      * set a new cell value by coordinates.
      * The previous cell object is replaced to trigger a re-render.
-     * @param x
-     * @param y
-     * @param value
-     * @param fixed
+     * @param x column index
+     * @param y row index
+     * @param value cell value
+     * @param fixed if the cell was part of the initial puzzle
+     * @param useHistory if the operation should be saved to history
      */
     public setValue(x: CellIndex, y: CellIndex, value: CellValue, fixed = false, useHistory = true) {
+        if (useHistory) {
+            this.history.push(this.getFlatCells().slice());
+        }
         const cell = this.rows[y][x];
         const newCell = cloneDeep(cell);
-        const wasFilled = cell.value !== CellValue.EMPTY;
         newCell.isInitial = fixed;
         newCell.value = value;
         this.rows[y][x] = newCell;
-        if (wasFilled && value === CellValue.EMPTY) {
-            this.numberOfFilledCells--;
-        } else if (!wasFilled && value !== CellValue.EMPTY) {
-            this.numberOfFilledCells++;
-        }
-        if (useHistory) {
-            this.history.push(this.getFlatValues().slice());
-        }
     }
 
     public setCell(cell: CellData, useHistory = true): void {
@@ -193,11 +220,9 @@ export class Sudoku {
     }
 
     public getFlatValues(): readonly CellValue[] {
-        const res: CellValue[] = [];
-        this.rows.forEach(row => {
-            res.push(...row.map(cell => cell.value));
-        })
-        return res;
+        return this.rows.reduce((prev, curr) => {
+            return prev.concat(curr);
+        }, []).map(cellData => cellData.value);
     }
 
     public getFlatCells(): readonly CellData[] {
@@ -243,7 +268,7 @@ export class Sudoku {
         return [];
     }
 
-    public getValue(y: CellIndex, x: CellIndex): CellValue {
+    public getValue(x: CellIndex, y: CellIndex): CellValue {
         return this.rows[y][x].value;
     }
 
@@ -290,7 +315,15 @@ export class Sudoku {
     }
 
     public getAllowedCellValue(x: CellIndex, y: CellIndex): CellValue {
-        let candidates = CellValues.filter(
+        return pickRandomArrayValue(this.getAllowedCellValuesByCoords(x, y)) || CellValue.EMPTY;
+    }
+
+    public getAllowedCellValues(cell: CellData): CellValue[] {
+        return this.getAllowedCellValuesByCoords(cell.x, cell.y);
+    }
+
+    public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex): CellValue[] {
+        return CellValues.filter(
             value => !(
                 value === CellValue.EMPTY ||
                 this.getRowValues(y).includes(value) ||
@@ -298,7 +331,6 @@ export class Sudoku {
                 || this.getFlatBlockValuesForCoords(x, y).includes(value)
             )
         );
-        return pickRandomArrayValue(candidates) || CellValue.EMPTY;
     }
 
     // noinspection JSUnusedLocalSymbols
@@ -353,8 +385,7 @@ export class Sudoku {
     }
 
     public isSolved(): boolean {
-        return this.numberOfFilledCells === BOARD_SIZE &&
-            this.getFlatCells().every(
+        return this.getFlatCells().every(
                 cell => cell.value !== CellValue.EMPTY && this.isCellValid(cell)
             );
     }
@@ -382,17 +413,14 @@ export class Sudoku {
     /**
      * Clear user input / hints.
      */
-    public clearUserInput(): Sudoku {
+    public reset(): void {
         for (let cell of this.getFlatCells()) {
             if (!cell.isInitial) {
                 cell.value = CellValue.EMPTY;
                 this.setCell(cell, false);
-                /**shouldn't be needed in theory {@link setCell}, but this spaghetti has some hairs in it*/
-                this.numberOfFilledCells--;
             }
         }
-        this.history.length = 0; //clear without creating new instance
-        return this;
+        this.clearHistory();
     }
 
     public hasSolutionSet(): boolean {

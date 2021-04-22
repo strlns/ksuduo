@@ -1,0 +1,17 @@
+Index: src/components/App/Game.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/components/App/Game.tsx b/src/components/App/Game.tsx
+--- a/src/components/App/Game.tsx	(date 1619082676390)
++++ b/src/components/App/Game.tsx	(date 1619082676390)
+@@ -217,7 +217,7 @@
+                 </Grid>
+                 <Grid item>
+                     <PaperBox p={4} mt={2} position={"relative"}>
+-                        {state.isWorking ? <CircularProgress style={{position:'absolute', left: '50%', transform:'translateX(-50%)'}} size={4}/> : null}
++                        {state.isWorking ? <CircularProgress style={{position:'absolute', left: '50%', transform:'translateX(-50%)'}}/> : null}
+                         <Button onClick={newSudoku} variant="contained" color="primary">
+                             Generate Sudoku
+                         </Button>
