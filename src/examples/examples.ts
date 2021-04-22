@@ -1,3 +1,7 @@
+/**
+ * some quick examples for testing, currently unused.
+ */
+
 //source: https://www.sudokuwiki.org/Weekly_Sudoku.asp
 export const evilSudoku = [
     1, 2, 0, 0, 3, 0, 0, 0, 0,
@@ -22,3 +26,4 @@ export const easySudoku = [
     8, 0, 1, 6, 2, 0, 3, 9, 0,
     9, 0, 0, 5, 4, 3, 0, 1, 0
 ]
+

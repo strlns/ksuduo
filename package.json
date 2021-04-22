@@ -30,7 +30,7 @@
   },
   "license": "GPL-3.0-or-later",
   "main": "src/index.tsx",
-  "name": "sudoku",
+  "name": "ksuduo",
   "private": true,
   "scripts": {
     "build": "webpack --mode production",

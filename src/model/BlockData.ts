@@ -1,4 +1,4 @@
-import {BLOCK_WIDTH, CellIndex, Sudoku} from "./Sudoku";
+import {BLOCK_WIDTH, CellIndex} from "./Sudoku";
 import {CellData} from "./CellData";
 import arrayChunk from "../utility/arrayChunk";
 

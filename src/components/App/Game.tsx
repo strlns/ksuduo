@@ -3,12 +3,13 @@
  */
 
 import * as React from "react";
+import {ChangeEvent, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
 import generateRandomSudoku, {DEFAULT_CLUES, MINIMUM_CLUES} from "../../generator/generator";
-import {ChangeEvent, useEffect, useState} from "react";
 import {
-    Box, CircularProgress,
+    Box,
+    CircularProgress,
     Container,
     FormControl,
     FormHelperText,
@@ -23,11 +24,12 @@ import {BOARD_SIZE, CouldNotSolveSudokuPassedToConstructorError, Sudoku} from ".
 import {SOLVERS} from "../../solver/solver";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
-import {easySudoku} from "../../examples/examples";
 
 import SudokuWorker from "worker-loader!../../worker/sudoku.worker";
-import {WORKER_ACTIONS} from "../../worker/sudoku.worker";
+import {MSGEVT_SOURCE, WORKER_ACTIONS} from "../../worker/sudoku.worker";
 import testWorker from "../../worker/testWorkerActualyWorks";
+import {boardFromLocalStorage, persist} from "../../persistence/localStorage";
+
 let sudokuWorker: Worker;
 let useWebWorker = false;
 if (window.Worker) {
@@ -36,12 +38,10 @@ if (window.Worker) {
         window.onbeforeunload = () => {
             sudokuWorker.terminate();
         }
-    }
-    catch (e) {
+    } catch (e) {
         console.error(e);
     }
 }
-const initialBoard = new Sudoku(easySudoku);
 
 const checkWebWorkerSupport = async (): Promise<boolean> => {
     return await testWorker();
@@ -53,40 +53,40 @@ const checkWebWorkerSupport = async (): Promise<boolean> => {
 checkWebWorkerSupport().then(
     (value => {
         useWebWorker = value;
-        // console.log("use Worker? " + useWebWorker.toString())
     })
 );
+
+
 export const Game = () => {
     const [state, setState] = useState({
-        sudoku: initialBoard,
+        sudoku: boardFromLocalStorage(),
         numberOfClues: DEFAULT_CLUES,
         generatorSolver: SOLVERS.MATTFLOW,
         errorMsg: '',
         highlightedCell: undefined as OptionalCell,
         isWorking: false,
-        forceFocus: undefined as OptionalCell
+        forceFocus: undefined as OptionalCell,
+        solvedByApp: false
     });
 
-    const updateNumberOfClues = (e: ChangeEvent, numberOfClues: number): void => {
-        setState(prevState => {
-            return ({
-                ...prevState,
-                numberOfClues
-            });
-        })
-    };
+    const resetStateCommons = {
+        solvedByApp: false,
+        errorMsg: '',
+        highlightedCell: undefined,
+        isWorking: false
+    }
 
-    const newSudoku = () => {
+    const generateSudoku = () => {
+        let invalidInitialSudokuAccidents = 0; //see `catch` below, should happen very rarely
         if (useWebWorker) {
             if (state.isWorking) return;
             setState(prevState => ({...prevState, isWorking: true}));
             sudokuWorker.postMessage({
-                source: 'ksuduo',
+                source: MSGEVT_SOURCE,
                 data: [WORKER_ACTIONS.GENERATE, state.numberOfClues]
             });
             const listener = (event: MessageEvent) => {
                 try {
-                    const sudoku = new Sudoku(event.data);
                     setState(prevState =>
                         ({
                             ...prevState,
@@ -95,23 +95,24 @@ export const Game = () => {
                         })
                     );
                     sudokuWorker.removeEventListener("message", listener);
-                }
-                catch (e) {
+                } catch (e) {
                     //in RARE cases, the generator still produces unsolvable Sudokus.
                     //this is currently hard to handle in the correct place, so we retry here.
+                    //warts and all - it works.
                     if (e instanceof CouldNotSolveSudokuPassedToConstructorError) {
-                        console.error(e);
+                        console && console.error(e);
+                        invalidInitialSudokuAccidents++;
                         //set isWorking to false to circumvent early return in recursive call.
                         setState(prevState => ({...prevState, isWorking: false}));
+                        if (invalidInitialSudokuAccidents > 16) return;
                         sudokuWorker.terminate();
                         sudokuWorker = new SudokuWorker();
-                        newSudoku();
+                        generateSudoku();
                     }
                 }
             }
             sudokuWorker.addEventListener('message', listener);
-        }
-        else {
+        } else {
             // console.log("Worker: falling back");
             setState(prevState => ({...prevState, isWorking: true}));
             const sudoku = generateRandomSudoku(state.numberOfClues);
@@ -125,31 +126,47 @@ export const Game = () => {
         }
     }
 
+    //no Sudoku in localStorage
+    // if (state.sudoku.isEmpty()) {
+    //     generateSudoku();
+    // }
+
+    const updateNumberOfClues = (e: ChangeEvent, numberOfClues: number): void => {
+        setState(prevState => {
+            return ({
+                ...prevState,
+                numberOfClues
+            });
+        })
+    };
+
     const resetSudoku = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.reset();
         setState(prevState => ({
             ...prevState,
-            sudoku,
-            highlightedCell: undefined,
-            errorMsg: '',
-            isWorking: false
+            sudoku: sudoku,
+            ...resetStateCommons
         }));
+        if (state.sudoku.isEmpty()) {
+            generateSudoku();
+        }
     }
 
     const solveSudoku = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.showSolution();
-        setState(prevState => ({...prevState, sudoku}));
+        setState(prevState => ({...prevState, sudoku, ...resetStateCommons, solvedByApp: true}));
     }
-
-    useEffect(() => {
-        updateCallback()
-    }, [state.highlightedCell, state.generatorSolver, state.sudoku]);
 
     const updateCallback = () => {
         setState(prevState => ({...prevState, errorMsg: '', isWorking: false}));
+        if (!state.sudoku.isEmpty()) {
+            persist(state.sudoku);
+        }
     }
+
+    useEffect(updateCallback, [state.highlightedCell, state.generatorSolver, state.sudoku]);
 
     const selectSolver: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
         setState(prevState => ({...prevState, solver: +event.target.value as SOLVERS}))
@@ -173,7 +190,13 @@ export const Game = () => {
             if (value !== undefined) {
                 const sudoku = cloneDeep(state.sudoku);
                 sudoku.setValue(cell.x, cell.y, value);
-                setState(prevState => ({...prevState, sudoku, highlightedCell: cell, forceFocus: cell}));
+                setState(prevState => ({
+                    ...prevState,
+                    sudoku,
+                    highlightedCell: cell,
+                    forceFocus: cell,
+                    solvedByApp: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1
+                }));
                 setTimeout(() => {
                     setState(prevState => ({...prevState, highlightedCell: undefined, forceFocus: undefined}))
                 }, 250);
@@ -185,12 +208,15 @@ export const Game = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.undo();
         setState(prevState => ({
-            ...prevState, sudoku
+            ...prevState,
+            sudoku,
+            solvedByApp: false
         }));
     }
 
     const percentFilled = () => `
-        ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`
+        ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`;
+
     return <Container style={{position: 'relative'}}>
         <Grid container spacing={3} justify={"center"}>
             <Grid item xs={12}>
@@ -203,19 +229,20 @@ export const Game = () => {
                         {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
                     </Typography>
                     <Board
-                           sudoku={state.sudoku}
-                           cellCallback={updateCallback}
-                           highlightedCell={state.highlightedCell}
-                           forceFocus={state.forceFocus}
+                        solutionIsFromApp={state.solvedByApp}
+                        sudoku={state.sudoku}
+                        cellCallback={updateCallback}
+                        highlightedCell={state.highlightedCell}
+                        forceFocus={state.forceFocus}
                     />
 
                     <Box display={"flex"} justifyContent={"space-between"} flexWrap={"wrap"}>
                         <Button style={{flexBasis: '45%'}} onClick={resetSudoku} variant="outlined"
                                 color="secondary">
-                            Reset Sudoku
+                            Reset
                         </Button>
                         <Button style={{flexBasis: '45%'}} onClick={giveHint} variant="outlined" color="default">
-                            Give me a hint (fill a cell)
+                            Hint
                         </Button>
                         <Button disabled={state.sudoku.isHistoryEmpty()} onClick={undo}>
                             Undo
@@ -235,11 +262,11 @@ export const Game = () => {
                 </Grid>
                 <Grid item>
                     <PaperBox p={4} mt={2} position={"relative"}>
-                        {state.isWorking ? <CircularProgress style={{position:'absolute', left: '50%', transform:'translateX(-50%)'}}/> : null}
-                        <Button onClick={newSudoku} variant="contained" color="primary">
+                        {state.isWorking ? <CircularProgress
+                            style={{position: 'absolute', left: '50%', transform: 'translateX(-50%)'}}/> : null}
+                        <Button onClick={generateSudoku} variant="contained" color="primary">
                             Generate Sudoku
                         </Button>
-
                         <FormControl style={{width: '100%', marginTop: '1rem'}}>
                             <InputLabel htmlFor="solver-select">Generation strategy</InputLabel>
                             <NativeSelect

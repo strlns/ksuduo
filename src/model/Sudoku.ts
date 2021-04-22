@@ -8,7 +8,7 @@ import arrayChunk from "../utility/arrayChunk";
 import {cloneDeep} from "lodash-es";
 import pickRandomArrayValue from "../utility/pickRandom";
 import assert from "../utility/assert";
-import {Solution, solve, solveWithMattsSolver} from "../solver/solver";
+import {Solution, solve} from "../solver/solver";
 
 export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -43,10 +43,9 @@ export class Sudoku {
 
     /**
      * history stored as array of flat board states (2nd dimension contains Array(81)<CellData>).
-     * history is only filled for user input and hints (not while generating) and cleared on reset.
-     * @private
+     * history is only filled for user input and hints and cleared on reset.
      */
-    private history: CellData[][];
+    public history: CellData[][];
 
     private solution: Solution = [];
 
@@ -56,7 +55,9 @@ export class Sudoku {
         this.initializeEmptyBoard();
         if (flatValues) {
             try {
-                this.initWithNumbers(flatValues);
+                if (flatValues) {
+                    this.initWithNumbers(flatValues);
+                }
             }
             catch (e) {
                 throw new CouldNotSolveSudokuPassedToConstructorError();
@@ -268,7 +269,18 @@ export class Sudoku {
         return [];
     }
 
-    public getValue(x: CellIndex, y: CellIndex): CellValue {
+    public isEmpty(): boolean {
+        return this.getEmptyCells().length === BOARD_SIZE;
+    }
+
+    /**
+     *
+     * @param x
+     * @param y
+     * @private
+     * @deprecated
+     */
+    private getValue(x: CellIndex, y: CellIndex): CellValue {
         return this.rows[y][x].value;
     }
 

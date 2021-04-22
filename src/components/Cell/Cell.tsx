@@ -1,7 +1,7 @@
 import * as React from "react"
+import {ForwardedRef, SetStateAction} from "react"
 import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
-import {ForwardedRef, SetStateAction, useEffect, useState} from "react";
 
 interface CellProps {
     cell: CellData,

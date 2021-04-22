@@ -1,6 +1,6 @@
-import { FunctionComponent } from 'react'
-import { Box, BoxProps, Paper, PaperProps } from '@material-ui/core'
-import * as React from 'react';
+import * as React from 'react'
+import {FunctionComponent} from 'react'
+import {Box, BoxProps, Paper, PaperProps} from '@material-ui/core'
 
 type PaperBoxProps = BoxProps & PaperProps;
 

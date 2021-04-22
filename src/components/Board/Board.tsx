@@ -1,7 +1,6 @@
 import * as React from "react";
-import {BOARD_WIDTH, CellIndex, Sudoku} from "../../model/Sudoku";
-
 import {ForwardedRef, KeyboardEventHandler, useEffect, useState} from "react";
+import {BOARD_WIDTH, CellIndex, Sudoku} from "../../model/Sudoku";
 import {Block} from "../Cell/Block";
 import {CellData, CellValue} from "../../model/CellData";
 import {WinnerMessage} from "../Message/WinnerMessage";
@@ -13,7 +12,8 @@ interface BoardProps {
     sudoku: Sudoku,
     cellCallback?: Function,
     highlightedCell: OptionalCell,
-    forceFocus: OptionalCell
+    forceFocus: OptionalCell,
+    solutionIsFromApp: boolean
 }
 
 interface CellRefMap {
@@ -51,7 +51,7 @@ export const Board = (props: BoardProps) => {
 
 
     useEffect(() => {
-        setWinnerModalOpen(state.sudoku.isSolved());
+        setWinnerModalOpen(state.sudoku.isSolved() && !state.solutionIsFromApp);
     }, [state.sudoku.isSolved()]);
 
     useEffect(() => {
