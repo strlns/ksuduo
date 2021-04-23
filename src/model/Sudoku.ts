@@ -1,7 +1,3 @@
-/*
- * (c) 2021 Moritz Rehbach. See LICENSE.txt
- */
-
 import {CellData, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
@@ -58,8 +54,7 @@ export class Sudoku {
                 if (flatValues) {
                     this.initWithNumbers(flatValues);
                 }
-            }
-            catch (e) {
+            } catch (e) {
                 throw new CouldNotSolveSudokuPassedToConstructorError();
             }
         }
@@ -111,16 +106,14 @@ export class Sudoku {
         });
         try {
             this.solution = solve(values);
-        }
-        catch (e) {
+        } catch (e) {
             throw e;
         }
 
     }
 
     public initWithFlatCellData(cells: CellData[]) {
-        cells.forEach((cell, index) => {
-            const [x, y] = flatIndexToCoords(index);
+        cells.forEach((cell) => {
             this.setCell(cell, false);
         });
     }
@@ -273,6 +266,7 @@ export class Sudoku {
         return this.getEmptyCells().length === BOARD_SIZE;
     }
 
+    // noinspection JSUnusedLocalSymbols
     /**
      *
      * @param x
@@ -398,8 +392,8 @@ export class Sudoku {
 
     public isSolved(): boolean {
         return this.getFlatCells().every(
-                cell => cell.value !== CellValue.EMPTY && this.isCellValid(cell)
-            );
+            cell => cell.value !== CellValue.EMPTY && this.isCellValid(cell)
+        );
     }
 
     public getInitialFocusCell(): CellData {

@@ -1,21 +1,33 @@
-/*
- * (c) 2021 Moritz Rehbach. See LICENSE.txt
- */
-
+import {makeStyles, ThemeProvider} from "@material-ui/styles";
 import * as React from "react";
 import {ChangeEvent, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
-import generateRandomSudoku, {DEFAULT_CLUES, MINIMUM_CLUES} from "../../generator/generator";
+import generateRandomSudoku, {
+    DEFAULT_CLUES,
+    MINIMUM_CLUES,
+    verboseGeneratorExplanationText
+} from "../../generator/generator";
+import {
+    CheckCircleRounded,
+    EmojiObjectsRounded,
+    HelpOutlineRounded,
+    HighlightOffRounded,
+    HighlightRounded,
+    SentimentSatisfiedRounded,
+    UndoRounded
+} from '@material-ui/icons';
 import {
     Box,
-    CircularProgress,
     Container,
     FormControl,
     FormHelperText,
     Grid,
+    IconButton,
     InputLabel,
+    Modal,
     NativeSelect,
+    Theme,
     Typography
 } from "@material-ui/core";
 import {Button} from "../Controls/Button";
@@ -27,19 +39,23 @@ import {cloneDeep} from "lodash-es";
 
 import SudokuWorker from "worker-loader!../../worker/sudoku.worker";
 import {MSGEVT_SOURCE, WORKER_ACTIONS} from "../../worker/sudoku.worker";
-import testWorker from "../../worker/testWorkerActualyWorks";
+import testWorker from "../../worker/testWorkerActuallyWorks";
 import {boardFromLocalStorage, persist} from "../../persistence/localStorage";
+import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
+import {GenerateButton} from "../Controls/GenerateButton";
+import {ModalBaseStyles} from "../Message/ModalBaseStyles";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
+
 if (window.Worker) {
     try {
         sudokuWorker = new SudokuWorker();
         window.onbeforeunload = () => {
             sudokuWorker.terminate();
         }
-    } catch (e) {
-        console.error(e);
+    } catch {
+        /** Nothing to handle here. See {@link useWebWorker}.*/
     }
 }
 
@@ -56,8 +72,10 @@ checkWebWorkerSupport().then(
     })
 );
 
-
 export const Game = () => {
+    if (IS_DEVELOPMENT) {
+        console.log(useWebWorker ? 'Using web worker, test succeeded.' : 'Falling back to synchronous puzzle generation.')
+    }
     const [state, setState] = useState({
         sudoku: boardFromLocalStorage(),
         numberOfClues: DEFAULT_CLUES,
@@ -113,7 +131,9 @@ export const Game = () => {
             }
             sudokuWorker.addEventListener('message', listener);
         } else {
-            // console.log("Worker: falling back");
+            if (IS_DEVELOPMENT) {
+                console.log("Falling back to synchronous generation.");
+            }
             setState(prevState => ({...prevState, isWorking: true}));
             const sudoku = generateRandomSudoku(state.numberOfClues);
             setState(prevState =>
@@ -127,9 +147,9 @@ export const Game = () => {
     }
 
     //no Sudoku in localStorage
-    // if (state.sudoku.isEmpty()) {
-    //     generateSudoku();
-    // }
+    if (state.sudoku.isEmpty()) {
+        generateSudoku();
+    }
 
     const updateNumberOfClues = (e: ChangeEvent, numberOfClues: number): void => {
         setState(prevState => {
@@ -153,7 +173,7 @@ export const Game = () => {
         }
     }
 
-    const solveSudoku = () => {
+    const showSolution = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.showSolution();
         setState(prevState => ({...prevState, sudoku, ...resetStateCommons, solvedByApp: true}));
@@ -172,17 +192,17 @@ export const Game = () => {
         setState(prevState => ({...prevState, solver: +event.target.value as SOLVERS}))
     }
 
-    const showClueNumWarning = () => {
+    const showMinClueInfo = () => {
         return state.numberOfClues <= MINIMUM_CLUES && state.sudoku.getNumberOfFilledCells() > MINIMUM_CLUES;
     }
 
-    const HardWarning = () => {
-        return showClueNumWarning() ? <Typography component={"legend"} style={{color: '#aa0000'}}>
-                Are you sure you can handle this? The minimum number of clues for a solvable Sudoku
-                has been proven to be 17.
+    const MinClueInfo = () => {
+        return showMinClueInfo() ? <Typography component={"legend"} style={{color: '#aa0000'}}>
+                The minimum number of clues for a solvable Sudoku has been proven to be 17! <SentimentSatisfiedRounded/>
             </Typography> :
             null;
     }
+
     const giveHint = () => {
         if (!(state.sudoku.isSolved() || state.isWorking)) {
             const cell = state.sudoku.getRandomEmptyOrInvalidCell();
@@ -214,8 +234,20 @@ export const Game = () => {
         }));
     }
 
+    /**
+     * I don't know about the perfomance implications of 1 "god" state object VS multiple useState hooks.
+     * A separate hook is more convenient here.*/
+    const [isExplanationModalOpen, setExplanationModalOpen] = React.useState(false);
+
     const percentFilled = () => `
         ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`;
+
+    const wFullMarginTop = makeStyles((theme: Theme) => ({
+        root: {
+            marginTop: theme.spacing(2),
+            width: '100%'
+        }
+    }));
 
     return <Container style={{position: 'relative'}}>
         <Grid container spacing={3} justify={"center"}>
@@ -224,8 +256,8 @@ export const Game = () => {
                 <h2>Sudoku Toy Project</h2>
             </Grid>
             <Grid item xs={12} md={8} lg={6} justify={"center"} container>
-                <PaperBox p={2} maxWidth={"100%"} display={"flex"} flexDirection={"column"}>
-                    <Typography>
+                <PaperBox p={[1, 2]} maxWidth={"100%"} display={"flex"} flexDirection={"column"}>
+                    <Typography component={'small'} style={{marginLeft: '.5rem'}}>
                         {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
                     </Typography>
                     <Board
@@ -236,39 +268,70 @@ export const Game = () => {
                         forceFocus={state.forceFocus}
                     />
 
-                    <Box display={"flex"} justifyContent={"space-between"} flexWrap={"wrap"}>
-                        <Button style={{flexBasis: '45%'}} onClick={resetSudoku} variant="outlined"
-                                color="secondary">
-                            Reset
-                        </Button>
-                        <Button style={{flexBasis: '45%'}} onClick={giveHint} variant="outlined" color="default">
-                            Hint
-                        </Button>
-                        <Button disabled={state.sudoku.isHistoryEmpty()} onClick={undo}>
-                            Undo
-                        </Button>
+                    <Box p={1} marginTop={[1, 2, 3]} display={"flex"} justifyContent={"space-between"}
+                         flexWrap={"wrap"}>
+                        <ThemeProvider theme={ksuduoThemeSecond}>
+                            <Button endIcon={<UndoRounded/>} variant="outlined"
+                                    disabled={state.sudoku.isHistoryEmpty()} onClick={undo}>
+                                Undo
+                            </Button>
+                            <Button endIcon={<HighlightOffRounded/>} style={{flexBasis: '45%'}} onClick={resetSudoku}
+                                    variant="outlined"
+                                    color={"primary"}>
+                                Reset
+                            </Button>
+                            <Button endIcon={<EmojiObjectsRounded/>}
+                                    style={{flexBasis: '45%'}} color="secondary" onClick={giveHint} variant="outlined">
+                                Hint
+                            </Button>
+                        </ThemeProvider>
                     </Box>
 
                 </PaperBox>
             </Grid>
-            <Grid item xs justify={"space-between"} alignItems={"stretch"} direction={"column"} container>
+            <Grid item xs alignItems={"stretch"} direction={"column"} container>
                 <Grid item>
-                    <PaperBox p={4}>
+                    {/*padding is not symmetric here because the range slider
+                    maintains whitespace for its value label at the top*/}
+                    <PaperBox px={[2, 4]} pt={0} pb={[2, 4]}>
                         <GeneratorConfiguration setNumberOfClues={updateNumberOfClues}/>
-                        {showClueNumWarning() ?
-                            <HardWarning/> : null
+                        {showMinClueInfo() ?
+                            <MinClueInfo/> : null
                         }
+                        <GenerateButton onClick={generateSudoku} isWorking={state.isWorking}/>
+
+                        <Button variant="text" startIcon={<HelpOutlineRounded/>}
+                                onClick={() => setExplanationModalOpen(true)}>
+                            <Typography component={"small"}>How does it work?</Typography>
+                        </Button>
+                        <Modal open={isExplanationModalOpen}>
+                            <Box className={ModalBaseStyles().root}>
+                                <Typography
+                                    style={{whiteSpace: 'pre-wrap'}}>{verboseGeneratorExplanationText}</Typography>
+                                <IconButton style={{margin: 'auto', display: 'block'}} title="Close"
+                                            onClick={() => setExplanationModalOpen(false)}>
+                                    <CheckCircleRounded/>
+                                </IconButton>
+                            </Box>
+                        </Modal>
                     </PaperBox>
                 </Grid>
                 <Grid item>
-                    <PaperBox p={4} mt={2} position={"relative"}>
-                        {state.isWorking ? <CircularProgress
-                            style={{position: 'absolute', left: '50%', transform: 'translateX(-50%)'}}/> : null}
-                        <Button onClick={generateSudoku} variant="contained" color="primary">
-                            Generate Sudoku
+                    <PaperBox p={[2, 4]} mt={[1, 2]}>
+                        <Button endIcon={<HighlightRounded/>}
+                                disabled={state.sudoku.isSolved() || !state.sudoku.hasSolutionSet()}
+                                onClick={showSolution} variant="contained">
+                            Show Solution
                         </Button>
-                        <FormControl style={{width: '100%', marginTop: '1rem'}}>
-                            <InputLabel htmlFor="solver-select">Generation strategy</InputLabel>
+                        {state.errorMsg.length ?
+                            <Typography style={{color: 'red', fontWeight: 'bold'}}>{state.errorMsg}</Typography>
+                            : null}
+                    </PaperBox>
+                </Grid>
+                <Grid item>
+                    <PaperBox p={[2, 4]} mt={[1, 2]}>
+                        <FormControl className={wFullMarginTop().root}>
+                            <InputLabel htmlFor="solver-select">Solver</InputLabel>
                             <NativeSelect
                                 value={state.generatorSolver}
                                 onChange={selectSolver}
@@ -281,17 +344,6 @@ export const Game = () => {
                             </NativeSelect>
                             <FormHelperText>Select a solver algorithm to assist with Sudoku generation</FormHelperText>
                         </FormControl>
-                    </PaperBox>
-                </Grid>
-                <Grid item>
-                    <PaperBox p={4} mt={2}>
-                        <Button disabled={state.sudoku.isSolved() || !state.sudoku.hasSolutionSet()}
-                                onClick={solveSudoku} variant="contained">
-                            Show Solution
-                        </Button>
-                        {state.errorMsg.length ?
-                            <Typography style={{color: 'red', fontWeight: 'bold'}}>{state.errorMsg}</Typography>
-                            : null}
                     </PaperBox>
                 </Grid>
             </Grid>

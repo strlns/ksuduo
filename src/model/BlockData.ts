@@ -7,10 +7,12 @@ export class BlockData {
     public leftTopY: CellIndex;
     public cells: CellData[];
     public blockIndex: number;
+
     constructor(blockIndex: number) {
         this.cells = [];
         this.blockIndex = blockIndex;
     }
+
     public getRows(): CellData[][] {
         return arrayChunk(this.cells, BLOCK_WIDTH);
     }

@@ -25,10 +25,7 @@ const marks = intRange(MINIMUM_CLUES, MAXIMUM_CLUES, 4).map(
     })
 );
 export default (props: createNewProps) =>
-    <Box>
-        <Typography component="h2">
-            Configure Generator
-        </Typography>
+    <Box p={1}>
         <NumCluesSlider marks={marks}
                         defaultValue={DEFAULT_CLUES}
                         step={1}

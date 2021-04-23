@@ -1,7 +1,17 @@
 /*
- * (c) 2021 Moritz Rehbach. GPLv3. See LICENSE.txt
  * @module SudokuGenerator
  */
+
+export const verboseGeneratorExplanationText = `Start with a randomly generated, completely filled board. 
+Then clear cells one at a time - after each removal, use backtracking:
+Add legal values, then use Sudoku solver to check for differing
+solutions or dead ends.
+If such are found, the cell must not be removed and is reverted.
+Different legal values are tried for the empty cells in each stage 
+of the removal process.
+
+If no cell can be removed without making the board invalid (multiple solutions),
+the fully completed "seed" board is discarded - rinse, repeat until the desired number of cells are cleared.`;
 
 import {BOARD_SIZE, BOARD_WIDTH, CellIndex, coordsToFlatIndex, flatIndexToCoords, Sudoku} from '../model/Sudoku';
 import {CellData, CellValue} from "../model/CellData";
@@ -10,6 +20,7 @@ import intRange from "../utility/numberRange";
 import pickRandomArrayValue from "../utility/pickRandom";
 import {Solution, solve, solveWithMattsSolver} from "../solver/solver";
 import arraysEqualSimple from "../utility/arraysEqualSimple";
+import {wait} from "../utility/debug/synchronousWait";
 
 export const MINIMUM_CLUES = 17;
 export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
@@ -19,11 +30,10 @@ class InitiallyUnsolvableError extends Error {
 
 }
 
-/**
- * @module ksuduo:generator/generateRandomSudoku
- * @param numberOfClues
- */
 export default function generateRandomSudoku(numberOfClues: number): Sudoku {
+    if (IS_DEVELOPMENT) {
+        wait(1000);
+    }
     numberOfClues = Math.floor(numberOfClues);
     const target = BOARD_SIZE - numberOfClues;
     let achievedNumberOfEmptyCells = 0;
@@ -133,6 +143,7 @@ function hasMultipleSolutionsOrIsUnsolvable(board: Sudoku, maxIterations = (1 <<
     return false;
 }
 
+// noinspection JSUnusedLocalSymbols
 /**
  * @deprecated
  * @param sudoku
@@ -182,19 +193,20 @@ const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku): void => {
             //seems like we shouldnt remove this cell.
             candidates.splice(candidates.indexOf(cell), 1);
         } else {
-            // console.log("cleared cell", cell.x, cell.y)
             break;
         }
     }
 }
 
 
+// noinspection JSUnusedLocalSymbols
 /**
  * Generator for random index pair in specified range.
  * Tried a generator here because we never want to select a coord pair twice. (except when infinite=true)
  * @param max
  * @param min
  * @param infinite
+ * @deprecated
  */
 function* randomCoordinatesGenerator(infinite = false,
                                      max: number = BOARD_WIDTH - 1,

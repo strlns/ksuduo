@@ -1,9 +1,12 @@
 import {withStyles} from "@material-ui/styles";
-import {Button as MaterialButton} from "@material-ui/core";
+import {Button as MaterialButton, createStyles} from "@material-ui/core";
 
-export const Button = withStyles({
+const styles = createStyles({
     root: {
-        marginTop: '2rem',
+        marginTop: '1rem',
         width: '100%'
     }
-})(MaterialButton);
+});
+
+export const Button
+    = withStyles(styles)(MaterialButton);

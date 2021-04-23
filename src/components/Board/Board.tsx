@@ -5,8 +5,8 @@ import {Block} from "../Cell/Block";
 import {CellData, CellValue} from "../../model/CellData";
 import {WinnerMessage} from "../Message/WinnerMessage";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
-import {Box, Button, Icon, Modal, Typography} from "@material-ui/core";
-import {ThumbUp} from "@material-ui/icons";
+import {Box, Icon, IconButton, Modal, Typography} from "@material-ui/core";
+import {CheckCircleRounded, ThumbUp} from "@material-ui/icons";
 
 interface BoardProps {
     sudoku: Sudoku,
@@ -92,7 +92,7 @@ export const Board = (props: BoardProps) => {
         targetInputRef.current.focus();
     }, [focusedCell]);
 
-    return <PaperBox p={2} elevation={16} className={'board'} onKeyUp={onKeyUp} style={{margin: 'auto'}}>
+    return <PaperBox p={[1, 2, 4]} elevation={12} className={'board'} onKeyUp={onKeyUp} style={{margin: 'auto'}}>
         {
             state.sudoku.getBlocks().map(
                 (block, index) => {
@@ -112,16 +112,19 @@ export const Board = (props: BoardProps) => {
             open={winnerModalOpen}
             onClose={() => setWinnerModalOpen(false)}>
             <WinnerMessage>
-                <Typography>Congratulations! You successfully completed the Sudoku!</Typography>
                 <Box display={"flex"} justifyContent={"center"}>
                     <Icon children={<ThumbUp/>} fontSize={"large"}/>
                     <Icon children={<ThumbUp/>} fontSize={"large"}/>
                     <Icon children={<ThumbUp/>} fontSize={"large"}/>
                 </Box>
-                <Button style={{marginTop: '1rem'}} fullWidth={true} variant={"outlined"}
-                        onClick={() => setWinnerModalOpen(false)}>
-                    OK
-                </Button>
+                <Typography style={{margin: '1rem 0'}}>
+                    Congratulations! You successfully completed the Sudoku!
+                </Typography>
+                <Box onClick={() => setWinnerModalOpen(false)}>
+                    <IconButton style={{margin: 'auto', display: 'block'}} title="OK">
+                        <CheckCircleRounded/>
+                    </IconButton>
+                </Box>
             </WinnerMessage>
         </Modal>
     </PaperBox>

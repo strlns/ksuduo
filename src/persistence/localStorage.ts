@@ -1,7 +1,3 @@
-/*
- * (c) 2021 Moritz Rehbach. See LICENSE.txt
- */
-
 import {BOARD_SIZE, Sudoku} from "../model/Sudoku";
 import {Solution} from "../solver/solver";
 
