@@ -20,6 +20,6 @@ export default async function testWorker(): Promise<boolean> {
             } catch {
             }
             resolve(false);
-        }, 2500);
+        }, 5000);
     });
 }

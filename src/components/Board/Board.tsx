@@ -5,15 +5,18 @@ import {Block} from "../Cell/Block";
 import {CellData, CellValue} from "../../model/CellData";
 import {WinnerMessage} from "../Message/WinnerMessage";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
-import {Box, Icon, IconButton, Modal, Typography} from "@material-ui/core";
-import {CheckCircleRounded, ThumbUp} from "@material-ui/icons";
+import {Box, Icon, IconButton, Modal, ThemeProvider, Typography} from "@material-ui/core";
+import {CheckCircleRounded, PauseCircleFilledTwoTone, ThumbUp} from "@material-ui/icons";
+import {ksuduoThemeSecondWinnerModal} from "../Theme/WinnerModalTheme";
 
 interface BoardProps {
     sudoku: Sudoku,
     cellCallback?: Function,
     highlightedCell: OptionalCell,
     forceFocus: OptionalCell,
-    solutionIsFromApp: boolean
+    solutionIsFromApp: boolean,
+    isPaused: boolean,
+    setPaused: (value: boolean) => void
 }
 
 interface CellRefMap {
@@ -24,7 +27,7 @@ interface CellRefMap {
 
 export const inputRefs: CellRefMap = {};
 
-export type OptionalCell = CellData|undefined;
+export type OptionalCell = CellData | undefined;
 
 export const Board = (props: BoardProps) => {
     const [state, setState] = useState(props);
@@ -55,7 +58,7 @@ export const Board = (props: BoardProps) => {
     }, [state.sudoku.isSolved()]);
 
     useEffect(() => {
-        if (state.forceFocus instanceof CellData) {
+        if (state.forceFocus !== undefined) {
             setFocusedCell(state.forceFocus);
         }
     }, [state.forceFocus]);
@@ -64,6 +67,9 @@ export const Board = (props: BoardProps) => {
     // usage of the "global" CellRefMap is non-standard but works.
     let [focusedCell, setFocusedCell] = useState(state.sudoku.getInitialFocusCell());
     const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
+        if (state.isPaused) {
+            return;
+        }
         let newY, newX: CellIndex;
         let newCell: CellData = focusedCell;
         switch (e.key) {
@@ -92,7 +98,12 @@ export const Board = (props: BoardProps) => {
         targetInputRef.current.focus();
     }, [focusedCell]);
 
-    return <PaperBox p={[1, 2, 4]} elevation={12} className={'board'} onKeyUp={onKeyUp} style={{margin: 'auto'}}>
+    const classes = `board${state.isPaused ? ' disabled' : ''}`
+
+    return <PaperBox p={[1, 2, 4]} elevation={12}
+                     className={classes}
+                     onKeyUp={onKeyUp}
+                     style={{position: 'relative', margin: 'auto'}}>
         {
             state.sudoku.getBlocks().map(
                 (block, index) => {
@@ -107,25 +118,39 @@ export const Board = (props: BoardProps) => {
                 }
             )
         }
+        {state.isPaused ? <IconButton onClick={() => state.setPaused(false)} style={{
+                zIndex: 999, position: 'absolute',
+                left: '50%', top: '50%', transform: 'translate(-50%, -50%)'
+            }}>
+                <PauseCircleFilledTwoTone
+                    style={{width: '8rem', height: '8rem'}}
+                    color={'inherit'}
+                /></IconButton>
+            : null}
+        <ThemeProvider theme={ksuduoThemeSecondWinnerModal}>
+            <Modal
+                open={winnerModalOpen}
+                onClose={() => setWinnerModalOpen(false)}>
+                <WinnerMessage>
+                    <Box display={"flex"} justifyContent={"center"}>
+                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                    </Box>
+                    <Typography component={'h3'} variant={'h3'}>
+                        Congratulations!
+                    </Typography>
+                    <Typography style={{margin: '1em 0'}}>
+                        You successfully completed the Sudoku.
+                    </Typography>
 
-        <Modal
-            open={winnerModalOpen}
-            onClose={() => setWinnerModalOpen(false)}>
-            <WinnerMessage>
-                <Box display={"flex"} justifyContent={"center"}>
-                    <Icon children={<ThumbUp/>} fontSize={"large"}/>
-                    <Icon children={<ThumbUp/>} fontSize={"large"}/>
-                    <Icon children={<ThumbUp/>} fontSize={"large"}/>
-                </Box>
-                <Typography style={{margin: '1rem 0'}}>
-                    Congratulations! You successfully completed the Sudoku!
-                </Typography>
-                <Box onClick={() => setWinnerModalOpen(false)}>
-                    <IconButton style={{margin: 'auto', display: 'block'}} title="OK">
-                        <CheckCircleRounded/>
-                    </IconButton>
-                </Box>
-            </WinnerMessage>
-        </Modal>
+                    <Box onClick={() => setWinnerModalOpen(false)}>
+                        <IconButton style={{margin: 'auto', display: 'block'}} title="OK">
+                            <CheckCircleRounded color={'secondary'}/>
+                        </IconButton>
+                    </Box>
+                </WinnerMessage>
+            </Modal>
+        </ThemeProvider>
     </PaperBox>
 };

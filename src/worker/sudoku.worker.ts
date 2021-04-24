@@ -15,11 +15,13 @@ ctx.addEventListener("message", (msgEvent: MessageEvent) => {
     if (msgEvent.data.source !== MSGEVT_SOURCE) return;
     switch (msgEvent.data.data[0]) {
         case WORKER_ACTIONS.SOLVE:
-            ctx.postMessage(solve(msgEvent.data.data[1]))
+            ctx.postMessage(
+                solve(msgEvent.data.data[1])
+            )
             break;
         case WORKER_ACTIONS.GENERATE:
             const sudoku = generateRandomSudoku(msgEvent.data.data[1]);
-            ctx.postMessage(sudoku.getFlatValues().map(cellValue => cellValue as number))
+            ctx.postMessage(sudoku);
             break;
         case WORKER_ACTIONS.TEST:
             ctx.postMessage("Test successful.");

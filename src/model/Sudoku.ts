@@ -1,4 +1,4 @@
-import {CellData, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
+import {CellData, cellIsEmpty, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
 import {cloneDeep} from "lodash-es";
@@ -30,6 +30,18 @@ export class CouldNotSolveSudokuPassedToConstructorError extends Error {
 
 }
 
+/**
+ * We rely on the structured clone algorithm to result in this type when serializing a
+ * {@link Sudoku} instance.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
+ */
+export class SudokuStructuredClone {
+    rows: CellData[][];
+    solution: Solution;
+    history: CellData[][];
+}
+
 export class Sudoku {
     /**
      * main source of truth.
@@ -45,18 +57,15 @@ export class Sudoku {
 
     private solution: Solution = [];
 
-    constructor(flatValues?: number[]) {
-        this.rows = [];
-        this.history = [];
-        this.initializeEmptyBoard();
-        if (flatValues) {
-            try {
-                if (flatValues) {
-                    this.initWithNumbers(flatValues);
-                }
-            } catch (e) {
-                throw new CouldNotSolveSudokuPassedToConstructorError();
-            }
+    constructor(structuredCloneInializer?: SudokuStructuredClone) {
+        if (structuredCloneInializer) {
+            this.rows = structuredCloneInializer.rows;
+            this.solution = structuredCloneInializer.solution;
+            this.history = structuredCloneInializer.history;
+        } else {
+            this.rows = [];
+            this.history = [];
+            this.initializeEmptyBoard();
         }
     }
 
@@ -154,7 +163,15 @@ export class Sudoku {
         for (let y = 0; y < BOARD_WIDTH; y++) {
             this.rows[y] = Array(BOARD_WIDTH).fill(null);
             for (let x = 0; x < this.rows[y].length; x++) {
-                this.addCell(new CellData(CellValue.EMPTY, x as CellIndex, y as CellIndex));
+                this.addCell(
+                    {
+                        value: CellValue.EMPTY,
+                        x: x as CellIndex,
+                        y: y as CellIndex,
+                        isInitial: true,
+                        isValid: true
+                    } as CellData
+                );
             }
         }
     }
@@ -307,7 +324,7 @@ export class Sudoku {
     }
 
     public getEmptyCells(): CellData[] {
-        return this.getFlatCells().filter(cell => cell.isEmpty());
+        return this.getFlatCells().filter(cell => cellIsEmpty(cell));
     }
 
     public getRandomEmptyOrInvalidCell(): CellData {
@@ -387,7 +404,7 @@ export class Sudoku {
     }
 
     public isCellValid(cell: CellData): boolean {
-        return cell.isEmpty() || this.isCellValueValid(cell.value, cell.x, cell.y);
+        return cellIsEmpty(cell) || this.isCellValueValid(cell.value, cell.x, cell.y);
     }
 
     public isSolved(): boolean {
@@ -400,7 +417,7 @@ export class Sudoku {
         let cell;
         let x = 0 as CellIndex, y = 0 as CellIndex;
         cell = this.getCell(x, y);
-        while (!cell.isEmpty() && y < BOARD_WIDTH - 1) {
+        while (!cellIsEmpty(cell) && y < BOARD_WIDTH - 1) {
             if (x > BOARD_WIDTH - 1) {
                 x = 0;
                 y++;
@@ -409,8 +426,8 @@ export class Sudoku {
             cell = this.getCell(x as CellIndex, y as CellIndex);
             x++;
         }
-        // assert(cell.isEmpty(), 'No empty cell found.');
-        if (!cell.isEmpty()) {
+        // assert(cellIsEmpty(cell), 'No empty cell found.');
+        if (!cellIsEmpty(cell)) {
             return this.getCell(0, 0);
         }
         return cell;

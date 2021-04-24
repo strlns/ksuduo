@@ -24,11 +24,11 @@ export const GenerateButton =
             color={props.isWorking ? 'secondary' : 'primary'}
             onClick={props.onClick ?? void (0)}
             endIcon={<FlareRounded/>}>
-            <span style={{position: 'relative', padding: '0 1.5em'}}>
+            <div style={{position: 'relative', paddingLeft: '1.5em', marginLeft: '-1.5em'}}>
                 {props.isWorking ? <CircularProgress
                     style={{position: 'absolute', left: '-1.25em', top: 'calc(50% - .5em)'}}
                     color={'inherit'} size={'1em'}/> : null}
                 Generate Sudoku
-            </span>
+            </div>
         </Button>
     }

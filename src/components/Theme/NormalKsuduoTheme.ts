@@ -1,5 +1,7 @@
 import {createMuiTheme} from "@material-ui/core/styles";
 
+const headingFont = '"Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif"';
+const bodyFont = '"DejaVu Sans", Roboto, Helvetica, sans-serif;'
 export const ksuduoThemeNormal = createMuiTheme({
         // unfortunately, the Button component only
         // suports the values primary|secondary|default|inherit
@@ -16,5 +18,29 @@ export const ksuduoThemeNormal = createMuiTheme({
                 contrastText: '#fff'
             }
         },
+        typography: {
+            body1: {
+                fontFamily: bodyFont,
+                fontSize: '1rem',
+            },
+            h2: {
+                fontFamily: headingFont,
+                fontSize: '2.5rem',
+            },
+            h3: {
+                fontFamily: headingFont,
+                fontSize: '2rem',
+            },
+            subtitle1: {
+                fontSize: '.75em'
+            }
+        },
+        overrides: {
+            MuiIconButton: {
+                root: {
+                    display: 'block'
+                }
+            }
+        }
     })
 ;

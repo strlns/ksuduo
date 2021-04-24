@@ -1,6 +1,6 @@
 import * as React from "react"
 import {ForwardedRef, SetStateAction} from "react"
-import {CellData, CellValue, CellValues} from "../../model/CellData";
+import {CellData, cellIsEmpty, CellValue, CellValues} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
 
 interface CellProps {
@@ -27,7 +27,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     ${isHighlighted() ? 'hint' : ''}\
     `;
 
-    const formattedValue = props.cell.isEmpty() ? '' : props.cell.value;
+    const formattedValue = cellIsEmpty(props.cell) ? '' : props.cell.value;
 
     const onKeyPress: React.KeyboardEventHandler = event => {
         if (props.cell.isInitial) return;

@@ -14,7 +14,7 @@ If no cell can be removed without making the board invalid (multiple solutions),
 the fully completed "seed" board is discarded - rinse, repeat until the desired number of cells are cleared.`;
 
 import {BOARD_SIZE, BOARD_WIDTH, CellIndex, coordsToFlatIndex, flatIndexToCoords, Sudoku} from '../model/Sudoku';
-import {CellData, CellValue} from "../model/CellData";
+import {CellData, cellIsEmpty, CellValue} from "../model/CellData";
 import assert from "../utility/assert";
 import intRange from "../utility/numberRange";
 import pickRandomArrayValue from "../utility/pickRandom";
@@ -65,6 +65,7 @@ export default function generateRandomSudoku(numberOfClues: number): Sudoku {
     if (achievedNumberOfEmptyCells < target) {
         console.error("SORRY ;( I couldn't generate a valid Sudoku.")
     }
+    console.log(board);
     return board;
 }
 
@@ -175,9 +176,8 @@ const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku): void => {
             if (e instanceof InitiallyUnsolvableError) {
                 const solutionCellsAlreadyRemoved = sudoku.getSolution().map(
                     (cellValue, flatIndex) => sudoku.getCell(...flatIndexToCoords(flatIndex)))
-                    .filter(cell => cell.isEmpty());
+                    .filter(cell => cellIsEmpty(cell));
                 const cellToAdd = pickRandomArrayValue(solutionCellsAlreadyRemoved);
-                assert(cellToAdd instanceof CellData);
                 sudoku.setCell(
                     cellToAdd as CellData, false
                 );

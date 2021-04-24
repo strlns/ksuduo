@@ -41,11 +41,14 @@ input::-webkit-inner-spin-button {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: flex-start;
     max-width: 100%;
-    transition: opacity .25s;
+}
+
+.board .block {
+    transition: opacity 1s;
     opacity: 1;
 }
 
-.disabled {
+.board.disabled .block {
     opacity: .5;
     pointer-events: none;
 }
@@ -148,7 +151,7 @@ input::-webkit-inner-spin-button {
     box-shadow: inset 0 0 0 4px #37de95;
 }
 
-h1, h2 {
+h1, h2, h3 {
     font-family: "Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif;
-    text-align: center;
+    text-align: center; /* <3 90s */
 }

@@ -8,8 +8,13 @@ export const ModalBaseStyles = makeStyles(
             top: '50%',
             left: '50%',
             padding: '1rem',
-            maxWidth: '75vw',
-            maxHeight: '50vh',
+            maxWidth: '92vw',
+            maxHeight: '80vh',
+            [theme.breakpoints.up('md')]: {
+                maxWidth: '75vw',
+                maxHeight: '50vh',
+                padding: '3rem'
+            },
             overflow: 'auto',
             backgroundColor: theme.palette.background.default,
             transform: 'translateX(-50%) translateY(-50%)',
@@ -18,3 +23,9 @@ export const ModalBaseStyles = makeStyles(
         }
     })
 );
+
+export const boxWithIconButtonFullWidthHoverable = makeStyles({
+    root: {
+        '& MuiIconButton': {}
+    }
+});

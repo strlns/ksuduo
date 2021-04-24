@@ -29,22 +29,20 @@ const numOfPossibleCellValues = CellValueEnumAsArray.length / 2;
 
 export const CellValues: CellValue[] = Object.entries(CellValue).slice(numOfPossibleCellValues).map(entry => entry[1]) as CellValue[];
 
-export class CellData {
-    public value: CellValue;
-    public x: CellIndex;
-    public y: CellIndex;
-    public isInitial: boolean;
-    public isValid: boolean;
+export const cellIsEmpty = (cell: CellData): boolean => cell.value === CellValue.EMPTY;
 
-    constructor(value: CellValue, x: CellIndex, y: CellIndex, isInitial = false) {
-        this.value = value;
-        this.x = x;
-        this.y = y;
-        this.isInitial = isInitial;
-        this.isValid = true
-    }
-
-    public isEmpty(): boolean {
-        return this.value === CellValue.EMPTY;
-    }
+export type CellData = {
+    value: CellValue,
+    x: CellIndex,
+    y: CellIndex,
+    isInitial: boolean,
+    isValid: boolean,
 }
+
+// constructor(value: CellValue, x: CellIndex, y: CellIndex, isInitial = false) {
+//     this.value = value;
+//     this.x = x;
+//     this.y = y;
+//     this.isInitial = isInitial;
+//     this.isValid = true
+// }
