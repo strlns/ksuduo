@@ -106,7 +106,10 @@ export const Game = (props: GameProps) => {
         errorMsg: '',
         highlightedCell: undefined,
         isWorking: false,
-        isPaused: false
+        isPaused: false,
+        timer: new Timer(() => setState(
+            prevState => ({...prevState, timer: state.timer})
+        ))
     };
 
     const generateSudoku = () => {
@@ -124,8 +127,8 @@ export const Game = (props: GameProps) => {
                 setState(prevState =>
                     ({
                         ...prevState,
-                        isWorking: false,
-                        sudoku: new Sudoku(event.data)
+                        sudoku: new Sudoku(event.data),
+                        ...resetStateCommons
                     })
                 );
                 sudokuWorker.removeEventListener("message", listener);
@@ -140,11 +143,12 @@ export const Game = (props: GameProps) => {
             setState(prevState =>
                 ({
                     ...prevState,
-                    isWorking: false,
-                    sudoku
+                    sudoku,
+                    ...resetStateCommons
                 })
             );
         }
+        state.timer.start(0);
     }
 
     //no Sudoku in localStorage
@@ -172,6 +176,7 @@ export const Game = (props: GameProps) => {
         if (state.sudoku.isEmpty()) {
             generateSudoku();
         }
+        state.timer.start(0);
     }
 
     const showSolution = () => {
@@ -208,7 +213,7 @@ export const Game = (props: GameProps) => {
             } else {
                 state.timer.start(initialSeconds);
             }
-        }, [props, state.sudoku]
+        }, [props]
     )
 
     useEffect(updateCallback,

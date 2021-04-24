@@ -65,7 +65,6 @@ export default function generateRandomSudoku(numberOfClues: number): Sudoku {
     if (achievedNumberOfEmptyCells < target) {
         console.error("SORRY ;( I couldn't generate a valid Sudoku.")
     }
-    console.log(board);
     return board;
 }
 
