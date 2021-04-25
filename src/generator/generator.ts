@@ -30,7 +30,13 @@ class InitiallyUnsolvableError extends Error {
 
 }
 
-export default function generateRandomSudoku(numberOfClues: number): Sudoku {
+export enum DIFFICULTY_LEVEL {
+    EASY,
+    MEDIUM,
+    HARD
+}
+
+export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): Sudoku {
     if (IS_DEVELOPMENT) {
         wait(1000);
     }
@@ -48,7 +54,7 @@ export default function generateRandomSudoku(numberOfClues: number): Sudoku {
         board.setSolution(board.getFlatValues() as Solution);
         // const coordsGenerator = randomCoordinatesGenerator(true);
         while (numberOfDeleteTries < (1 << 8)) {
-            clearCellButOnlyIfSolutionsDontExplode(board);
+            clearCellButOnlyIfSolutionsDontExplode(board, difficulty);
             achievedNumberOfEmptyCells = BOARD_SIZE - board.getNumberOfFilledCells();
             //for many initial boards it is impossible to delete the desired number of cells without
             //making the board an invalid sudoku (multiple solutions, or not solvable by algo)
@@ -157,7 +163,7 @@ const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<CellIndex[]>
     }
 }
 
-const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku): void => {
+const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficultyLevel: DIFFICULTY_LEVEL): void => {
     let maxIterations = 1 << 16;
     const candidates = sudoku.getFilledCells();
     for (let i = 0; i < maxIterations; i++) {

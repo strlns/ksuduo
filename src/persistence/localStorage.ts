@@ -35,12 +35,11 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
             if (data[2] as Solution) {
                 sudoku.setSolution(data[2]);
             }
-            const state = {
+            return {
                 board: sudoku,
                 secondsElapsed: data[3],
                 isPaused: data[4]
             };
-            return state;
         }
     });
     return lsResult ?? {
@@ -50,11 +49,10 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
     };
 }
 /**
- * @todo
- * Currently, a JSON encode and write to localStorage is done once per second
- * - including the entire board and history.
- * Separating the timer/elapsed seconds from the rest would probably
- * help performance a lot.
+ * Persisted JSON contains board, soluton, history and timer state.
+ * Separating the timer/elapsed seconds from the rest could help performance a little
+ * but is currently unneeded.
+ * Persistence is triggered by game actions and on beforeUnload.
  *
  * @param state
  */

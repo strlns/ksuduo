@@ -345,13 +345,13 @@ export class Sudoku {
         return this.getAllowedCellValuesByCoords(cell.x, cell.y);
     }
 
-    public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex): CellValue[] {
+    public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex, ignoreSelf = false): CellValue[] {
         return CellValues.filter(
             value => !(
                 value === CellValue.EMPTY ||
-                this.getRowValues(y).includes(value) ||
-                this.getColumnValues(x).includes(value)
-                || this.getFlatBlockValuesForCoords(x, y).includes(value)
+                this.getRowValues(y, ignoreSelf ? x : EXCLUDE_NOTHING).includes(value) ||
+                this.getColumnValues(x, ignoreSelf ? y : EXCLUDE_NOTHING).includes(value)
+                || this.getFlatBlockValuesForCoords(x, y, ignoreSelf).includes(value)
             )
         );
     }
@@ -389,10 +389,6 @@ export class Sudoku {
             }
         }
         return res;
-    }
-
-    public permutate() {
-
     }
 
     private isCellValueValid(cellValue: CellValue, x: CellIndex, y: CellIndex) {

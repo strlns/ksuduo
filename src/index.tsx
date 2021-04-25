@@ -2,6 +2,11 @@
  * KSUDUO
  * (c) 2021 Moritz Rehbach
  * GPL v3
+ *
+ * Uses sudoku solver:
+ * @mattflow/sudoku-solver
+ * https://github.com/mattflow/sudoku-solver
+ * (MIT License)
  */
 
 import * as React from 'react';

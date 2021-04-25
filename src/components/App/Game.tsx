@@ -3,7 +3,11 @@ import * as React from "react";
 import {ChangeEvent, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
-import generateRandomSudoku, {DEFAULT_CLUES, verboseGeneratorExplanationText} from "../../generator/generator";
+import generateRandomSudoku, {
+    DEFAULT_CLUES,
+    DIFFICULTY_LEVEL,
+    verboseGeneratorExplanationText
+} from "../../generator/generator";
 import {
     CheckCircleRounded,
     CloseRounded,
@@ -13,23 +17,10 @@ import {
     HighlightRounded,
     UndoRounded
 } from '@material-ui/icons';
-import {
-    Box,
-    Container,
-    FormControl,
-    FormHelperText,
-    Grid,
-    IconButton,
-    InputLabel,
-    Modal,
-    NativeSelect,
-    Theme,
-    Typography
-} from "@material-ui/core";
+import {Box, Container, Grid, IconButton, Modal, Theme, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
 import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
-import {SOLVERS} from "../../solver/solver";
 import {PaperBox, paperBoxDefaultLayoutProps} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
 
@@ -70,7 +61,7 @@ checkWebWorkerSupport().then(
 export interface GameState {
     sudoku: Sudoku,
     numberOfClues: number,
-    generatorSolver: SOLVERS,
+    difficulty: DIFFICULTY_LEVEL,
     errorMsg: string,
     highlightedCell: OptionalCell,
     isWorking: boolean,
@@ -89,12 +80,13 @@ export const Game = (props: GameProps) => {
     const [state, setState] = useState({
         sudoku: initialBoard,
         numberOfClues: DEFAULT_CLUES,
-        generatorSolver: SOLVERS.MATTFLOW,
+        difficulty: DIFFICULTY_LEVEL.EASY,
         errorMsg: '',
         highlightedCell: undefined as OptionalCell,
         isWorking: false,
         forceFocus: undefined as OptionalCell,
-        solvedByApp: false,
+        // do not repeat congratulation on reload.
+        solvedByApp: initialBoard.isSolved(),
         timer: new Timer(() => setState(
             prevState => ({...prevState, timer: state.timer})
         )),
@@ -182,6 +174,8 @@ export const Game = (props: GameProps) => {
     const showSolution = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.showSolution();
+        state.timer.secondsElapsed = 0;
+        state.timer.pause();
         setState(prevState => ({...prevState, sudoku, ...resetStateCommons, solvedByApp: true}));
     }
 
@@ -190,7 +184,11 @@ export const Game = (props: GameProps) => {
         const gameState = {board, isPaused, secondsElapsed: state.timer.secondsElapsed} as GameStateSerializable
         persist(gameState);
     }
-
+    /**
+     * Terminate service worker before unload, pause the timer
+     * (This is NOT the same as pausing the game. It's only to stop time tracking earlier.)
+     * Persist before unload, including the timer state.
+     */
     window.onbeforeunload = () => {
         sudokuWorker.terminate();
         if (state.timer !== undefined) {
@@ -205,7 +203,13 @@ export const Game = (props: GameProps) => {
             persistState();
         }
     }
-    //`props` is empty and only used to detect initial render
+    /**
+     * Start timer on initial render (if game is not paused.)
+     * `props` is empty and only used to detect initial render.
+     * timer object inside state is accessed directly because it is "special"
+     * and manages the state hooks by itself.
+     * *{@link Timer.callback}
+     */
     useEffect(
         () => {
             if (state.isPaused) {
@@ -215,18 +219,32 @@ export const Game = (props: GameProps) => {
             }
         }, [props]
     )
-
+    /*Trigger persisting. */
     useEffect(updateCallback,
         [
             state.highlightedCell,
-            state.generatorSolver,
+            state.difficulty,
             state.sudoku,
             state.isPaused
         ]
     )
 
-    const selectSolver: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
-        setState(prevState => ({...prevState, solver: +event.target.value as SOLVERS}))
+    /*Stop timer on completion. */
+    useEffect(() => {
+            if (state.sudoku.isSolved()) {
+                state.timer.pause();
+            } else if (!state.isPaused) {
+                // keep it consistent when jumping between solution and undo etc.
+                state.timer.resume();
+            }
+        },
+        [
+            state.sudoku.isSolved(),
+        ]
+    )
+
+    const selectDifficulty: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
+        setState(prevState => ({...prevState, difficulty: +event.target.value as DIFFICULTY_LEVEL}))
     }
 
     const giveHint = () => {
@@ -291,9 +309,13 @@ export const Game = (props: GameProps) => {
                 <h2>Sudoku Toy Project</h2>
             </Grid>
             <Grid item xs={12} md={8} lg={6} justify={"center"} container>
-                <PaperBox {...paperBoxDefaultLayoutProps}>
+                <PaperBox {...paperBoxDefaultLayoutProps} width={'100%'}>
                     <Typography component={'small'}
-                                style={{marginLeft: ksuduoThemeNormal.spacing(2), fontSize: '.75em'}}>
+                                style={{
+                                    textAlign: 'center',
+                                    marginBottom: ksuduoThemeNormal.spacing(1),
+                                    fontSize: '.75em'
+                                }}>
                         {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
                     </Typography>
                     <Board
@@ -304,6 +326,7 @@ export const Game = (props: GameProps) => {
                         forceFocus={state.forceFocus}
                         isPaused={state.isPaused}
                         setPaused={togglePlayPause}
+                        timer={state.timer}
                     />
 
                     <Box p={1} marginTop={[1, 2, 3]} display={"flex"} justifyContent={"space-between"}
@@ -327,14 +350,37 @@ export const Game = (props: GameProps) => {
 
                 </PaperBox>
             </Grid>
-            <Grid item xs alignItems={"stretch"} direction={"column"} container>
-                <Grid item>
+            <Grid item xs container alignItems={"stretch"} alignContent={"flex-start"}>
+                <Grid item xs={12}>
                     <PaperBox {...paperBoxDefaultLayoutProps}>
+                        <Clock
+                            seconds={state.timer.secondsElapsed}
+                            isPaused={state.isPaused}
+                            setPaused={togglePlayPause}
+                        />
+                    </PaperBox>
+                </Grid>
+                <Grid item xs={12}>
+                    <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
+                        <Button endIcon={<HighlightRounded/>}
+                                disabled={state.sudoku.isSolved() || !state.sudoku.hasSolutionSet()}
+                                onClick={showSolution} variant="contained">
+                            Show Solution
+                        </Button>
+                        {state.errorMsg.length ?
+                            <Typography style={{color: 'red', fontWeight: 'bold'}}>{state.errorMsg}</Typography>
+                            : null}
+                    </PaperBox>
+                </Grid>
+                <Grid item xs={12}>
+                    <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
+                        <GenerateButton onClick={generateSudoku} isWorking={state.isWorking}/>
                         <GeneratorConfiguration numberOfClues={state.numberOfClues}
                                                 setNumberOfClues={updateNumberOfClues}
+                                                difficulty={state.difficulty}
+                                                setDifficulty={selectDifficulty}
                                                 numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
                         />
-                        <GenerateButton onClick={generateSudoku} isWorking={state.isWorking}/>
                         <Button className={wFullMarginTop().root} variant="text" size="small"
                                 endIcon={<HelpOutlineRounded/>}
                                 onClick={() => setExplanationModalOpen(true)}>
@@ -355,50 +401,11 @@ export const Game = (props: GameProps) => {
                                     style={{whiteSpace: 'pre-wrap'}}>{verboseGeneratorExplanationText}</Typography>
                                 <Box onClick={() => setExplanationModalOpen(false)}>
                                     <IconButton style={{margin: 'auto', display: 'block'}} title="Close">
-                                        <CheckCircleRounded/>
+                                        <CheckCircleRounded color={'primary'}/>
                                     </IconButton>
                                 </Box>
                             </Box>
                         </Modal>
-                    </PaperBox>
-                </Grid>
-                <Grid item>
-                    <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
-                        <Button endIcon={<HighlightRounded/>}
-                                disabled={state.sudoku.isSolved() || !state.sudoku.hasSolutionSet()}
-                                onClick={showSolution} variant="contained">
-                            Show Solution
-                        </Button>
-                        {state.errorMsg.length ?
-                            <Typography style={{color: 'red', fontWeight: 'bold'}}>{state.errorMsg}</Typography>
-                            : null}
-                    </PaperBox>
-                </Grid>
-                <Grid item>
-                    <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
-                        <FormControl>
-                            <InputLabel htmlFor="solver-select">Solver</InputLabel>
-                            <NativeSelect
-                                value={state.generatorSolver}
-                                onChange={selectSolver}
-                                inputProps={{
-                                    name: 'solver',
-                                    id: 'solver-select',
-                                }}
-                            >
-                                <option value={SOLVERS.MATTFLOW}>@mattflow/sudoku-solver</option>
-                            </NativeSelect>
-                            <FormHelperText>Select a solver algorithm to assist with Sudoku generation</FormHelperText>
-                        </FormControl>
-                    </PaperBox>
-                </Grid>
-                <Grid item xs>
-                    <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
-                        <Clock
-                            seconds={state.timer.secondsElapsed}
-                            isPaused={state.isPaused}
-                            setPaused={togglePlayPause}
-                        />
                     </PaperBox>
                 </Grid>
             </Grid>

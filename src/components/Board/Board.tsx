@@ -8,6 +8,8 @@ import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
 import {Box, Icon, IconButton, Modal, ThemeProvider, Typography} from "@material-ui/core";
 import {CheckCircleRounded, PauseCircleFilledTwoTone, ThumbUp} from "@material-ui/icons";
 import {ksuduoThemeSecondWinnerModal} from "../Theme/WinnerModalTheme";
+import {Timer} from "../../model/Timer";
+import {formatTime} from "../../utility/formatTime";
 
 interface BoardProps {
     sudoku: Sudoku,
@@ -16,7 +18,8 @@ interface BoardProps {
     forceFocus: OptionalCell,
     solutionIsFromApp: boolean,
     isPaused: boolean,
-    setPaused: (value: boolean) => void
+    setPaused: (value: boolean) => void,
+    timer: Timer
 }
 
 interface CellRefMap {
@@ -100,7 +103,7 @@ export const Board = (props: BoardProps) => {
 
     const classes = `board${state.isPaused ? ' disabled' : ''}`
 
-    return <PaperBox p={[1, 2, 4]} elevation={12}
+    return <PaperBox elevation={9}
                      className={classes}
                      onKeyUp={onKeyUp}
                      style={{position: 'relative', margin: 'auto'}}>
@@ -141,7 +144,7 @@ export const Board = (props: BoardProps) => {
                         Congratulations!
                     </Typography>
                     <Typography style={{margin: '1em 0'}}>
-                        You successfully completed the Sudoku.
+                        You successfully completed the Sudoku in {formatTime(state.timer.secondsElapsed)}.
                     </Typography>
 
                     <Box onClick={() => setWinnerModalOpen(false)}>

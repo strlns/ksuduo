@@ -2,6 +2,7 @@ import {Button, CircularProgress} from "@material-ui/core";
 import * as React from "react";
 import {FlareRounded} from "@material-ui/icons";
 import {makeStyles} from "@material-ui/styles";
+import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 
 interface GenerateButtonProps {
     isWorking: boolean,
@@ -12,6 +13,7 @@ const useStyles = makeStyles({
     root: {
         width: '100%',
         transition: 'background .5s linear',
+        marginBottom: ksuduoThemeNormal.spacing(2)
     }
 });
 

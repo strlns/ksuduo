@@ -8,6 +8,7 @@ export const ModalBaseStyles = makeStyles(
             top: '50%',
             left: '50%',
             padding: '1rem',
+            width: '100%',
             maxWidth: '92vw',
             maxHeight: '80vh',
             [theme.breakpoints.up('md')]: {
