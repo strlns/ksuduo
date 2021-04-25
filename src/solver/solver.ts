@@ -7,8 +7,6 @@ export type Puzzle = Sudoku | CellValue[] | number[];
 let mattsSolver = require('@mattflow/sudoku-solver/index');
 
 /**
- * This function should return all solutions to a sudoku, or an empty array
- * if it is not solvable.
  * @param sudoku
  * @param solver
  */
