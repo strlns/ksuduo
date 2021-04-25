@@ -94,7 +94,7 @@ export class Sudoku {
                     val
                 })
         ).filter(data => !data.cell.isInitial)) {
-            this.setValue(solutionData.cell.x, solutionData.cell.y, solutionData.val, false);
+            this.setValue(solutionData.cell.x, solutionData.cell.y, solutionData.val, false, false);
         }
     }
 

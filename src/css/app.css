@@ -155,3 +155,19 @@ h1, h2, h3 {
     font-family: "Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif;
     text-align: center; /* <3 90s */
 }
+
+.pulse {
+    animation: ease .25s pulse-animation infinite;
+}
+
+@keyframes pulse-animation {
+    0% {
+        fill: #00ff93;
+    }
+    50% {
+        fill: #3d8365;
+    }
+    0% {
+        fill: #1a3c2e;
+    }
+}

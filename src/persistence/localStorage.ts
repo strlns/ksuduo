@@ -52,7 +52,7 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
  * Persisted JSON contains board, soluton, history and timer state.
  * Separating the timer/elapsed seconds from the rest could help performance a little
  * but is currently unneeded.
- * Persistence is triggered by game actions and on beforeUnload.
+ * Persisting is triggered by game actions and on beforeUnload.
  *
  * @param state
  */

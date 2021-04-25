@@ -2,17 +2,6 @@
  * @module SudokuGenerator
  */
 
-export const verboseGeneratorExplanationText = `Start with a randomly generated, completely filled board. 
-Then clear cells one at a time - after each removal, use backtracking:
-Add legal values, then use Sudoku solver to check for differing
-solutions or dead ends.
-If such are found, the cell must not be removed and is reverted.
-Different legal values are tried for the empty cells in each stage 
-of the removal process.
-
-If no cell can be removed without making the board invalid (multiple solutions),
-the fully completed "seed" board is discarded - rinse, repeat until the desired number of cells are cleared.`;
-
 import {BOARD_SIZE, BOARD_WIDTH, CellIndex, coordsToFlatIndex, flatIndexToCoords, Sudoku} from '../model/Sudoku';
 import {CellData, cellIsEmpty, CellValue} from "../model/CellData";
 import assert from "../utility/assert";
@@ -22,13 +11,19 @@ import {Solution, solve, solveWithMattsSolver} from "../solver/solver";
 import arraysEqualSimple from "../utility/arraysEqualSimple";
 import {wait} from "../utility/debug/synchronousWait";
 
+export const verboseGeneratorExplanationText = `Start with a randomly generated, completely filled board.
+Then clear cells one at a time - after each removal, use backtracking:
+Add legal values, then use Sudoku solver to check for differing
+solutions or dead ends.
+If such are found, the cell must not be removed and is reverted.
+Different legal values are tried for the empty cells in each stage
+of the removal process.
+
+If no cell can be removed without making the board invalid (multiple solutions),
+the fully completed "seed" board is discarded - rinse, repeat until the desired number of cells are cleared.`;
+
 export const MINIMUM_CLUES = 17;
 export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
-export const MAXIMUM_CLUES = Math.min(Math.floor(BOARD_SIZE / 2) + 8, BOARD_SIZE);
-
-class InitiallyUnsolvableError extends Error {
-
-}
 
 export enum DIFFICULTY_LEVEL {
     EASY,
@@ -36,9 +31,13 @@ export enum DIFFICULTY_LEVEL {
     HARD
 }
 
+class InitiallyUnsolvableError extends Error {
+
+}
+
 export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): Sudoku {
     if (IS_DEVELOPMENT) {
-        wait(1000);
+        wait(500);
     }
     numberOfClues = Math.floor(numberOfClues);
     const target = BOARD_SIZE - numberOfClues;
@@ -52,7 +51,6 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
         let numberOfDeleteTries = 0;
         board.fillWithRandomCompleteSolution();
         board.setSolution(board.getFlatValues() as Solution);
-        // const coordsGenerator = randomCoordinatesGenerator(true);
         while (numberOfDeleteTries < (1 << 8)) {
             clearCellButOnlyIfSolutionsDontExplode(board, difficulty);
             achievedNumberOfEmptyCells = BOARD_SIZE - board.getNumberOfFilledCells();
@@ -60,7 +58,6 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
             //making the board an invalid sudoku (multiple solutions, or not solvable by algo)
             numberOfDeleteTries++;
             if (achievedNumberOfEmptyCells === target) break;
-            // console.log("achieved", achievedNumberOfEmptyCells, "target", target);
         }
         it++;
     }
@@ -72,6 +69,17 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
         console.error("SORRY ;( I couldn't generate a valid Sudoku.")
     }
     return board;
+}
+
+function getCellValuePossibilityMap(board: Sudoku, cells: CellData[]) {
+    const cellValuePossibilities = new Map<CellData, CellValue[]>();
+    cells.forEach(
+        cell => cellValuePossibilities.set(
+            cell,
+            board.getAllowedCellValues(cell)
+        )
+    );
+    return cellValuePossibilities;
 }
 
 /**
@@ -104,7 +112,7 @@ function hasMultipleSolutionsOrIsUnsolvable(board: Sudoku, maxIterations = (1 <<
         )
     );
     let deadEndCount = 0;
-    for (let i = 0; i < maxIterations; i++) {
+    for (let i = 0; i < maxIterations && deadEndCount < 100; i++) {
         const cell = pickRandomArrayValue(emptyCells);
         if (!cell) {
             break; //no more cells left (unlikely considering the combinatorial explosion...)
@@ -112,9 +120,6 @@ function hasMultipleSolutionsOrIsUnsolvable(board: Sudoku, maxIterations = (1 <<
         //cast needed because TypeScript can't analyze the populated Map
         const possibleValuesForThisCell = cellValuePossibilities.get(cell) as CellValue[];
         const newLegalValue = possibleValuesForThisCell.pop();
-        // //the new length of the array after pop === the index of the value we obtained.
-        // //avoids another indexOf call later.
-        // const currentCellValuePossibilityIndex = possibleValuesForThisCell.length;
         if (newLegalValue === undefined) {
             //possible values exhausted, again relatively unlikely.
             //in this case, the cell is not interesting anymore
@@ -163,11 +168,31 @@ const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<CellIndex[]>
     }
 }
 
-const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficultyLevel: DIFFICULTY_LEVEL): void => {
+const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficulty: DIFFICULTY_LEVEL): void => {
     let maxIterations = 1 << 16;
     const candidates = sudoku.getFilledCells();
+    let cellValuePossibilityMap = new Map<CellData, CellValue[]>();
+    if (difficulty < DIFFICULTY_LEVEL.HARD) {
+        cellValuePossibilityMap = getCellValuePossibilityMap(sudoku, candidates);
+    }
     for (let i = 0; i < maxIterations; i++) {
-        const cell = pickRandomArrayValue(candidates);
+        let cell;
+        /**
+         * stop considering the number of possibilities in the cells after a while,
+         * this leads to nicer boards. Otherwise, the filled cells tend to cluster at the bottom of the
+         * board.
+         */
+        if (candidates.length < (BOARD_SIZE / 3)) {
+            cell = pickRandomArrayValue(candidates);
+        } else {
+            cell = getCellToClearWithDifficulty(candidates, difficulty, cellValuePossibilityMap);
+        }
+        /**
+         * Difficulty level decides which cells we prefer to remove:
+         * EASY:   Remove the cell with maximum possible values
+         * MEDIUM: Remove the cell with 2nd most possible values (or max. if needed)
+         * HARD:   Don't care about the number of possible values when removing cells.
+         */
         if (!cell) {
             return;
         }
@@ -195,12 +220,45 @@ const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficultyLevel:
 
         if (isAmbiguousOrInterestinglyUnsolvable) {
             sudoku.undo();
-            //seems like we shouldnt remove this cell.
+            //seems like we shouldn't remove this cell.
             candidates.splice(candidates.indexOf(cell), 1);
         } else {
             break;
         }
     }
+}
+
+function getCellToClearWithDifficulty(candidates: CellData[], difficulty: DIFFICULTY_LEVEL, cellValuePossibilityMap: Map<CellData, CellValue[]>) {
+    let cell;
+    switch (difficulty) {
+        case DIFFICULTY_LEVEL.HARD:
+            cell = pickRandomArrayValue(candidates);
+            break;
+        case DIFFICULTY_LEVEL.MEDIUM:
+        case DIFFICULTY_LEVEL.EASY:
+            const candDataDescByPoss = candidates.map((cell, indexInCandidates) => [
+                (cellValuePossibilityMap.get(cell) as CellValue[]).length,
+                indexInCandidates
+            ]).sort((a, b) => {
+                return a[0] < b[0] ? 1 : -1
+            });
+            if (difficulty === DIFFICULTY_LEVEL.MEDIUM && candDataDescByPoss.length > 1) {
+                const index = (candDataDescByPoss[candDataDescByPoss.length - 2] as [number, number])[1] || 0;
+                cell = candidates[index];
+            } else {
+                const candData = candDataDescByPoss.pop();
+                if (candData !== undefined) {
+                    cell = candidates[candData[1]];
+                } else {
+                    cell = pickRandomArrayValue(candidates);
+                }
+            }
+            break;
+        default:
+            cell = pickRandomArrayValue(candidates);
+            break;
+    }
+    return cell;
 }
 
 

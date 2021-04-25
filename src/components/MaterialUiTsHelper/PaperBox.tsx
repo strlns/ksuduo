@@ -13,7 +13,7 @@ export const PaperBox: FunctionComponent<PaperBoxProps> = (props) => (
 )
 
 export const paperBoxDefaultLayoutProps = {
-    p: [1, 2],
+    p: [2],
     maxWidth: "100%",
     display: "flex",
     flexDirection: "column"

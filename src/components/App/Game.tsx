@@ -17,7 +17,7 @@ import {
     HighlightRounded,
     UndoRounded
 } from '@material-ui/icons';
-import {Box, Container, Grid, IconButton, Modal, Theme, Typography} from "@material-ui/core";
+import {Box, Container, FormControlLabel, Grid, IconButton, Modal, Switch, Theme, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
 import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
@@ -67,8 +67,14 @@ export interface GameState {
     isWorking: boolean,
     forceFocus: OptionalCell,
     solvedByApp: boolean,
+    /**
+     * The `Timer` object is special, it may be modified directly (no {@link useState})
+     * as it manages the state hooks by itself.
+     * *{@link Timer.callback}
+     */
     timer: Timer,
-    isPaused: boolean
+    timerEnabled: boolean
+    isPaused: boolean,
 }
 
 // only used to detect initial render for timer.
@@ -90,6 +96,7 @@ export const Game = (props: GameProps) => {
         timer: new Timer(() => setState(
             prevState => ({...prevState, timer: state.timer})
         )),
+        timerEnabled: false,
         isPaused: isPaused
     } as GameState);
 
@@ -105,6 +112,7 @@ export const Game = (props: GameProps) => {
     };
 
     const generateSudoku = () => {
+        state.timer.pause();
         if (IS_DEVELOPMENT) {
             console.log(useWebWorker ? 'Using web worker, test succeeded.' : 'Falling back to synchronous puzzle generation.')
         }
@@ -148,7 +156,7 @@ export const Game = (props: GameProps) => {
         generateSudoku();
     }
 
-    const updateNumberOfClues = (e: ChangeEvent, numberOfClues: number): void => {
+    const updateNumberOfClues = (e: ChangeEvent | {}, numberOfClues: number): void => {
         setState(prevState => {
             return ({
                 ...prevState,
@@ -206,9 +214,6 @@ export const Game = (props: GameProps) => {
     /**
      * Start timer on initial render (if game is not paused.)
      * `props` is empty and only used to detect initial render.
-     * timer object inside state is accessed directly because it is "special"
-     * and manages the state hooks by itself.
-     * *{@link Timer.callback}
      */
     useEffect(
         () => {
@@ -357,7 +362,23 @@ export const Game = (props: GameProps) => {
                             seconds={state.timer.secondsElapsed}
                             isPaused={state.isPaused}
                             setPaused={togglePlayPause}
+                            isWorking={state.isWorking}
+                            solvedByApp={state.solvedByApp}
+                            solved={state.sudoku.isSolved()}
+                            visible={state.timerEnabled}
                         />
+                        <Box justifyContent={'center'} display={'flex'}>
+                            <FormControlLabel
+                                control={
+                                    <Switch checked={state.timerEnabled}
+                                            onChange={(event, value: boolean) => {
+                                                setState(prevState => ({...prevState, timerEnabled: value}))
+                                            }}/>
+                                }
+                                label={`${state.timerEnabled ? 'Hide timer' : 'Show timer'}`}
+                                labelPlacement={`${state.timerEnabled ? 'start' : 'end'}` as ('end' | 'start')}
+                            />
+                        </Box>
                     </PaperBox>
                 </Grid>
                 <Grid item xs={12}>

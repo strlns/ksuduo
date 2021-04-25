@@ -1,36 +1,23 @@
 import * as React from "react"
-import {ChangeEvent} from "react"
-import {Box, FormControl, FormHelperText, InputLabel, NativeSelect, Slider, ThemeProvider} from "@material-ui/core";
+import {useEffect} from "react"
+import {Box, FormControl, FormHelperText, InputLabel, NativeSelect, ThemeProvider} from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import {DEFAULT_CLUES, DIFFICULTY_LEVEL, MAXIMUM_CLUES, MINIMUM_CLUES} from "../../generator/generator";
+import {DEFAULT_CLUES, DIFFICULTY_LEVEL, MINIMUM_CLUES} from "../../generator/generator";
 import {BOARD_SIZE} from "../../model/Sudoku";
 import {withStyles} from "@material-ui/styles";
 import intRange from "../../utility/numberRange";
 import {SentimentSatisfiedRounded} from "@material-ui/icons";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
+import {DiscreteRangeSlider} from "./DiscreteRangeSlider";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 
 interface GeneratorConfigurationProps {
     numberOfClues: number,
-    setNumberOfClues: (event: ChangeEvent<{}>, value: number | number[]) => void,
+    setNumberOfClues: (event: React.ChangeEvent<{}>, value: number) => void,
     difficulty: DIFFICULTY_LEVEL,
     setDifficulty: React.ChangeEventHandler<HTMLSelectElement>,
     numberOfFilledCellsInCurrentPuzzle: number,
 }
-
-const NumCluesSlider = withStyles({
-    root: {
-        marginBottom: ksuduoThemeNormal.spacing(4),
-        flexGrow: 1,
-    },
-})(Slider);
-
-const marks = intRange(MINIMUM_CLUES + 2, MAXIMUM_CLUES, 4).map(
-    value => ({
-        value,
-        label: value
-    })
-);
 
 const MinNumCluesInfoBox = withStyles({
     root: {
@@ -39,8 +26,42 @@ const MinNumCluesInfoBox = withStyles({
     }
 })(Box);
 
+export const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 + 4));
+export const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 4));
 
 export default (props: GeneratorConfigurationProps) => {
+    const MAX_CLUES = props.difficulty < DIFFICULTY_LEVEL.HARD ? MAXIMUM_CLUES_EASY : MAXIMUM_CLUES_HARD;
+
+    const marks = intRange(MINIMUM_CLUES + 2, MAX_CLUES, 4).map(
+        value => ({
+            value,
+            label: value
+        })
+    );
+
+    useEffect(
+        () => {
+            if (props.numberOfClues > MAX_CLUES) {
+                // @ts-ignore
+                /**
+                 * I could not get around this no matter how hard I tried.
+                 * Wrapping a prop of type ((value: number) => void) in ((event: React.ChangeEvent, value: number) => void)
+                 * triggers an infinite loop, even when not calling useEffect.
+                 * a) The event parameter cannot be made optional.
+                 * b) The underlying {@link Slider} component of
+                 * {@link DiscreteRangeSlider} does not expose a ref to its input to avoid that either.
+                 * c) I could not construct a union type to work arond this either.
+                 *
+                 * So we need just need to ignore the TS compiler here.
+                 */
+                //@ts-ignore
+                props.setNumberOfClues({}, MAX_CLUES);
+            }
+        }, [
+            props.difficulty
+        ]
+    )
+
     const showMinClueInfo = () => {
         return props.numberOfClues <= MINIMUM_CLUES && props.numberOfFilledCellsInCurrentPuzzle > MINIMUM_CLUES;
     }
@@ -48,15 +69,15 @@ export default (props: GeneratorConfigurationProps) => {
         <InputLabel htmlFor="difficulty-select" style={{fontSize: '.75rem'}}>
             Number of clues (filled cells)
         </InputLabel>
-        <NumCluesSlider id={"difficulty-select"}
-                        marks={marks}
-                        defaultValue={DEFAULT_CLUES}
-                        step={1}
-                        valueLabelDisplay={"auto"}
-                        min={MINIMUM_CLUES}
-                        max={Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 + 8))}
-                        aria-labelledby="num-clues"
-                        onChange={props.setNumberOfClues}
+        <DiscreteRangeSlider id={"difficulty-select"}
+                             marks={marks}
+                             defaultValue={DEFAULT_CLUES}
+                             step={1}
+                             valueLabelDisplay={"auto"}
+                             min={MINIMUM_CLUES}
+                             max={MAX_CLUES}
+                             aria-labelledby="num-clues"
+                             onChange={props.setNumberOfClues}
         />
         <ThemeProvider theme={ksuduoThemeSecond}>
             {/*To do: replace this hideous ad-hoc-solution, maybe with some kind of tooltip*/}
@@ -68,31 +89,29 @@ export default (props: GeneratorConfigurationProps) => {
                 <SentimentSatisfiedRounded color={'primary'} style={{
                     fontSize: '1em',
                     position: 'relative',
-                    top: '.125em',
+                    top: '.25em',
                     marginLeft: '.25em'
                 }
                 }/>
             </MinNumCluesInfoBox>
-            <FormControl fullWidth={true}>
-                <InputLabel htmlFor="difficulty-select">Difficulty</InputLabel>
-                <NativeSelect
-                    value={props.difficulty}
-                    onChange={props.setDifficulty}
-                    inputProps={{
-                        name: 'difficulty',
-                        id: 'difficulty-select',
-                    }}
-                >
-                    <option value={DIFFICULTY_LEVEL.EASY}>Easy</option>
-                    <option value={DIFFICULTY_LEVEL.MEDIUM}>Medium</option>
-                    <option value={DIFFICULTY_LEVEL.HARD}>Hard</option>
-                </NativeSelect>
-                <FormHelperText>Select the difficulty level for the puzzle to generate</FormHelperText>
-                <Typography component='small' variant={'subtitle1'} color={'primary'}
-                            style={{lineHeight: '.75'}}>
-                    Not implemented yet (no effect)
-                </Typography>
-            </FormControl>
+            <ThemeProvider theme={ksuduoThemeNormal}>
+                <FormControl fullWidth={true}>
+                    <InputLabel htmlFor="difficulty-select">Difficulty</InputLabel>
+                    <NativeSelect
+                        value={props.difficulty}
+                        onChange={props.setDifficulty}
+                        inputProps={{
+                            name: 'difficulty',
+                            id: 'difficulty-select',
+                        }}
+                    >
+                        <option value={DIFFICULTY_LEVEL.EASY}>Easy</option>
+                        <option value={DIFFICULTY_LEVEL.MEDIUM}>Medium</option>
+                        <option value={DIFFICULTY_LEVEL.HARD}>Hard</option>
+                    </NativeSelect>
+                    <FormHelperText>Select the difficulty level for the puzzle to generate</FormHelperText>
+                </FormControl>
+            </ThemeProvider>
         </ThemeProvider>
     </Box>
 }
