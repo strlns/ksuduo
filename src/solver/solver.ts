@@ -1,8 +1,6 @@
-import {BOARD_SIZE, Sudoku} from "../model/Sudoku";
+import {BOARD_SIZE, Puzzle, Sudoku} from "../model/Sudoku";
 import assert from "../utility/assert";
 import {CellValue} from "../model/CellData";
-
-export type Puzzle = Sudoku | CellValue[] | number[];
 
 let mattsSolver = require('@mattflow/sudoku-solver/index');
 

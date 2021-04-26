@@ -47,7 +47,7 @@ export class Sudoku {
      * main source of truth.
      * @private
      */
-    private readonly rows: CellData[][];
+    private readonly rows: CellData[][] = [];
 
     /**
      * history stored as array of flat board states (2nd dimension contains Array(81)<CellData>).
@@ -261,22 +261,18 @@ export class Sudoku {
         return blocks;
     }
 
-    /**
-     * To do: cache this. (??? or maybe not. )
-     */
-    public getColumn(): readonly CellData[][] {
-        if (this.rows !== undefined) {
-            return Object.keys(this.rows[0]).map(
-                colIndex => {
-                    return Object.keys(this.rows)
-                        .map(
-                            rowIndex => this.rows[Number(rowIndex) as CellIndex]
-                                [Number(colIndex) as CellIndex]
-                        )
-                }
-            )
-        }
-        return [];
+    public getColumns(): readonly CellData[][] {
+        const indicesToMap: string[] = this.rows.length > 0 && this.rows[0].length === CELL_INDICES.length ?
+            CELL_INDICES.map(i => `${i}`) : Object.keys(this.rows[0]);
+        return indicesToMap.map(
+            colIndex => {
+                return Object.keys(this.rows)
+                    .map(
+                        rowIndex => this.rows[Number(rowIndex) as CellIndex]
+                            [Number(colIndex) as CellIndex]
+                    )
+            }
+        )
     }
 
     public isEmpty(): boolean {
@@ -442,9 +438,24 @@ export class Sudoku {
         this.clearHistory();
     }
 
+    /**
+     * "hidden" solution should always be present,
+     * this is not the same as {@link isSolved}
+     */
     public hasSolutionSet(): boolean {
         return this.solution.length === BOARD_SIZE;
     }
+
+
 }
 
+export type Puzzle = Sudoku | CellValue[] | number[];
 
+export const puzzleToSudoku = (puzzle: Puzzle) => {
+    if (puzzle instanceof Sudoku) {
+        return puzzle;
+    }
+    const res = new Sudoku();
+    res.initWithNumbers(puzzle as number[]);
+    return res;
+}

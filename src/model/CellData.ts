@@ -25,9 +25,9 @@ export const EXCLUDE_NOTHING = false;
 
 
 const CellValueEnumAsArray = Object.values(CellValue);
-const numOfPossibleCellValues = CellValueEnumAsArray.length / 2;
+export const NUM_POSSIBLE_VALUES = CellValueEnumAsArray.length / 2; //10  ...this is just an exercise :)
 
-export const CellValues: CellValue[] = Object.entries(CellValue).slice(numOfPossibleCellValues).map(entry => entry[1]) as CellValue[];
+export const CellValues: CellValue[] = Object.entries(CellValue).slice(NUM_POSSIBLE_VALUES).map(entry => entry[1]) as CellValue[];
 
 export const cellIsEmpty = (cell: CellData): boolean => cell.value === CellValue.EMPTY;
 
@@ -39,10 +39,5 @@ export type CellData = {
     isValid: boolean,
 }
 
-// constructor(value: CellValue, x: CellIndex, y: CellIndex, isInitial = false) {
-//     this.value = value;
-//     this.x = x;
-//     this.y = y;
-//     this.isInitial = isInitial;
-//     this.isValid = true
-// }
+export const countFilledCells = (cells: CellData[]): number =>
+    cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 1 : 0), 0);

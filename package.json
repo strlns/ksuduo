@@ -35,7 +35,9 @@
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --watch --mode development",
-    "serve": "webpack serve --mode development"
+    "serve": "webpack serve --mode development",
+    "serve-debug": "webpack serve --config src/debug/debug.webpack.config.js --mode development",
+    "serve-tests": "webpack serve --config tests/test.webpack.config.js --mode development"
   },
   "version": "0.1.0"
 }

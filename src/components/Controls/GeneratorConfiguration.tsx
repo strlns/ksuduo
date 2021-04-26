@@ -44,13 +44,14 @@ export default (props: GeneratorConfigurationProps) => {
             if (props.numberOfClues > MAX_CLUES) {
                 // @ts-ignore
                 /**
-                 * I could not get around this no matter how hard I tried.
+                 * Reason for @ts-ignore.
+                 *
                  * Wrapping a prop of type ((value: number) => void) in ((event: React.ChangeEvent, value: number) => void)
                  * triggers an infinite loop, even when not calling useEffect.
                  * a) The event parameter cannot be made optional.
                  * b) The underlying {@link Slider} component of
                  * {@link DiscreteRangeSlider} does not expose a ref to its input to avoid that either.
-                 * c) I could not construct a union type to work arond this either.
+                 * c) atm I am unable to construct a type to work around the issue
                  *
                  * So we need just need to ignore the TS compiler here.
                  */
