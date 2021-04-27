@@ -26,11 +26,23 @@ const MinNumCluesInfoBox = withStyles({
     }
 })(Box);
 
-export const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 + 4));
-export const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 4));
+export const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 + 2));
+export const MAXIMUM_CLUES_MEDIUM = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 2));
+export const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 4 + 4));
 
 export default (props: GeneratorConfigurationProps) => {
-    const MAX_CLUES = props.difficulty < DIFFICULTY_LEVEL.HARD ? MAXIMUM_CLUES_EASY : MAXIMUM_CLUES_HARD;
+    let MAX_CLUES = MAXIMUM_CLUES_MEDIUM;
+    switch (props.difficulty) {
+        case DIFFICULTY_LEVEL.EASY:
+            MAX_CLUES = MAXIMUM_CLUES_EASY
+            break;
+        case DIFFICULTY_LEVEL.MEDIUM:
+            MAX_CLUES = MAXIMUM_CLUES_MEDIUM
+            break;
+        case DIFFICULTY_LEVEL.HARD:
+            MAX_CLUES = MAXIMUM_CLUES_HARD
+            break;
+    }
 
     const marks = intRange(MINIMUM_CLUES + 2, MAX_CLUES, 4).map(
         value => ({

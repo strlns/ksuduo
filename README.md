@@ -35,9 +35,9 @@ In the end I spent way more time on it than planned, to make it playable. :)
 ### Note on 'tests'
 
 This does not follow npm convention and there is no "test" script that executes in Node context.
+(let alone a testing framework)
 
 "serve-tests" is used to quickly test problems using the desired modules, but in browser context.
-
 "serve-debug" is the same but the idea is that I would use React components there if I want to.
 "serve-tests" should just do console I/O
 

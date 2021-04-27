@@ -2,7 +2,7 @@
  * @module SudokuGenerator
  */
 
-import {BOARD_SIZE, CellIndex, flatIndexToCoords, Sudoku} from '../model/Sudoku';
+import {BOARD_SIZE, BOARD_WIDTH, CellIndex, flatIndexToCoords, Puzzle, puzzleToSudoku, Sudoku} from '../model/Sudoku';
 import {CellData, cellIsEmpty, CellValue} from "../model/CellData";
 import pickRandomArrayValue from "../utility/pickRandom";
 import {Solution} from "../solver/solver";
@@ -17,11 +17,16 @@ Then clear cells one at a time - after each removal, use backtracking:
 Add legal values, then use Sudoku solver to check for differing
 solutions or dead ends.
 If such are found, the cell must not be removed and is reverted.
-Different legal values are tried for the empty cells in each stage
+Different legal values are tried for the empty cells at each stage
 of the removal process.
 
-If no cell can be removed without making the board invalid (multiple solutions),
-the fully completed "seed" board is discarded - rinse, repeat until the desired number of cells are cleared.`;
+If no cell can be removed without rendering the board invalid (multiple solutions),
+the fully completed "seed" board is discarded - rinse, repeat until the desired number of cells is cleared.
+
+Different kinds of cells are preferred while deleting at the 3 difficulty levels - in easy mode, the cells that are
+cleared tend to be the ones that are easier to fill. In hard mode, cells with greater numbers of possible values are
+preferred.
+`;
 
 export const MINIMUM_CLUES = 17;
 export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
@@ -32,9 +37,30 @@ export enum DIFFICULTY_LEVEL {
     HARD
 }
 
+
 export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): Sudoku {
     if (IS_DEVELOPMENT) {
         wait(500);
+    }
+    // must be at least 2, otherwise infinite loop
+    const MAX_TRIES_DISCARD_UNEVEN_BOARDS = 1 << 5;
+    let maximumFilledRowsOrCols;
+    switch (difficulty) {
+        case DIFFICULTY_LEVEL.EASY:
+            if (numberOfClues < BOARD_SIZE / 3) {
+                maximumFilledRowsOrCols = 0;
+            } else if (numberOfClues < BOARD_SIZE / 2 + 2) {
+                maximumFilledRowsOrCols = 1;
+            } else {
+                maximumFilledRowsOrCols = 2;
+            }
+            break;
+        case DIFFICULTY_LEVEL.MEDIUM:
+        case DIFFICULTY_LEVEL.HARD:
+            maximumFilledRowsOrCols = numberOfClues > BOARD_SIZE / 3 ? 1 : 0;
+            break;
+        default:
+            maximumFilledRowsOrCols = 0;
     }
     numberOfClues = Math.floor(numberOfClues);
     const target = BOARD_SIZE - numberOfClues;
@@ -42,12 +68,17 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
     const MAX_TOPLEVEL_ITERATIONS = 1 << 8;
     let it = 0;
     let board = new Sudoku();
-    while (achievedNumberOfEmptyCells < target && it < MAX_TOPLEVEL_ITERATIONS) {
+    let boardIsUneven = false;
+    while (
+        (achievedNumberOfEmptyCells < target || boardIsUneven) && it < MAX_TOPLEVEL_ITERATIONS
+        ) {
+        boardIsUneven = false;
         if (IS_DEVELOPMENT) {
             console.log("testing a new board. the previous one sucked.");
         }
         board = new Sudoku();
         let numberOfDeleteTries = 0;
+        let numberOfDiscardedUnevenBoards = 0;
         board.fillWithRandomCompleteSolution();
         board.setSolution(board.getFlatValues() as Solution);
         while (numberOfDeleteTries < (1 << 8)) {
@@ -57,6 +88,26 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
             //making the board an invalid sudoku (multiple solutions, or not solvable by algo)
             numberOfDeleteTries++;
             if (achievedNumberOfEmptyCells === target) break;
+        }
+        // look if the board is nice, discard boards with full rows/cols/blocks if possible
+        const numFullRows = numberOfFilledCellsPerRow(board).filter(num => num === BOARD_WIDTH).length;
+        const numFullCols = numberOfFilledCellsPerColumn(board).filter(num => num === BOARD_WIDTH).length;
+        if (achievedNumberOfEmptyCells === target &&
+            numberOfDiscardedUnevenBoards < MAX_TRIES_DISCARD_UNEVEN_BOARDS
+            && target > BOARD_WIDTH / 2) {
+            if (
+                (numFullCols > 0 || numFullRows > 0) ||
+                (numberOfDiscardedUnevenBoards > (MAX_TRIES_DISCARD_UNEVEN_BOARDS / 2))
+                && (numFullCols > maximumFilledRowsOrCols || numFullRows > maximumFilledRowsOrCols)
+            ) {
+                if (IS_DEVELOPMENT) {
+                    console.log("discard full row/col", numFullRows, numFullCols)
+                    console.log(numberOfFilledCellsPerRow(board));
+                }
+                numberOfDiscardedUnevenBoards++;
+                boardIsUneven = true;
+                continue;
+            }
         }
         it++;
     }
@@ -186,4 +237,18 @@ function getCellToClearWithDifficulty(candidates: CellData[], difficulty: DIFFIC
             break;
     }
     return cell;
+}
+
+export const numberOfFilledCellsInArray = (cells: CellData[]): number => {
+    return cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 0 : 1), 0);
+}
+
+const numberOfFilledCellsPerRow = (boardToCheck: Puzzle): number[] => {
+    const board = puzzleToSudoku(boardToCheck);
+    return board.getRows().map(numberOfFilledCellsInArray);
+}
+
+const numberOfFilledCellsPerColumn = (boardToCheck: Puzzle): number[] => {
+    const board = puzzleToSudoku(boardToCheck);
+    return board.getColumns().map(numberOfFilledCellsInArray);
 }

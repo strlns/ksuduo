@@ -15,9 +15,21 @@ import {
     HelpOutlineRounded,
     HighlightOffRounded,
     HighlightRounded,
+    Info,
     UndoRounded
 } from '@material-ui/icons';
-import {Box, Container, FormControlLabel, Grid, IconButton, Modal, Switch, Theme, Typography} from "@material-ui/core";
+import {
+    Box,
+    Container,
+    FormControlLabel,
+    Grid,
+    IconButton,
+    Modal,
+    Switch,
+    Theme,
+    Tooltip,
+    Typography
+} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
 import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
@@ -312,7 +324,7 @@ export const Game = (props: GameProps) => {
         }
     }));
 
-    return <Container style={{position: 'relative'}}>
+    return <Container style={{position: 'relative', zIndex: 3}}>
         <Grid container spacing={3} justify={"center"}>
             <Grid item xs={12}>
                 <h1>Ksuduo</h1>
@@ -408,11 +420,19 @@ export const Game = (props: GameProps) => {
                                                 setDifficulty={selectDifficulty}
                                                 numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
                         />
-                        <Button className={wFullMarginTop().root} variant="text" size="small"
-                                endIcon={<HelpOutlineRounded/>}
-                                onClick={() => setExplanationModalOpen(true)}>
-                            How does it work
-                        </Button>
+                        <Box display={'flex'} justifyContent={'space-between'}>
+                            <Tooltip
+                                title="The same number of filled cells at different levels leads to different generator strategies.">
+                                <IconButton aria-label="Difficulty Info">
+                                    <Info/>
+                                </IconButton>
+                            </Tooltip>
+                            <Button className={wFullMarginTop().root} variant="text" size="small"
+                                    endIcon={<HelpOutlineRounded/>}
+                                    onClick={() => setExplanationModalOpen(true)}>
+                                How does it work
+                            </Button>
+                        </Box>
                         <Modal open={isExplanationModalOpen}>
                             <Box className={ModalBaseStyles().root}>
                                 <Box display='flex'>

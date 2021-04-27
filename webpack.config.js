@@ -33,6 +33,15 @@ module.exports = (env, argv) => {
                     },
                 },
                 {
+                    test: /favicon.ico$/,
+                    loader: 'file-loader',
+                    exclude: /node_modules/,
+                    options: {
+                        name: '[name].[ext]',
+                        outputPath: '/'
+                    },
+                },
+                {
                     test: /\.worker\.(js)$/,
                     use: {loader: "worker-loader"},
                     exclude: /node_modules/,
