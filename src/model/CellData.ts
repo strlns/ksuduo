@@ -19,10 +19,9 @@ export enum CellValue {
  * never again will I be so stupid to check
  * `if (excludeColumn)` expecting an index or false.
  * I am converted (ha ha). Never use type coercion in if statements
- * (except when checking for object/array existance)
+ * (except when checking for object/array existence)
  */
 export const EXCLUDE_NOTHING = false;
-
 
 const CellValueEnumAsArray = Object.values(CellValue);
 export const NUM_POSSIBLE_VALUES = CellValueEnumAsArray.length / 2; //10  ...this is just an exercise :)

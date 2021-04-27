@@ -1,13 +1,18 @@
 import * as React from "react"
 import {ForwardedRef, SetStateAction} from "react"
-import {CellData, cellIsEmpty, CellValue, CellValues} from "../../model/CellData";
+import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
 
 interface CellProps {
     cell: CellData,
+
     setCellValue(v: CellValue): void,
+
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
-    isHighlightedCell(c: CellData): boolean
+
+    isHighlightedCell(c: CellData): boolean,
+
+    supportsInputMode: boolean
 }
 
 const NumInput = withStyles({
@@ -20,6 +25,20 @@ const NumInput = withStyles({
     }
 })(Input);
 
+export const formatValue = (value: CellValue) => value === null ||
+isNaN(value) ||
+value === CellValue.EMPTY ||
+value === undefined ?
+    '' : value;
+
+/**
+ * see:
+ * https://next.material-ui.com/components/text-fields/#type-quot-number-quot
+ *
+ * I cannot prevent 'e', '+' or '-' on desktop
+ * without showing a full keyboard on older mobile devices that do not
+ * support the `inputmode` attribute.
+ */
 const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElement>) => {
     const isHighlighted = () => props.isHighlightedCell(props.cell);
     const className = `cell${props.cell.isInitial ? ' fixed' : ''}\
@@ -27,15 +46,23 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     ${isHighlighted() ? 'hint' : ''}\
     `;
 
-    const formattedValue = cellIsEmpty(props.cell) ? '' : props.cell.value;
-
     const onKeyPress: React.KeyboardEventHandler = event => {
         if (props.cell.isInitial) return;
         const val = Number(event.key) as CellValue;
-        if (val in CellValues) {
+        if (CellValues.includes(val)) {
             props.setCellValue(val);
+        } else {
+            /**
+             * see:
+             * https://next.material-ui.com/components/text-fields/#type-quot-number-quot
+             *
+             * I cannot prevent 'e', '+' or '-' on desktop
+             * without showing a full keyboard on older mobile devices that do not
+             * support the `inputmode` attribute.
+             */
         }
     };
+
     const onKeyUp: React.KeyboardEventHandler = (event: React.KeyboardEvent) => {
         if (["Backspace", "Delete"].includes(event.key)) {
             props.setCellValue(CellValue.EMPTY);
@@ -47,8 +74,13 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     return <div className={className}>
         <NumInput inputRef={ref}
                   className="value"
-                  type="number"
-                  value={formattedValue}
+                  type={props.supportsInputMode ? 'text' : 'number'}
+            //iOS, some versions show normal keypad.
+                  inputProps={{
+                      inputMode: 'numeric',
+                      pattern: '[0-9]'
+                  }}
+                  value={formatValue(props.cell.value)}
                   onKeyPress={onKeyPress}
                   onKeyUp={onKeyUp}
                   onFocus={onFocus}

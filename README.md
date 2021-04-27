@@ -19,7 +19,7 @@ This is a toy/learning project so I can get a basic understanding of:
 * **Web Workers** (by accident because they were needed)
 * myself (no not really)
 
-In the end I spent way more time on it than planned, to make it playable. Lesson: React is fun!
+In the end I spent way more time on it than planned, to make it playable. :)
 
 #### Laundry list / Nice-to-have features:
 

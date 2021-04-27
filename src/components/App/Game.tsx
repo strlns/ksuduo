@@ -34,6 +34,7 @@ import {ModalBaseStyles} from "../Message/ModalBaseStyles";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import {Clock} from "../Board/Clock";
 import {Timer} from "../../model/Timer";
+import isInputModeAttributeSupported from "../../utility/isInputModeAttributeSupported";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -110,6 +111,8 @@ export const Game = (props: GameProps) => {
             prevState => ({...prevState, timer: state.timer})
         ))
     };
+
+    const [supportsInputModeAttribute, setSupportsInputModeAttribute] = useState(false);
 
     const generateSudoku = () => {
         state.timer.pause();
@@ -213,7 +216,8 @@ export const Game = (props: GameProps) => {
     }
     /**
      * Start timer on initial render (if game is not paused.)
-     * `props` is empty and only used to detect initial render.
+     * Also pass down if the inputmode attribute is supported.
+     * `props` is just used to detect initial render.
      */
     useEffect(
         () => {
@@ -222,6 +226,7 @@ export const Game = (props: GameProps) => {
             } else {
                 state.timer.start(initialSeconds);
             }
+            setSupportsInputModeAttribute(isInputModeAttributeSupported());
         }, [props]
     )
     /*Trigger persisting. */
@@ -332,6 +337,7 @@ export const Game = (props: GameProps) => {
                         isPaused={state.isPaused}
                         setPaused={togglePlayPause}
                         timer={state.timer}
+                        supportsInputMode={supportsInputModeAttribute}
                     />
 
                     <Box p={1} marginTop={[1, 2, 3]} display={"flex"} justifyContent={"space-between"}

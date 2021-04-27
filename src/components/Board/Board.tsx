@@ -19,7 +19,12 @@ interface BoardProps {
     solutionIsFromApp: boolean,
     isPaused: boolean,
     setPaused: (value: boolean) => void,
-    timer: Timer
+    timer: Timer,
+    /**
+     * There is a browser support dilemma with numeric keypads.
+     * {@see Cell}
+     */
+    supportsInputMode: boolean
 }
 
 interface CellRefMap {
@@ -32,45 +37,48 @@ export const inputRefs: CellRefMap = {};
 
 export type OptionalCell = CellData | undefined;
 
-export const Board = (props: BoardProps) => {
-    const [state, setState] = useState(props);
-    useEffect(() => {
-        setState(props);
-    }, [props]);
+export const Board = (
+    {
+        isPaused,
+        solutionIsFromApp,
+        forceFocus,
+        highlightedCell,
+        timer,
+        setPaused,
+        sudoku,
+        cellCallback,
+        supportsInputMode
+    }: BoardProps) => {
 
     const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
 
-    const setCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
-        setState(prevState => {
-            prevState.sudoku.setValue(x, y, v);
-            if (props.cellCallback) {
-                props.cellCallback.call(state);
-            }
-            return {...prevState};
-        });
+    const updateCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
+        sudoku.setValue(x, y, v);
+        if (cellCallback) {
+            cellCallback();
+        }
     }
 
     //make sure that a new Sudoku object triggers re-render, focus first empty cell again if possible
     useEffect(() => {
-        setFocusedCell(state.sudoku.getInitialFocusCell())
-    }, [state.sudoku]);
+        setFocusedCell(sudoku.getInitialFocusCell())
+    }, [sudoku]);
 
 
     useEffect(() => {
-        setWinnerModalOpen(state.sudoku.isSolved() && !state.solutionIsFromApp);
-    }, [state.sudoku.isSolved()]);
+        setWinnerModalOpen(sudoku.isSolved() && !solutionIsFromApp);
+    }, [sudoku.isSolved()]);
 
     useEffect(() => {
-        if (state.forceFocus !== undefined) {
-            setFocusedCell(state.forceFocus);
+        if (forceFocus !== undefined) {
+            setFocusedCell(forceFocus);
         }
-    }, [state.forceFocus]);
+    }, [forceFocus]);
 
     // brittle code to allow arrow key navigation.
-    // usage of the "global" CellRefMap is non-standard but works.
-    let [focusedCell, setFocusedCell] = useState(state.sudoku.getInitialFocusCell());
+    let [focusedCell, setFocusedCell] = useState(sudoku.getInitialFocusCell());
     const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
-        if (state.isPaused) {
+        if (isPaused) {
             return;
         }
         let newY, newX: CellIndex;
@@ -78,19 +86,19 @@ export const Board = (props: BoardProps) => {
         switch (e.key) {
             case 'ArrowUp':
                 newY = Math.max(focusedCell.y - 1, 0) as CellIndex;
-                newCell = state.sudoku.getCell(focusedCell.x, newY);
+                newCell = sudoku.getCell(focusedCell.x, newY);
                 break;
             case 'ArrowRight':
                 newX = Math.min(focusedCell.x + 1, BOARD_WIDTH - 1) as CellIndex;
-                newCell = state.sudoku.getCell(newX, focusedCell.y);
+                newCell = sudoku.getCell(newX, focusedCell.y);
                 break;
             case 'ArrowDown':
                 newY = Math.min(focusedCell.y + 1, BOARD_WIDTH - 1) as CellIndex;
-                newCell = state.sudoku.getCell(focusedCell.x, newY);
+                newCell = sudoku.getCell(focusedCell.x, newY);
                 break;
             case 'ArrowLeft':
                 newX = Math.max(focusedCell.x - 1, 0) as CellIndex;
-                newCell = state.sudoku.getCell(newX, focusedCell.y);
+                newCell = sudoku.getCell(newX, focusedCell.y);
                 break;
         }
         setFocusedCell(newCell);
@@ -101,27 +109,28 @@ export const Board = (props: BoardProps) => {
         targetInputRef.current.focus();
     }, [focusedCell]);
 
-    const classes = `board${state.isPaused ? ' disabled' : ''}`
+    const classes = `board${isPaused ? ' disabled' : ''}`
 
     return <PaperBox elevation={9}
                      className={classes}
                      onKeyUp={onKeyUp}
                      style={{position: 'relative', margin: 'auto'}}>
         {
-            state.sudoku.getBlocks().map(
+            sudoku.getBlocks().map(
                 (block, index) => {
                     return <Block
                         block={block}
                         key={index}
-                        cellValidityChecker={state.sudoku.isCellValid.bind(state.sudoku)}
-                        setCellValue={setCellValue}
+                        cellValidityChecker={sudoku.isCellValid.bind(sudoku)}
+                        updateCellValue={updateCellValue}
                         setFocusedCell={setFocusedCell}
-                        highlightedCell={state.highlightedCell}
+                        highlightedCell={highlightedCell}
+                        supportsInputMode={supportsInputMode}
                     />
                 }
             )
         }
-        {state.isPaused ? <IconButton onClick={() => state.setPaused(false)} style={{
+        {isPaused ? <IconButton onClick={() => setPaused(false)} style={{
                 zIndex: 999, position: 'absolute',
                 left: '50%', top: '50%', transform: 'translate(-50%, -50%)'
             }}>
@@ -144,7 +153,7 @@ export const Board = (props: BoardProps) => {
                         Congratulations!
                     </Typography>
                     <Typography style={{margin: '1em 0'}}>
-                        You successfully completed the Sudoku in {formatTime(state.timer.secondsElapsed)}.
+                        You successfully completed the Sudoku in {formatTime(timer.secondsElapsed)}.
                     </Typography>
 
                     <Box onClick={() => setWinnerModalOpen(false)}>

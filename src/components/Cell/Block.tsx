@@ -12,10 +12,11 @@ interface BlockProps {
 
     cellValidityChecker(cell: CellData): boolean,
 
-    setCellValue(x: CellIndex, y: CellIndex, v: CellValue): void,
+    updateCellValue(x: CellIndex, y: CellIndex, v: CellValue): void,
 
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
-    highlightedCell: CellData | undefined
+    highlightedCell: CellData | undefined,
+    supportsInputMode: boolean
 }
 
 export const Block = (props: BlockProps) => {
@@ -45,9 +46,10 @@ export const Block = (props: BlockProps) => {
                             ref={inputRefs[cell.x][cell.y]}
                             key={key}
                             cell={cell}
-                            setCellValue={v => state.setCellValue(cell.x, cell.y, v)}
+                            setCellValue={v => state.updateCellValue(cell.x, cell.y, v)}
                             setFocusedCell={state.setFocusedCell}
                             isHighlightedCell={isHighlightedCell}
+                            supportsInputMode={props.supportsInputMode}
                         />
                     })
                 }
