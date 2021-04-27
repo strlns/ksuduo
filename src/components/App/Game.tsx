@@ -1,35 +1,11 @@
-import {makeStyles, ThemeProvider} from "@material-ui/styles";
+import {ThemeProvider} from "@material-ui/styles";
 import * as React from "react";
 import {ChangeEvent, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
-import generateRandomSudoku, {
-    DEFAULT_CLUES,
-    DIFFICULTY_LEVEL,
-    verboseGeneratorExplanationText
-} from "../../generator/generator";
-import {
-    CheckCircleRounded,
-    CloseRounded,
-    EmojiObjectsRounded,
-    HelpOutlineRounded,
-    HighlightOffRounded,
-    HighlightRounded,
-    Info,
-    UndoRounded
-} from '@material-ui/icons';
-import {
-    Box,
-    Container,
-    FormControlLabel,
-    Grid,
-    IconButton,
-    Modal,
-    Switch,
-    Theme,
-    Tooltip,
-    Typography
-} from "@material-ui/core";
+import generateRandomSudoku, {DEFAULT_CLUES, DIFFICULTY_LEVEL} from "../../generator/generator";
+import {EmojiObjectsRounded, HighlightOffRounded, HighlightRounded, UndoRounded} from '@material-ui/icons';
+import {Box, Container, FormControlLabel, Grid, Switch, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
 import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
@@ -42,7 +18,6 @@ import testWorker from "../../worker/testWorkerActuallyWorks";
 import {GameStateSerializable, persist, restoreGameStateOrInitialize} from "../../persistence/localStorage";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 import {GenerateButton} from "../Controls/GenerateButton";
-import {ModalBaseStyles} from "../Message/ModalBaseStyles";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import {Clock} from "../Board/Clock";
 import {Timer} from "../../model/Timer";
@@ -309,20 +284,8 @@ export const Game = (props: GameProps) => {
         setState(prevState => ({...prevState, isPaused: pauseVal, timer}))
     }
 
-    /**
-     * I don't know about the perfomance implications of 1 "god" state object VS multiple useState hooks.
-     * A separate hook is more convenient here.*/
-    const [isExplanationModalOpen, setExplanationModalOpen] = React.useState(false);
-
     const percentFilled = () => `
         ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`;
-
-    const wFullMarginTop = makeStyles((theme: Theme) => ({
-        root: {
-            marginTop: theme.spacing(2),
-            width: '100%'
-        }
-    }));
 
     return <Container style={{position: 'relative', zIndex: 3}}>
         <Grid container spacing={3} justify={"center"}>
@@ -420,39 +383,7 @@ export const Game = (props: GameProps) => {
                                                 setDifficulty={selectDifficulty}
                                                 numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
                         />
-                        <Box display={'flex'} justifyContent={'space-between'}>
-                            <Tooltip
-                                title="The same number of filled cells at different levels leads to different generator strategies.">
-                                <IconButton aria-label="Difficulty Info">
-                                    <Info/>
-                                </IconButton>
-                            </Tooltip>
-                            <Button className={wFullMarginTop().root} variant="text" size="small"
-                                    endIcon={<HelpOutlineRounded/>}
-                                    onClick={() => setExplanationModalOpen(true)}>
-                                How does it work
-                            </Button>
-                        </Box>
-                        <Modal open={isExplanationModalOpen}>
-                            <Box className={ModalBaseStyles().root}>
-                                <Box display='flex'>
-                                    <Typography component={'h3'} variant={'h3'} style={{flexGrow: 1}}>
-                                        Sudoku Generator
-                                    </Typography>
 
-                                    <IconButton edge='end' title="Close" onClick={() => setExplanationModalOpen(false)}>
-                                        <CloseRounded/>
-                                    </IconButton>
-                                </Box>
-                                <Typography
-                                    style={{whiteSpace: 'pre-wrap'}}>{verboseGeneratorExplanationText}</Typography>
-                                <Box onClick={() => setExplanationModalOpen(false)}>
-                                    <IconButton style={{margin: 'auto', display: 'block'}} title="Close">
-                                        <CheckCircleRounded color={'primary'}/>
-                                    </IconButton>
-                                </Box>
-                            </Box>
-                        </Modal>
                     </PaperBox>
                 </Grid>
             </Grid>

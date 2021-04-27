@@ -48,8 +48,13 @@ input::-webkit-inner-spin-button {
     display: inline-grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: center;
-    min-width: 300px;
     max-width: 100%;
+}
+
+@media (min-width: 400px) {
+    .board {
+        min-width: 300px;
+    }
 }
 
 .board .block {
