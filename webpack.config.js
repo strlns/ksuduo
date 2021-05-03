@@ -1,6 +1,8 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {DefinePlugin} = require('webpack');
+const CssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 module.exports = (env, argv) => {
     const IS_DEVELOPMENT = argv.mode === 'development';
     return {
@@ -19,7 +21,7 @@ module.exports = (env, argv) => {
                     test: /\.css$/i,
                     exclude: /node_modules/,
                     use: [
-                        "style-loader",
+                        IS_DEVELOPMENT ? "style-loader" : CssExtractPlugin.loader,
                         "css-loader"
                     ],
                 },
@@ -46,35 +48,20 @@ module.exports = (env, argv) => {
                     use: {loader: "worker-loader"},
                     exclude: /node_modules/,
                 },
-                //This c*** doesn't work. My efforts to switch to babel-loader and @babel/preset-typescript
-                //etc didn't work either. It's a huge time sink. Just do not support ancient browsers.
-
-                // ...(IS_DEVELOPMENT ? [] : [
-                //     {
-                //         test: /\.(js)$/,
-                //         use: {
-                //             loader: 'babel-loader',
-                //             options: {
-                //                 presets: [
-                //                     [
-                //                         "@babel/preset-env",
-                //                         {
-                //                             corejs: {
-                //                                 version: "3.8",
-                //                                 proposals: true
-                //                             },
-                //                             useBuiltIns: "usage",
-                //                         },
-                //                     ],
-                //                     "@babel/preset-react",
-                //                 ]
-                //             }
-                //         }
-                //     }
-                // ])
             ],
         },
 
+        optimization: {
+            minimize: true,
+            minimizer: [
+                `...`, //merge with existing array, webpack-specific syntax for versions > =5
+                new CssMinimizerPlugin(),
+            ]
+        },
+        output: {
+            path: path.resolve(__dirname, 'dist'),
+            publicPath: ''
+        },
         plugins: [
             new HtmlWebpackPlugin({
                 template: path.join(__dirname, 'src', 'template.html')
@@ -82,7 +69,8 @@ module.exports = (env, argv) => {
             new DefinePlugin({
                     IS_DEVELOPMENT
                 }
-            )
+            ),
+            new CssExtractPlugin()
 
         ],
         resolve: {
