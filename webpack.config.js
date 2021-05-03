@@ -40,12 +40,16 @@ module.exports = (
                             ],
                             plugins: [
                                 '@babel/plugin-transform-runtime',
+
+                                /**
+                                 * Doesn't work? prop types are still in production build with this uncommented.
+                                 */
                                 // [
-                                //     'transform-react-remove-prop-types',
-                                //     {
-                                //         mode: 'remove',
-                                //         removeImport: true,
-                                //     }
+                                // 'transform-react-remove-prop-types',
+                                // {
+                                //     mode: 'remove',
+                                //     removeImport: true,
+                                // }
                                 // ],
                             ],
                         },
