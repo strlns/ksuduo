@@ -3,7 +3,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {DefinePlugin} = require('webpack');
 const CssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-module.exports = (env, argv) => {
+// destructure `argv`, we only need mode. assume development
+module.exports = (env, {mode = 'development'}) => {
+    console.log(`WEBPACK MODE: ${mode}`);
     const IS_DEVELOPMENT = argv.mode === 'development';
     return {
         devtool: 'source-map',
@@ -12,11 +14,37 @@ module.exports = (env, argv) => {
         },
         module: {
             rules: [
-                {
+                //use babel in production, ts-loader in development
+                (IS_DEVELOPMENT ? {
                     test: /\.tsx?$/,
                     use: 'ts-loader',
                     exclude: /node_modules/,
-                },
+                } : {
+                    test: /\.(js|jsx|tsx|ts)$/,
+                    exclude: /node_modules/,
+                    use: {
+                        loader: 'babel-loader',
+                        options: {
+                            presets: [
+                                [
+                                    '@babel/preset-env',
+                                    {
+                                        useBuiltIns: 'usage',
+                                        corejs: '3.11'
+                                    }
+                                ],
+                                '@babel/preset-react',
+                                '@babel/preset-typescript',
+                            ],
+                            plugins: [
+                                '@babel/plugin-transform-runtime',
+                                // 'babel-plugin-styled-components',
+                                // '@babel/plugin-proposal-class-properties',
+                                // '@babel/plugin-proposal-object-rest-spread',
+                            ],
+                        },
+                    },
+                }),
                 {
                     test: /\.css$/i,
                     exclude: /node_modules/,
@@ -43,6 +71,7 @@ module.exports = (env, argv) => {
                         outputPath: '/'
                     },
                 },
+                // worker-loader processes transpiled file, no .ts here
                 {
                     test: /\.worker\.(js)$/,
                     use: {loader: "worker-loader"},
@@ -67,7 +96,8 @@ module.exports = (env, argv) => {
                 template: path.join(__dirname, 'src', 'template.html')
             }),
             new DefinePlugin({
-                    IS_DEVELOPMENT
+                    IS_DEVELOPMENT,
+                    'process.env.NODE_ENV': argv.mode
                 }
             ),
             new CssExtractPlugin()

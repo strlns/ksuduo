@@ -41,6 +41,15 @@ This does not follow npm convention and there is no "test" script that executes 
 "serve-debug" is the same but the idea is that I would use React components there if I want to.
 "serve-tests" should just do console I/O
 
+### Compatibility, Babel
+
+Babel is used to polyfill for older browsers and to provide a fast build (`ts-loader` is slow without HMR)
+However, `useBuiltIns: "usage"` does not quite work when using `material-ui`, or not at all for Internet Explorer 11.
+
+See https://github.com/mui-org/material-ui/issues/17789
+
+Sane conclusion: No support for IE.
+
 ---
 
 As usual, `WebpackDefinePlugin` is used for debugging and
