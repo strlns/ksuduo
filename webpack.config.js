@@ -3,10 +3,12 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {DefinePlugin} = require('webpack');
 const CssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-// destructure `argv`, we only need mode. assume development
-module.exports = (env, {mode = 'development'}) => {
+module.exports = (
+    env,
+    {mode = 'development'}
+) => {
     console.log(`WEBPACK MODE: ${mode}`);
-    const IS_DEVELOPMENT = argv.mode === 'development';
+    const IS_DEVELOPMENT = mode === 'development';
     return {
         devtool: 'source-map',
         entry: {
@@ -38,9 +40,13 @@ module.exports = (env, {mode = 'development'}) => {
                             ],
                             plugins: [
                                 '@babel/plugin-transform-runtime',
-                                // 'babel-plugin-styled-components',
-                                // '@babel/plugin-proposal-class-properties',
-                                // '@babel/plugin-proposal-object-rest-spread',
+                                // [
+                                //     'transform-react-remove-prop-types',
+                                //     {
+                                //         mode: 'remove',
+                                //         removeImport: true,
+                                //     }
+                                // ],
                             ],
                         },
                     },
@@ -97,7 +103,8 @@ module.exports = (env, {mode = 'development'}) => {
             }),
             new DefinePlugin({
                     IS_DEVELOPMENT,
-                    'process.env.NODE_ENV': argv.mode
+                    // JSON.stringify is required here for string-escaping!!
+                    'process.env.NODE_ENV': JSON.stringify(mode)
                 }
             ),
             new CssExtractPlugin()
