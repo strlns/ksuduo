@@ -33,17 +33,18 @@ export const inputRefs: CellRefMap = {};
 
 export type OptionalCell = CellData | undefined;
 
-export const Board = ({
-                          isPaused,
-                          forceFocus,
-                          highlightedCell,
-                          togglePaused,
-                          sudoku,
-                          cellCallback,
-                          supportsInputMode
-                      }: BoardProps) => {
+export const Board = React.memo(
+    ({
+         isPaused,
+         forceFocus,
+         highlightedCell,
+         togglePaused,
+         sudoku,
+         cellCallback,
+         supportsInputMode
+     }: BoardProps) => {
 
-    const updateCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
+        const updateCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
         sudoku.setValue(x, y, v);
         if (cellCallback) {
             cellCallback();
@@ -130,4 +131,4 @@ export const Board = ({
                 /></IconButton>
             : null}
     </PaperBox>
-};
+    });

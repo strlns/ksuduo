@@ -443,6 +443,9 @@ export class Sudoku {
         return this.solution.length === BOARD_SIZE;
     }
 
+    public getFlatValuesAsString() {
+        return this.getFlatValues().join()
+    }
 
 }
 

@@ -7,7 +7,8 @@ export const LOCALSTORAGE_KEY = 'thirtySixState';
 export type GameStateSerializable = {
     board: Sudoku,
     secondsElapsed: number,
-    isPaused: boolean
+    isPaused: boolean,
+    timerEnabled: boolean
 }
 
 const withLocalStorage = (func: Function) => {
@@ -39,14 +40,16 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
             return {
                 board: sudoku,
                 secondsElapsed: data[3],
-                isPaused: data[4]
+                isPaused: data[4],
+                timerEnabled: data[5] ?? false
             };
         }
     });
     return lsResult ?? {
         board: new Sudoku(),
         secondsElapsed: 0,
-        isPaused: false
+        isPaused: false,
+        timerEnabled: false
     };
 }
 /**
@@ -66,7 +69,8 @@ export const persist = (state: GameStateSerializable): void => {
                     state.board.history,
                     state.board.getSolution(),
                     state.secondsElapsed,
-                    state.isPaused
+                    state.isPaused,
+                    state.timerEnabled
                 ])
             );
         }

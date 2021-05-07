@@ -1,9 +1,8 @@
 import {Puzzle, Sudoku} from "../model/Sudoku";
 import assert from "../utility/assert";
 import {CellValue} from "../model/CellData";
-import {BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
+import {BOARD_SIZE} from "../model/Board";
 import {solve as solveByBacktracking} from "./solverAlgo";
-import arrayChunk from "../utility/arrayChunk";
 
 /**
  * @param sudoku
@@ -32,9 +31,10 @@ let mattsSolver = require('@mattflow/sudoku-solver/index');
 
 export function solveWithMattsSolver(flatPuzzle: CellValue[], maxIterations = 1 << 24): Solution {
     try {
-        if (IS_DEVELOPMENT) {
-            console.log(`attempting to solve puzzle: ${arrayChunk(flatPuzzle, BOARD_WIDTH).map(row => row.join()).join('\n')}`)
-        }
+        // commented out because this leads to seriously slowdown of puzzle generation
+        // if (IS_DEVELOPMENT) {
+        //     console.log(`attempting to solve puzzle: ${arrayChunk(flatPuzzle, BOARD_WIDTH).map(row => row.join()).join('\n')}`)
+        // }
         const solution: number[] = mattsSolver(
             flatPuzzle,
             {outputArray: true, maxIterations}

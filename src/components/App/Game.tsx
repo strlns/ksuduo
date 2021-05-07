@@ -32,7 +32,7 @@ import {BOARD_SIZE, DEFAULT_CLUES} from "../../model/Board";
 import {ksuduoThemeSecondWinnerModal} from "../Theme/WinnerModalTheme";
 import {WinnerMessage} from "../Message/WinnerMessage";
 import {formatTime} from "../../utility/formatTime";
-import {IntervalId, MAGIC_NUMBER_COMPENSATE_JIT_JITTER} from "../../model/Timer";
+import {Timer} from "../../model/Timer";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -57,14 +57,7 @@ checkWebWorkerSupport().then(
     })
 );
 
-let timerIntervalId: IntervalId;
-
-const clearTimerInterval = () => {
-    if (timerIntervalId !== undefined) {
-        window.clearInterval(timerIntervalId);
-        timerIntervalId = undefined;
-    }
-}
+let timer = new Timer();
 
 export interface GameState {
     sudoku: Sudoku,
@@ -75,7 +68,6 @@ export interface GameState {
     forceFocus: OptionalCell,
     solvedByApp: boolean,
     isPaused: boolean, //paused by user
-    isPausedByApp: boolean, //paused by app, e.g. because of tab close
     secondsElapsed: number,
     timerEnabled: boolean
 }
@@ -85,13 +77,19 @@ interface GameProps {
 }
 
 /**
- * This component wraps way too much state, this causes unneeded re-renders, e.g. when
+ * This component wraps way too much state,
+ * this causes unneeded re-renders and uneeded localStorage access each time
  * the Timer interval callback is called.
  *
- * @todo unwrap child components.
+ * @todo unwrap child components. Done: Board.tsx doesn't re-render every 1000ms.
  */
 export const Game = (props: GameProps) => {
-    const {board: initialBoard, secondsElapsed: initialSeconds, isPaused} = restoreGameStateOrInitialize();
+    const {
+        board: initialBoard,
+        secondsElapsed: initialSeconds,
+        isPaused,
+        timerEnabled
+    } = restoreGameStateOrInitialize();
     const [state, setState] = useState({
         sudoku: initialBoard,
         numberOfClues: DEFAULT_CLUES,
@@ -103,54 +101,14 @@ export const Game = (props: GameProps) => {
         solvedByApp: initialBoard.isSolved(),
         secondsElapsed: initialSeconds,
         isPaused,
-        isPausedByApp: false,
-        timerEnabled: false,
+        timerEnabled,
     } as GameState);
-
-    const startTimer = (initiallyElapsed: number) => {
-        clearTimerInterval();
-        setState(prevState => ({
-            ...prevState,
-            secondsElapsed: initiallyElapsed
-        }))
-        timerIntervalId = window.setInterval(() => {
-            setState(prevState => ({
-                ...prevState,
-                secondsElapsed: ++prevState.secondsElapsed
-            }))
-        }, 1000);
-    }
-
-    const pauseTimer = () => {
-        if (state.secondsElapsed > 0) {
-            setState(prevState => ({
-                ...prevState,
-                secondsElapsed: --prevState.secondsElapsed
-            }))
-        }
-        clearTimerInterval();
-    }
-
-    const resumeTimer = () => {
-        if (state.secondsElapsed > 0 && !timerIntervalId) {
-            if (state.secondsElapsed > 0) {
-                setTimeout(() => {
-                    setState(prevState => ({
-                        ...prevState,
-                        secondsElapsed: ++prevState.secondsElapsed
-                    }))
-                });
-            }
-            startTimer(state.secondsElapsed);
-        }
-    }
 
     const resetStateCommons = {
         solvedByApp: false,
         highlightedCell: undefined,
         isWorking: false,
         isPaused: false,
-        isPausedByApp: false,
         secondsElapsed: 0,
     };
 
@@ -194,7 +152,7 @@ export const Game = (props: GameProps) => {
                 })
             );
         }
-        startTimer(0);
+        timer.start();
     }
 
     //no Sudoku in localStorage
@@ -222,7 +180,7 @@ export const Game = (props: GameProps) => {
         if (state.sudoku.isEmpty()) {
             generateSudoku();
         }
-        startTimer(0);
+        timer.start();
     }
 
     const showSolution = () => {
@@ -233,7 +191,9 @@ export const Game = (props: GameProps) => {
 
     const persistState = () => {
         const {sudoku: board, isPaused} = state;
-        const gameState = {board, isPaused, secondsElapsed: state.secondsElapsed} as GameStateSerializable
+        const gameState = {
+            board, isPaused, secondsElapsed: state.secondsElapsed, timerEnabled: state.timerEnabled
+        } as GameStateSerializable
         persist(gameState);
     }
     /**
@@ -244,11 +204,11 @@ export const Game = (props: GameProps) => {
      * @todo replace beforeunload event with visibilitychange event
      */
     window.onbeforeunload = () => {
+        timer.pause();
         sudokuWorker.terminate();
         setState(
             prevState => ({
-                ...prevState,
-                isPausedByApp: true
+                ...prevState
             })
         );
         persistState();
@@ -260,12 +220,16 @@ export const Game = (props: GameProps) => {
             persistState();
         }
     }, [
-        state.sudoku.isEmpty()
+        state.sudoku.getFlatValuesAsString()
     ]);
 
     const togglePaused = useCallback(() => {
-        const newSeconds = state.isPaused ? state.secondsElapsed : (state.secondsElapsed + MAGIC_NUMBER_COMPENSATE_JIT_JITTER);
-        setState(prevState => ({...prevState, isPaused: !prevState.isPaused, secondsElapsed: newSeconds}));
+        setState(prevState => ({...prevState, isPaused: !prevState.isPaused}));
+        if (!state.isPaused) {
+            timer.resume();
+        } else {
+            timer.pause();
+        }
     }, [
         state.isPaused
     ]);
@@ -277,19 +241,24 @@ export const Game = (props: GameProps) => {
         () => {
             setSupportsInputModeAttribute(isInputModeAttributeSupported());
             if (!state.isPaused) {
-                startTimer(state.secondsElapsed)
+                timer.start(state.secondsElapsed)
             }
+            timer.secondsElapsed = state.secondsElapsed;
+            timer.callback = () => setState(prevState => ({
+                ...prevState,
+                secondsElapsed: timer.secondsElapsed
+            }));
         }, [props]
     )
 
     useEffect(
         () => {
-            if (state.isPaused || state.isPausedByApp) {
-                pauseTimer();
+            if (state.isPaused) {
+                timer.pause();
             } else {
-                resumeTimer();
+                timer.resume();
             }
-        }, [state.isPaused, state.isPausedByApp]
+        }, [state.isPaused]
     )
 
     /*Trigger persisting. */
@@ -306,10 +275,10 @@ export const Game = (props: GameProps) => {
     useEffect(() => {
             setWinnerModalOpen(state.sudoku.isSolved() && !state.solvedByApp);
             if (state.sudoku.isSolved()) {
-                state.isPausedByApp = true;
+                timer.pause();
             } else if (!state.isPaused) {
                 // keep it consistent when jumping between solution and undo etc.
-                state.isPausedByApp = false;
+                timer.resume();
             }
         },
         [
@@ -409,7 +378,6 @@ export const Game = (props: GameProps) => {
                         <Clock
                             secondsElapsed={state.secondsElapsed}
                             isPaused={state.isPaused}
-                            isPausedByApp={state.isPausedByApp}
                             togglePaused={togglePaused}
                             isWorking={state.isWorking}
                             solvedByApp={state.solvedByApp}

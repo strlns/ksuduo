@@ -9,7 +9,6 @@ import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 interface ClockProps {
     secondsElapsed: number,
     isPaused: boolean,
-    isPausedByApp: boolean,
     togglePaused: () => void,
     isWorking: boolean,
     solvedByApp: boolean,
