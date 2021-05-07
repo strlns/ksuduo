@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+// const {HotModuleReplacementPlugin} = require("webpack");
 const {DefinePlugin} = require('webpack');
 module.exports = (
     env,
@@ -10,18 +11,20 @@ module.exports = (
     return {
         devtool: 'source-map',
         devServer: {
-            hot: true,
-            hotOnly: true
+            // HMR does not work at the moment..probably because of ts-loader. reload is triggered and that's enough.
+            // hot: true,
         },
         entry: {
             'main': path.resolve(__dirname, './src/index.tsx')
         },
         module: {
             rules: [
-                //use babel in production, ts-loader in development
                 {
                     test: /\.tsx?$/,
-                    use: 'ts-loader',
+                    use: {
+                        loader: 'ts-loader',
+                        options: {}
+                    },
                     exclude: /node_modules/,
                 },
                 {
@@ -72,10 +75,11 @@ module.exports = (
                     'process.env.NODE_ENV': JSON.stringify(mode)
                 }
             ),
-
+            // new HotModuleReplacementPlugin()
         ],
         resolve: {
             extensions: ['.tsx', '.ts', '.js'],
         },
+        target: 'web' // https://github.com/webpack/webpack-dev-server/issues/2758
     }
 }

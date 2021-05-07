@@ -5,7 +5,9 @@ import {BlockData} from "../../model/BlockData";
 import {CellData, CellValue} from '../../model/CellData';
 import {inputRefs} from "../Board/Board";
 import arraysEqualSimple from "../../utility/arraysEqualSimple";
-import {CellIndex} from "../../model/Board";
+import {BLOCK_WIDTH, BOARD_WIDTH, CellIndex} from "../../model/Board";
+import {makeStyles} from "@material-ui/core/styles";
+import clsx from "clsx";
 
 interface BlockProps {
     block: BlockData,
@@ -19,6 +21,12 @@ interface BlockProps {
     supportsInputMode: boolean
 }
 
+const blockStyles = makeStyles({
+    root: {
+        flexBasis: `${(BLOCK_WIDTH / BOARD_WIDTH * 100).toFixed(2)}%`
+    }
+});
+
 export const Block = (props: BlockProps) => {
     const [state, setState] = useState(props);
     useEffect(() => {
@@ -31,7 +39,9 @@ export const Block = (props: BlockProps) => {
             [state.highlightedCell.x, state.highlightedCell.y]);
     };
 
-    return <div className={"block"}>
+    const blockClass = blockStyles();
+
+    return <div className={clsx(blockClass.root, 'block')}>
         {state.block.getRows().map((row, blockRowIndex) => {
             return <div className={"row"} key={blockRowIndex}>
                 {

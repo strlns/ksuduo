@@ -8,26 +8,19 @@ import {
     InputLabel,
     Modal,
     NativeSelect,
-    ThemeProvider,
-    Tooltip
+    ThemeProvider
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import {DIFFICULTY_LEVEL, verboseGeneratorExplanationText} from "../../generator/generator";
 import {BOARD_SIZE, DEFAULT_CLUES, MINIMUM_CLUES} from "../../model/Board";
-import {withStyles} from "@material-ui/styles";
 import intRange from "../../utility/numberRange";
-import {
-    CheckCircleRounded,
-    CloseRounded,
-    HelpOutlineRounded,
-    Info,
-    SentimentSatisfiedRounded
-} from "@material-ui/icons";
+import {CheckCircleRounded, CloseRounded, HelpOutlineRounded, SentimentSatisfiedRounded} from "@material-ui/icons";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 import {DiscreteRangeSlider} from "../Controls/DiscreteRangeSlider";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import {Button} from "../Controls/Button";
 import {ModalBaseStyles} from "../Message/ModalBaseStyles";
+import {makeStyles} from "@material-ui/core/styles";
 
 interface GeneratorConfigurationProps {
     numberOfClues: number,
@@ -37,22 +30,26 @@ interface GeneratorConfigurationProps {
     numberOfFilledCellsInCurrentPuzzle: number,
 }
 
-const MinNumCluesInfoBox = withStyles({
+const infoCollapseStyle = makeStyles({
     root: {
         overflow: 'hidden',
         transition: 'max-height .75s ease-out'
     }
-})(Box);
+});
 
-export const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 - 4));
-export const MAXIMUM_CLUES_MEDIUM = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 2));
-export const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 4 + 4));
+
+const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 - 4));
+const MAXIMUM_CLUES_MEDIUM = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 2));
+const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 4 + 4));
+
+const MINIMUM_CLUES_EASY = Math.min(MINIMUM_CLUES + 4, MAXIMUM_CLUES_EASY);
 
 export default (props: GeneratorConfigurationProps) => {
-    let MAX_CLUES = MAXIMUM_CLUES_MEDIUM;
+    let MAX_CLUES = MAXIMUM_CLUES_MEDIUM, MIN_CLUES = MINIMUM_CLUES;
     switch (props.difficulty) {
         case DIFFICULTY_LEVEL.EASY:
             MAX_CLUES = MAXIMUM_CLUES_EASY
+            MIN_CLUES = MINIMUM_CLUES_EASY
             break;
         case DIFFICULTY_LEVEL.MEDIUM:
             MAX_CLUES = MAXIMUM_CLUES_MEDIUM
@@ -62,7 +59,7 @@ export default (props: GeneratorConfigurationProps) => {
             break;
     }
 
-    const marks = intRange(MINIMUM_CLUES + 2, MAX_CLUES, 4).map(
+    const marks = intRange(MIN_CLUES + 2, MAX_CLUES, 4).map(
         value => ({
             value,
             label: value
@@ -72,7 +69,6 @@ export default (props: GeneratorConfigurationProps) => {
     useEffect(
         () => {
             if (props.numberOfClues > MAX_CLUES) {
-                // @ts-ignore
                 /**
                  * Reason for @ts-ignore.
                  *
@@ -87,6 +83,9 @@ export default (props: GeneratorConfigurationProps) => {
                  */
                 //@ts-ignore
                 props.setNumberOfClues({}, MAX_CLUES);
+            } else if (props.numberOfClues < MIN_CLUES) {
+                //@ts-ignore
+                props.setNumberOfClues({}, MIN_CLUES);
             }
         }, [
             props.difficulty
@@ -98,6 +97,8 @@ export default (props: GeneratorConfigurationProps) => {
     }
 
     const [isExplanationModalOpen, setExplanationModalOpen] = React.useState(false);
+
+    const infoCollapseClass = infoCollapseStyle().root;
 
     return <Box p={1}>
         <ThemeProvider theme={ksuduoThemeNormal}>
@@ -115,7 +116,9 @@ export default (props: GeneratorConfigurationProps) => {
                     <option value={DIFFICULTY_LEVEL.MEDIUM}>Medium</option>
                     <option value={DIFFICULTY_LEVEL.HARD}>Hard</option>
                 </NativeSelect>
-                <FormHelperText>Select the difficulty level for the puzzle to generate</FormHelperText>
+                <FormHelperText style={{lineHeight: 1, marginBottom: ksuduoThemeNormal.spacing(2)}}>
+                    Difficulty changes range of the slider below, but also generator strategy.
+                </FormHelperText>
             </FormControl>
         </ThemeProvider>
         <InputLabel htmlFor="difficulty-select" style={{fontSize: '.75rem'}}>
@@ -126,14 +129,14 @@ export default (props: GeneratorConfigurationProps) => {
                              defaultValue={DEFAULT_CLUES}
                              step={1}
                              valueLabelDisplay={"auto"}
-                             min={MINIMUM_CLUES}
+                             min={MIN_CLUES}
                              max={MAX_CLUES}
                              aria-labelledby="num-clues"
                              onChange={props.setNumberOfClues}
         />
         <ThemeProvider theme={ksuduoThemeSecond}>
             {/*To do: replace this hideous ad-hoc-solution, maybe with some kind of tooltip*/}
-            <MinNumCluesInfoBox style={{maxHeight: showMinClueInfo() ? '6rem' : '0'}}>
+            <Box className={infoCollapseClass} style={{maxHeight: showMinClueInfo() ? '6rem' : '0'}}>
                 <Typography component='small' variant={'subtitle1'} color={'primary'}
                             style={{lineHeight: '.75'}}>
                     The minimum number of clues for a solvable Sudoku has been proven to be 17!
@@ -143,17 +146,10 @@ export default (props: GeneratorConfigurationProps) => {
                     position: 'relative',
                     top: '.25em',
                     marginLeft: '.25em'
-                }
-                }/>
-            </MinNumCluesInfoBox>
+                }}/>
+            </Box>
         </ThemeProvider>
         <Box display={'flex'} justifyContent={'space-between'} alignItems={'center'}>
-            <Tooltip
-                title="The same number of filled cells at different levels leads to different generator strategies.">
-                <IconButton aria-label="Difficulty Info">
-                    <Info/>
-                </IconButton>
-            </Tooltip>
             <Button fullWidth={true} variant="text" size="small"
                     endIcon={<HelpOutlineRounded/>}
                     onClick={() => setExplanationModalOpen(true)}>

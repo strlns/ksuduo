@@ -12,7 +12,18 @@ import {
     ThumbUp,
     UndoRounded
 } from '@material-ui/icons';
-import {Box, Container, FormControlLabel, Grid, Icon, IconButton, Modal, Switch, Typography} from "@material-ui/core";
+import {
+    Box,
+    Container,
+    FormControlLabel,
+    Grid,
+    Icon,
+    IconButton,
+    LinearProgress,
+    Modal,
+    Switch,
+    Typography
+} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
 import {Sudoku} from "../../model/Sudoku";
@@ -77,19 +88,19 @@ interface GameProps {
 }
 
 /**
- * This component wraps way too much state,
- * this causes unneeded re-renders and uneeded localStorage access each time
- * the Timer interval callback is called.
- *
- * @todo unwrap child components. Done: Board.tsx doesn't re-render every 1000ms.
+ * This component wraps way too much state
+ * @todo unwrap child components.
+ * Done: Board.tsx doesn't re-render every 1000ms.
  */
+
+const {
+    board: initialBoard,
+    secondsElapsed: initialSeconds,
+    isPaused: initialIsPaused,
+    timerEnabled: initialTimerEnabled
+} = restoreGameStateOrInitialize();
+
 export const Game = (props: GameProps) => {
-    const {
-        board: initialBoard,
-        secondsElapsed: initialSeconds,
-        isPaused,
-        timerEnabled
-    } = restoreGameStateOrInitialize();
     const [state, setState] = useState({
         sudoku: initialBoard,
         numberOfClues: DEFAULT_CLUES,
@@ -100,8 +111,8 @@ export const Game = (props: GameProps) => {
         // do not repeat congratulation on reload.
         solvedByApp: initialBoard.isSolved(),
         secondsElapsed: initialSeconds,
-        isPaused,
-        timerEnabled,
+        isPaused: initialIsPaused,
+        timerEnabled: initialTimerEnabled,
     } as GameState);
 
     const resetStateCommons = {
@@ -136,6 +147,7 @@ export const Game = (props: GameProps) => {
                     })
                 );
                 sudokuWorker.removeEventListener("message", listener);
+                timer.start();
             }
             sudokuWorker.addEventListener('message', listener);
         } else {
@@ -151,8 +163,8 @@ export const Game = (props: GameProps) => {
                     ...resetStateCommons
                 })
             );
+            timer.start();
         }
-        timer.start();
     }
 
     //no Sudoku in localStorage
@@ -321,25 +333,29 @@ export const Game = (props: GameProps) => {
         }));
     }
 
-    const percentFilled = () => `
-        ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`;
+    const percentFilled = () => state.sudoku.getNumberOfCorrectlyFilledCells() / BOARD_SIZE * 100
 
-    return <Container style={{position: 'relative', zIndex: 3}}>
-        <Grid container spacing={3} justify={"center"}>
+    return <Container style={{padding: 0}}>
+        <Grid container spacing={3} justify={"center"}
+              style={{padding: 0, position: 'relative', zIndex: 3}}
+              className={`game${state.isWorking ? ' working' : ''}`}>
             <Grid item xs={12}>
                 <h1>Ksuduo</h1>
                 <h2>Sudoku Toy Project</h2>
             </Grid>
             <Grid item xs={12} md={8} lg={6} justify={"center"} container>
                 <PaperBox {...paperBoxDefaultLayoutProps} width={'100%'}>
-                    <Typography component={'small'}
-                                style={{
-                                    textAlign: 'center',
-                                    marginBottom: ksuduoThemeNormal.spacing(1),
-                                    fontSize: '.75em'
-                                }}>
-                        {state.sudoku.getNumberOfFilledCells()} / {BOARD_SIZE} ({percentFilled()})
-                    </Typography>
+                    <Box p={1}>
+                        <LinearProgress value={percentFilled()} variant={'determinate'}/>
+                        <Typography component={'small'}
+                                    style={{
+                                        textAlign: 'center',
+                                        marginBottom: ksuduoThemeNormal.spacing(1),
+                                        fontSize: '.75em',
+                                    }}>
+                            {state.sudoku.getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE} ({`${percentFilled().toFixed(1)}%`})
+                        </Typography>
+                    </Box>
                     <Board
                         solutionIsFromApp={state.solvedByApp}
                         sudoku={state.sudoku}

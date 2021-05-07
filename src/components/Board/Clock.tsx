@@ -2,7 +2,7 @@ import * as React from "react";
 import {Done, PauseCircleOutlineRounded, PlayCircleOutlineRounded, TimerRounded} from "@material-ui/icons";
 import {Box, IconButton, LinearProgress} from "@material-ui/core";
 import {formatTime} from "../../utility/formatTime";
-import {makeStyles} from "@material-ui/styles";
+import {makeStyles} from "@material-ui/core/styles";
 import clsx from "clsx";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 

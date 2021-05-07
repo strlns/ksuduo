@@ -37,6 +37,7 @@ export enum DIFFICULTY_LEVEL {
 
 
 export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): Sudoku {
+    // debug load spinner. don't set this to 20s, then forget and wonder why generating has become slow...
     if (IS_DEVELOPMENT) {
         wait(500);
     }

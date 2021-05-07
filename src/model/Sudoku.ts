@@ -132,6 +132,11 @@ export class Sudoku {
         return this.getFilledCells().length;
     }
 
+    public getNumberOfCorrectlyFilledCells(): number {
+        //isValid is also set to false for conflicting cells in the initial puzzle when the user enters wrong values.
+        return this.getFilledCells().filter(cell => cell.isValid || cell.isInitial).length;
+    }
+
     public getFilledCells(): CellData[] {
         return this.getFlatCells().filter(cell => cell.value !== CellValue.EMPTY);
     }

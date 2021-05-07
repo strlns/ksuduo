@@ -34,7 +34,6 @@ module.exports = (
                             ],
                             plugins: [
                                 '@babel/plugin-transform-runtime',
-
                                 /**
                                  * Doesn't work? prop types are still in production build with this uncommented.
                                  */

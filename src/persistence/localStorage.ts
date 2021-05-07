@@ -45,6 +45,9 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
             };
         }
     });
+    if (IS_DEVELOPMENT) {
+        console.log('localStorage read.')
+    }
     return lsResult ?? {
         board: new Sudoku(),
         secondsElapsed: 0,

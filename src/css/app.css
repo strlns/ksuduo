@@ -51,14 +51,28 @@ input::-webkit-inner-spin-button {
     max-width: 100%;
 }
 
+.game.working {
+    pointer-events: none;
+}
+
+/*should be in CSS-in-JS when finished. this is ad-hoc. do not set a transition, that could conflict with js.*/
+.game.working .MuiBox-root {
+    opacity: .75;
+}
+
 @media (min-width: 400px) {
     .board {
         min-width: 300px;
     }
 }
 
+@media (min-width: 800px) {
+    .block {
+
+    }
+}
+
 .board .block {
-    flex-basis: 33.3%;
     transition: opacity 1s;
     opacity: 1;
 }
