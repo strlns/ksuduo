@@ -3,9 +3,9 @@ import {SetStateAction, useEffect, useState} from 'react';
 import Cell from "./Cell";
 import {BlockData} from "../../model/BlockData";
 import {CellData, CellValue} from '../../model/CellData';
-import {CellIndex} from "../../model/Sudoku";
 import {inputRefs} from "../Board/Board";
 import arraysEqualSimple from "../../utility/arraysEqualSimple";
+import {CellIndex} from "../../model/Board";
 
 interface BlockProps {
     block: BlockData,

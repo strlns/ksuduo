@@ -1,6 +1,6 @@
 export type IntervalId = undefined | number;
 
-const MAGIC_NUMBER_COMPENSATE_JIT_JITTER = 2;
+export const MAGIC_NUMBER_COMPENSATE_JIT_JITTER = 2;
 
 export class Timer {
     public secondsElapsed: number;

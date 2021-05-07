@@ -1,14 +1,21 @@
 import {ThemeProvider} from "@material-ui/styles";
 import * as React from "react";
-import {ChangeEvent, useEffect, useState} from "react";
+import {ChangeEvent, useCallback, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
-import generateRandomSudoku, {DEFAULT_CLUES, DIFFICULTY_LEVEL} from "../../generator/generator";
-import {EmojiObjectsRounded, HighlightOffRounded, HighlightRounded, UndoRounded} from '@material-ui/icons';
-import {Box, Container, FormControlLabel, Grid, Switch, Typography} from "@material-ui/core";
+import generateRandomSudoku, {DIFFICULTY_LEVEL} from "../../generator/generator";
+import {
+    CheckCircleRounded,
+    EmojiObjectsRounded,
+    HighlightOffRounded,
+    HighlightRounded,
+    ThumbUp,
+    UndoRounded
+} from '@material-ui/icons';
+import {Box, Container, FormControlLabel, Grid, Icon, IconButton, Modal, Switch, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
-import GeneratorConfiguration from "../Controls/GeneratorConfiguration";
-import {BOARD_SIZE, Sudoku} from "../../model/Sudoku";
+import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
+import {Sudoku} from "../../model/Sudoku";
 import {PaperBox, paperBoxDefaultLayoutProps} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
 
@@ -17,11 +24,15 @@ import {MSGEVT_SOURCE, WORKER_ACTIONS} from "../../worker/sudoku.worker";
 import testWorker from "../../worker/testWorkerActuallyWorks";
 import {GameStateSerializable, persist, restoreGameStateOrInitialize} from "../../persistence/localStorage";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
-import {GenerateButton} from "../Controls/GenerateButton";
+import {GenerateButton} from "../Generator/GenerateButton";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import {Clock} from "../Board/Clock";
-import {Timer} from "../../model/Timer";
 import isInputModeAttributeSupported from "../../utility/isInputModeAttributeSupported";
+import {BOARD_SIZE, DEFAULT_CLUES} from "../../model/Board";
+import {ksuduoThemeSecondWinnerModal} from "../Theme/WinnerModalTheme";
+import {WinnerMessage} from "../Message/WinnerMessage";
+import {formatTime} from "../../utility/formatTime";
+import {IntervalId, MAGIC_NUMBER_COMPENSATE_JIT_JITTER} from "../../model/Timer";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -46,63 +57,108 @@ checkWebWorkerSupport().then(
     })
 );
 
+let timerIntervalId: IntervalId;
+
+const clearTimerInterval = () => {
+    if (timerIntervalId !== undefined) {
+        window.clearInterval(timerIntervalId);
+        timerIntervalId = undefined;
+    }
+}
+
 export interface GameState {
     sudoku: Sudoku,
     numberOfClues: number,
     difficulty: DIFFICULTY_LEVEL,
-    errorMsg: string,
     highlightedCell: OptionalCell,
     isWorking: boolean,
     forceFocus: OptionalCell,
     solvedByApp: boolean,
-    /**
-     * The `Timer` object is special, it may be modified directly (no {@link useState})
-     * as it manages the state hooks by itself.
-     * *{@link Timer.callback}
-     */
-    timer: Timer,
+    isPaused: boolean, //paused by user
+    isPausedByApp: boolean, //paused by app, e.g. because of tab close
+    secondsElapsed: number,
     timerEnabled: boolean
-    isPaused: boolean,
 }
 
 // only used to detect initial render for timer.
 interface GameProps {
 }
 
+/**
+ * This component wraps way too much state, this causes unneeded re-renders, e.g. when
+ * the Timer interval callback is called.
+ *
+ * @todo unwrap child components.
+ */
 export const Game = (props: GameProps) => {
     const {board: initialBoard, secondsElapsed: initialSeconds, isPaused} = restoreGameStateOrInitialize();
     const [state, setState] = useState({
         sudoku: initialBoard,
         numberOfClues: DEFAULT_CLUES,
         difficulty: DIFFICULTY_LEVEL.EASY,
-        errorMsg: '',
         highlightedCell: undefined as OptionalCell,
         isWorking: false,
         forceFocus: undefined as OptionalCell,
         // do not repeat congratulation on reload.
         solvedByApp: initialBoard.isSolved(),
-        timer: new Timer(() => setState(
-            prevState => ({...prevState, timer: state.timer})
-        )),
+        secondsElapsed: initialSeconds,
+        isPaused,
+        isPausedByApp: false,
         timerEnabled: false,
-        isPaused: isPaused
     } as GameState);
+
+    const startTimer = (initiallyElapsed: number) => {
+        clearTimerInterval();
+        setState(prevState => ({
+            ...prevState,
+            secondsElapsed: initiallyElapsed
+        }))
+        timerIntervalId = window.setInterval(() => {
+            setState(prevState => ({
+                ...prevState,
+                secondsElapsed: ++prevState.secondsElapsed
+            }))
+        }, 1000);
+    }
+
+    const pauseTimer = () => {
+        if (state.secondsElapsed > 0) {
+            setState(prevState => ({
+                ...prevState,
+                secondsElapsed: --prevState.secondsElapsed
+            }))
+        }
+        clearTimerInterval();
+    }
+
+    const resumeTimer = () => {
+        if (state.secondsElapsed > 0 && !timerIntervalId) {
+            if (state.secondsElapsed > 0) {
+                setTimeout(() => {
+                    setState(prevState => ({
+                        ...prevState,
+                        secondsElapsed: ++prevState.secondsElapsed
+                    }))
+                });
+            }
+            startTimer(state.secondsElapsed);
+        }
+    }
 
     const resetStateCommons = {
         solvedByApp: false,
-        errorMsg: '',
         highlightedCell: undefined,
         isWorking: false,
         isPaused: false,
-        timer: new Timer(() => setState(
-            prevState => ({...prevState, timer: state.timer})
-        ))
+        isPausedByApp: false,
+        secondsElapsed: 0,
     };
 
     const [supportsInputModeAttribute, setSupportsInputModeAttribute] = useState(false);
 
+    const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
+
     const generateSudoku = () => {
-        state.timer.pause();
         if (IS_DEVELOPMENT) {
             console.log(useWebWorker ? 'Using web worker, test succeeded.' : 'Falling back to synchronous puzzle generation.')
         }
@@ -138,7 +194,7 @@ export const Game = (props: GameProps) => {
                 })
             );
         }
-        state.timer.start(0);
+        startTimer(0);
     }
 
     //no Sudoku in localStorage
@@ -166,56 +222,76 @@ export const Game = (props: GameProps) => {
         if (state.sudoku.isEmpty()) {
             generateSudoku();
         }
-        state.timer.start(0);
+        startTimer(0);
     }
 
     const showSolution = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.showSolution();
-        state.timer.secondsElapsed = 0;
-        state.timer.pause();
         setState(prevState => ({...prevState, sudoku, ...resetStateCommons, solvedByApp: true}));
     }
 
     const persistState = () => {
         const {sudoku: board, isPaused} = state;
-        const gameState = {board, isPaused, secondsElapsed: state.timer.secondsElapsed} as GameStateSerializable
+        const gameState = {board, isPaused, secondsElapsed: state.secondsElapsed} as GameStateSerializable
         persist(gameState);
     }
     /**
      * Terminate service worker before unload, pause the timer
      * (This is NOT the same as pausing the game. It's only to stop time tracking earlier.)
      * Persist before unload, including the timer state.
+     *
+     * @todo replace beforeunload event with visibilitychange event
      */
     window.onbeforeunload = () => {
         sudokuWorker.terminate();
-        if (state.timer !== undefined) {
-            state.timer.pause();
-        }
+        setState(
+            prevState => ({
+                ...prevState,
+                isPausedByApp: true
+            })
+        );
         persistState();
     }
 
-    const updateCallback = () => {
-        setState(prevState => ({...prevState, errorMsg: '', isWorking: false}));
+    const updateCallback = useCallback(() => {
+        setState(prevState => ({...prevState, isWorking: false}));
         if (!state.sudoku.isEmpty()) {
             persistState();
         }
-    }
+    }, [
+        state.sudoku.isEmpty()
+    ]);
+
+    const togglePaused = useCallback(() => {
+        const newSeconds = state.isPaused ? state.secondsElapsed : (state.secondsElapsed + MAGIC_NUMBER_COMPENSATE_JIT_JITTER);
+        setState(prevState => ({...prevState, isPaused: !prevState.isPaused, secondsElapsed: newSeconds}));
+    }, [
+        state.isPaused
+    ]);
+
     /**
-     * Start timer on initial render (if game is not paused.)
-     * Also pass down if the inputmode attribute is supported.
-     * `props` is just used to detect initial render.
+     * Duties on initial render.
      */
     useEffect(
         () => {
-            if (state.isPaused) {
-                state.timer.secondsElapsed = initialSeconds;
-            } else {
-                state.timer.start(initialSeconds);
-            }
             setSupportsInputModeAttribute(isInputModeAttributeSupported());
+            if (!state.isPaused) {
+                startTimer(state.secondsElapsed)
+            }
         }, [props]
     )
+
+    useEffect(
+        () => {
+            if (state.isPaused || state.isPausedByApp) {
+                pauseTimer();
+            } else {
+                resumeTimer();
+            }
+        }, [state.isPaused, state.isPausedByApp]
+    )
+
     /*Trigger persisting. */
     useEffect(updateCallback,
         [
@@ -228,11 +304,12 @@ export const Game = (props: GameProps) => {
 
     /*Stop timer on completion. */
     useEffect(() => {
+            setWinnerModalOpen(state.sudoku.isSolved() && !state.solvedByApp);
             if (state.sudoku.isSolved()) {
-                state.timer.pause();
+                state.isPausedByApp = true;
             } else if (!state.isPaused) {
                 // keep it consistent when jumping between solution and undo etc.
-                state.timer.resume();
+                state.isPausedByApp = false;
             }
         },
         [
@@ -275,15 +352,6 @@ export const Game = (props: GameProps) => {
         }));
     }
 
-    const togglePlayPause = (pauseVal: boolean) => {
-        const timer = state.timer;
-        if (pauseVal) timer.pause();
-        else {
-            timer.resume();
-        }
-        setState(prevState => ({...prevState, isPaused: pauseVal, timer}))
-    }
-
     const percentFilled = () => `
         ${+(state.sudoku.getNumberOfFilledCells() / BOARD_SIZE * 100).toFixed(1)}%`;
 
@@ -310,8 +378,7 @@ export const Game = (props: GameProps) => {
                         highlightedCell={state.highlightedCell}
                         forceFocus={state.forceFocus}
                         isPaused={state.isPaused}
-                        setPaused={togglePlayPause}
-                        timer={state.timer}
+                        togglePaused={togglePaused}
                         supportsInputMode={supportsInputModeAttribute}
                     />
 
@@ -340,9 +407,10 @@ export const Game = (props: GameProps) => {
                 <Grid item xs={12}>
                     <PaperBox {...paperBoxDefaultLayoutProps}>
                         <Clock
-                            seconds={state.timer.secondsElapsed}
+                            secondsElapsed={state.secondsElapsed}
                             isPaused={state.isPaused}
-                            setPaused={togglePlayPause}
+                            isPausedByApp={state.isPausedByApp}
+                            togglePaused={togglePaused}
                             isWorking={state.isWorking}
                             solvedByApp={state.solvedByApp}
                             solved={state.sudoku.isSolved()}
@@ -369,9 +437,6 @@ export const Game = (props: GameProps) => {
                                 onClick={showSolution} variant="contained">
                             Show Solution
                         </Button>
-                        {state.errorMsg.length ?
-                            <Typography style={{color: 'red', fontWeight: 'bold'}}>{state.errorMsg}</Typography>
-                            : null}
                     </PaperBox>
                 </Grid>
                 <Grid item xs={12}>
@@ -388,5 +453,31 @@ export const Game = (props: GameProps) => {
                 </Grid>
             </Grid>
         </Grid>
+        <ThemeProvider theme={ksuduoThemeSecondWinnerModal}>
+            <Modal
+                open={winnerModalOpen}
+                onClose={() => setWinnerModalOpen(false)}>
+                <WinnerMessage>
+                    <Box display={"flex"} justifyContent={"center"}>
+                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                    </Box>
+                    <Typography component={'h3'} variant={'h3'}>
+                        Congratulations!
+                    </Typography>
+                    <Typography style={{margin: '1em 0'}}>
+                        You successfully completed the Sudoku
+                        {state.timerEnabled ? `in ${formatTime(state.secondsElapsed)}.` : ''}
+                    </Typography>
+
+                    <Box onClick={() => setWinnerModalOpen(false)}>
+                        <IconButton style={{margin: 'auto', display: 'block'}} title="OK">
+                            <CheckCircleRounded color={'secondary'}/>
+                        </IconButton>
+                    </Box>
+                </WinnerMessage>
+            </Modal>
+        </ThemeProvider>
     </Container>
 }

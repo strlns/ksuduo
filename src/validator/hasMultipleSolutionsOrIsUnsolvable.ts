@@ -1,10 +1,11 @@
-import {coordsToFlatIndex, Puzzle, puzzleToSudoku} from "../model/Sudoku";
+import {Puzzle, puzzleToSudoku} from "../model/Sudoku";
 import assert from "../utility/assert";
 import {solve, solveWithMattsSolver} from "../solver/solver";
 import {CellData, CellValue, NUM_POSSIBLE_VALUES} from "../model/CellData";
 import pickRandomArrayValue from "../utility/pickRandom";
 import arraysEqualSimple from "../utility/arraysEqualSimple";
 import {DIFFICULTY_LEVEL} from "../generator/generator";
+import {coordsToFlatIndex} from "../model/Board";
 
 export class InitiallyUnsolvableError extends Error {
 

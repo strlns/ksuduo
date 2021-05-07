@@ -8,19 +8,13 @@ import {
     InputLabel,
     Modal,
     NativeSelect,
-    Theme,
     ThemeProvider,
     Tooltip
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import {
-    DEFAULT_CLUES,
-    DIFFICULTY_LEVEL,
-    MINIMUM_CLUES,
-    verboseGeneratorExplanationText
-} from "../../generator/generator";
-import {BOARD_SIZE} from "../../model/Sudoku";
-import {makeStyles, withStyles} from "@material-ui/styles";
+import {DIFFICULTY_LEVEL, verboseGeneratorExplanationText} from "../../generator/generator";
+import {BOARD_SIZE, DEFAULT_CLUES, MINIMUM_CLUES} from "../../model/Board";
+import {withStyles} from "@material-ui/styles";
 import intRange from "../../utility/numberRange";
 import {
     CheckCircleRounded,
@@ -30,9 +24,9 @@ import {
     SentimentSatisfiedRounded
 } from "@material-ui/icons";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
-import {DiscreteRangeSlider} from "./DiscreteRangeSlider";
+import {DiscreteRangeSlider} from "../Controls/DiscreteRangeSlider";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
-import {Button} from "./Button";
+import {Button} from "../Controls/Button";
 import {ModalBaseStyles} from "../Message/ModalBaseStyles";
 
 interface GeneratorConfigurationProps {
@@ -102,13 +96,6 @@ export default (props: GeneratorConfigurationProps) => {
     const showMinClueInfo = () => {
         return props.numberOfClues <= MINIMUM_CLUES && props.numberOfFilledCellsInCurrentPuzzle > MINIMUM_CLUES;
     }
-
-    const wFullMarginTop = makeStyles((theme: Theme) => ({
-        root: {
-            marginTop: theme.spacing(2),
-            width: '100%'
-        }
-    }));
 
     const [isExplanationModalOpen, setExplanationModalOpen] = React.useState(false);
 

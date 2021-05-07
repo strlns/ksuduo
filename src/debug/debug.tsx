@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import {Box} from "@material-ui/core";
-import {evilSudoku} from "../examples/validExamples";
+import {hardSudoku} from "../examples/validExamples";
 import {Sudoku} from "../model/Sudoku";
 
 const board = new Sudoku();
-board.initWithNumbers(evilSudoku);
+board.initWithNumbers(hardSudoku);
 const Debug = () => <Box justifyContent={'center'} alignItems={'center'}>
     {/*<h2>Puzzle</h2>*/}
     {/*{JSON.stringify(bugPuzzle)}*/}

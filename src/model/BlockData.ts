@@ -1,6 +1,6 @@
-import {BLOCK_WIDTH, CellIndex} from "./Sudoku";
 import {CellData} from "./CellData";
 import arrayChunk from "../utility/arrayChunk";
+import {BLOCK_WIDTH, CellIndex} from "./Board";
 
 export class BlockData {
     public leftTopX: CellIndex;

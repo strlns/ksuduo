@@ -1,7 +1,8 @@
-import {BOARD_SIZE, Sudoku} from "../model/Sudoku";
+import {Sudoku} from "../model/Sudoku";
 import {Solution} from "../solver/solver";
+import {BOARD_SIZE} from "../model/Board";
 
-export const LOCALSTORAGE_KEY = 'ksuduoState';
+export const LOCALSTORAGE_KEY = 'thirtySixState';
 
 export type GameStateSerializable = {
     board: Sudoku,

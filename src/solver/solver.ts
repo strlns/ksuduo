@@ -1,19 +1,21 @@
-import {BOARD_SIZE, Puzzle, Sudoku} from "../model/Sudoku";
+import {Puzzle, Sudoku} from "../model/Sudoku";
 import assert from "../utility/assert";
 import {CellValue} from "../model/CellData";
-
-let mattsSolver = require('@mattflow/sudoku-solver/index');
+import {BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
+import {solve as solveByBacktracking} from "./solverAlgo";
+import arrayChunk from "../utility/arrayChunk";
 
 /**
  * @param sudoku
  * @param solver
  */
 export function solve(sudoku: Puzzle, solver: SOLVERS = SOLVERS.MATTFLOW): Solution {
+    const flatPuzzle = (sudoku instanceof Sudoku ? sudoku.getFlatValues() : sudoku) as number[];
     switch (solver) {
         case SOLVERS.MATTFLOW:
-            return solveWithMattsSolver(sudoku);
-        case SOLVERS.FOO:
-            return [];
+            return solveWithMattsSolver(flatPuzzle);
+        case SOLVERS.BACKTRACKING_GENERAL:
+            return solveByBacktracking(flatPuzzle);
         default:
             throw new Error()
     }
@@ -21,20 +23,25 @@ export function solve(sudoku: Puzzle, solver: SOLVERS = SOLVERS.MATTFLOW): Solut
 
 export enum SOLVERS {
     MATTFLOW,
-    FOO
+    BACKTRACKING_GENERAL
 }
 
 export type Solution = CellValue[];
 
-export function solveWithMattsSolver(sudoku: Sudoku | CellValue[], maxIterations = 1 << 20): Solution {
+let mattsSolver = require('@mattflow/sudoku-solver/index');
+
+export function solveWithMattsSolver(flatPuzzle: CellValue[], maxIterations = 1 << 24): Solution {
     try {
-        const values = sudoku instanceof Sudoku ? sudoku.getFlatValues().map(val => val as number) :
-            sudoku.map(cellVal => cellVal as number);
+        if (IS_DEVELOPMENT) {
+            console.log(`attempting to solve puzzle: ${arrayChunk(flatPuzzle, BOARD_WIDTH).map(row => row.join()).join('\n')}`)
+        }
         const solution: number[] = mattsSolver(
-            values,
+            flatPuzzle,
             {outputArray: true, maxIterations}
         );
-        assert(solution.length === BOARD_SIZE);
+        if (IS_DEVELOPMENT) {
+            assert(solution.length === BOARD_SIZE);
+        }
         return solution;
     } finally {
         //solver holds internal state and needs a re-init if it fails

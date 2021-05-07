@@ -7,9 +7,10 @@ import clsx from "clsx";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 
 interface ClockProps {
-    seconds: number,
+    secondsElapsed: number,
     isPaused: boolean,
-    setPaused: (val: boolean) => void,
+    isPausedByApp: boolean,
+    togglePaused: () => void,
     isWorking: boolean,
     solvedByApp: boolean,
     solved: boolean,
@@ -37,21 +38,19 @@ export const Clock = (props: ClockProps) => {
         return <Box className={classes.root}>
             <Done/>
         </Box>
-    } else if (props.seconds === undefined || props.seconds < 2) {
+    } else if (props.secondsElapsed === undefined || props.secondsElapsed < 2) {
         return <Box className={clsx(classes.root, 'pulse')}>
             <TimerRounded color={"primary"} className={'pulse'}/>
         </Box>
     } else if (props.solved) {
         return <Box className={clsx(classes.root, 'pulse')}>
             <Done style={{fill: ksuduoThemeSecond.palette.secondary.main}}/>
-            Solved in {formatTime(props.seconds)}!
+            Solved in {formatTime(props.secondsElapsed)}!
         </Box>
     }
     return <Box className={classes.root}>
-        <TimerRounded/> {formatTime(props.seconds)}
-        <IconButton onClick={() => {
-            props.setPaused(!props.isPaused)
-        }}>
+        <TimerRounded/> {formatTime(props.secondsElapsed)}
+        <IconButton onClick={props.togglePaused}>
             {
                 props.isPaused ? <PlayCircleOutlineRounded color={"secondary"}/> : <PauseCircleOutlineRounded/>
             }

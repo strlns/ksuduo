@@ -2,7 +2,7 @@
  * @module SudokuGenerator
  */
 
-import {BOARD_SIZE, BOARD_WIDTH, CellIndex, flatIndexToCoords, Puzzle, puzzleToSudoku, Sudoku} from '../model/Sudoku';
+import {Puzzle, puzzleToSudoku, Sudoku} from '../model/Sudoku';
 import {CellData, cellIsEmpty, CellValue} from "../model/CellData";
 import pickRandomArrayValue from "../utility/pickRandom";
 import {Solution} from "../solver/solver";
@@ -11,6 +11,7 @@ import {
     hasMultipleSolutionsOrIsUnsolvable,
     InitiallyUnsolvableError
 } from "../validator/hasMultipleSolutionsOrIsUnsolvable";
+import {BOARD_SIZE, BOARD_WIDTH, CellIndex, flatIndexToCoords, MINIMUM_CLUES} from "../model/Board";
 
 export const verboseGeneratorExplanationText = `Start with a randomly generated, completely filled board.
 Then clear cells one at a time - after each removal, use backtracking:
@@ -28,9 +29,6 @@ cleared tend to be the ones that are easier to fill. In hard mode, cells with gr
 preferred.
 `;
 
-export const MINIMUM_CLUES = 17;
-export const DEFAULT_CLUES = Math.floor(BOARD_SIZE / 3) - 3;
-
 export enum DIFFICULTY_LEVEL {
     EASY,
     MEDIUM,
@@ -41,6 +39,9 @@ export enum DIFFICULTY_LEVEL {
 export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): Sudoku {
     if (IS_DEVELOPMENT) {
         wait(500);
+    }
+    if (numberOfClues < MINIMUM_CLUES) {
+        numberOfClues = MINIMUM_CLUES;
     }
     // must be at least 2, otherwise infinite loop
     const MAX_TRIES_DISCARD_UNEVEN_BOARDS = 1 << 5;
@@ -62,10 +63,13 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
         default:
             maximumFilledRowsOrCols = 0;
     }
-    numberOfClues = Math.floor(numberOfClues);
     const target = BOARD_SIZE - numberOfClues;
+    if (IS_DEVELOPMENT) {
+        console.log(`target are ${target} empty cells, board size is ${BOARD_SIZE}`)
+    }
     let achievedNumberOfEmptyCells = 0;
-    const MAX_TOPLEVEL_ITERATIONS = 1 << 8;
+    // const MAX_TOPLEVEL_ITERATIONS = 1 << 8;
+    const MAX_TOPLEVEL_ITERATIONS = 4;
     let it = 0;
     let board = new Sudoku();
     let boardIsUneven = false;
@@ -80,6 +84,9 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
         let numberOfDeleteTries = 0;
         let numberOfDiscardedUnevenBoards = 0;
         board.fillWithRandomCompleteSolution();
+        if (IS_DEVELOPMENT) {
+            console.log(board.getFlatValues());
+        }
         board.setSolution(board.getFlatValues() as Solution);
         while (numberOfDeleteTries < (1 << 8)) {
             clearCellButOnlyIfSolutionsDontExplode(board, difficulty);

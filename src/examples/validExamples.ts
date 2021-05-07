@@ -3,7 +3,7 @@
  */
 
 //source: https://www.sudokuwiki.org/Weekly_Sudoku.asp
-export const evilSudoku = [
+export const hardSudoku = [
     1, 2, 0, 0, 3, 0, 0, 0, 0,
     4, 0, 0, 0, 0, 1, 0, 2, 0,
     0, 0, 5, 2, 0, 0, 1, 0, 0,

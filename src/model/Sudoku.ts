@@ -5,30 +5,18 @@ import {cloneDeep} from "lodash-es";
 import pickRandomArrayValue from "../utility/pickRandom";
 import assert from "../utility/assert";
 import {Solution, solve} from "../solver/solver";
-
-export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
-
-//All possible cell indices on x- or y-axis, meaning [0,1,...,8]
-export const CELL_INDICES =
-    Array(9).fill(0).map((v, i) => i as CellIndex);
-
-export const BOARD_WIDTH = CELL_INDICES.length;
-export const BOARD_SIZE = Math.pow(BOARD_WIDTH, 2);
-export const BLOCK_WIDTH = 3;
-
-export const flatIndexToCoords = (index: number): [CellIndex, CellIndex] => {
-    const x = index % BOARD_WIDTH as CellIndex;
-    const y = Math.floor(index / BOARD_WIDTH) as CellIndex;
-    return [x, y];
-}
-
-export const coordsToFlatIndex = (x: CellIndex, y: CellIndex): number => {
-    return y * BOARD_WIDTH + x;
-}
-
-export class CouldNotSolveSudokuPassedToConstructorError extends Error {
-
-}
+import {
+    BLOCK_HEIGHT,
+    BLOCK_SIZE,
+    BLOCK_WIDTH,
+    BOARD_SIZE,
+    BOARD_WIDTH,
+    CELL_INDICES,
+    CellIndex,
+    coordsToFlatIndex,
+    flatIndexToCoords,
+    getFlatStartIndexForBlock
+} from "./Board";
 
 /**
  * We rely on the structured clone algorithm to result in this type when serializing a
@@ -86,7 +74,6 @@ export class Sudoku {
     }
 
     public showSolution(): void {
-
         for (let solutionData of this.getSolution().map(
             (val, index) =>
                 ({
@@ -186,6 +173,9 @@ export class Sudoku {
                 const val = this.getAllowedCellValue(x as CellIndex, y as CellIndex);
                 if (val === CellValue.EMPTY) {
                     itsUnsolvable = true;
+                    if (IS_DEVELOPMENT) {
+                        // console.log(`Discarding random solution. No allowed cell value found for coordinates (${x}, ${y})`)
+                    }
                     break;
                 } else {
                     this.setValue(x as CellIndex, y as CellIndex, val, true);
@@ -244,7 +234,7 @@ export class Sudoku {
 
     public getBlocks(): BlockData[] {
         const blocks: BlockData[] = [];
-        const numberOfBlocks = BOARD_SIZE / Math.pow(BLOCK_WIDTH, 2); //This must result in an int (field is a square).
+        const numberOfBlocks = BOARD_SIZE / BLOCK_SIZE; //This must result in an int (field is a square).
         for (let i = 0; i < numberOfBlocks; i++) {
             blocks.push(new BlockData(i));
         }
@@ -361,25 +351,32 @@ export class Sudoku {
         //find top left block corner
         let x0 = cellX;
         let y0 = cellY;
-        while (x0 % 3 !== 0) {
+        while (x0 % BLOCK_WIDTH !== 0) {
             x0--;
         }
-        while (y0 % 3 !== 0) {
+        while (y0 % BLOCK_HEIGHT !== 0) {
             y0--;
         }
-        //add 9 values
+        //add values
         const res: CellValue[] = [];
-        for (let i = 0; i < 3; i++) {
-            for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < BLOCK_WIDTH; i++) {
+            for (let j = 0; j < BLOCK_HEIGHT; j++) {
                 const x = (x0 + j) as CellIndex;
                 const y = (y0 + i) as CellIndex;
                 if (excludeSelf && y === cellY && x === cellX) {
                     continue;
                 }
-                try {
-                    res.push(this.rows[y][x].value);
-                } catch {
-                    debugger;
+                if (IS_DEVELOPMENT) {
+                    try {
+                        res.push(this.rows[y][x].value);
+                    } catch (e) {
+                        console.error(e)
+                    }
+                } else {
+                    try {
+                        res.push(this.rows[y][x].value);
+                    } catch {
+                    }
                 }
 
             }
@@ -457,5 +454,19 @@ export const puzzleToSudoku = (puzzle: Puzzle) => {
     }
     const res = new Sudoku();
     res.initWithNumbers(puzzle as number[]);
+    return res;
+}
+
+export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cellIndex: number): CellValue[] => {
+    if (cellIndex >= flatPuzzle.length) {
+        throw new Error('Invalid cell index.');
+    }
+    const startIndex = getFlatStartIndexForBlock(flatPuzzle, cellIndex);
+    const res = [];
+    for (let i = 0; i < BLOCK_HEIGHT; i++) {
+        for (let j = 0; j < BLOCK_WIDTH; j++) {
+            res.push(flatPuzzle[startIndex + j + i * BOARD_WIDTH]);
+        }
+    }
     return res;
 }
