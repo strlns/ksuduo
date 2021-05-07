@@ -5,13 +5,15 @@ import {formatTime} from "../../utility/formatTime";
 import {makeStyles} from "@material-ui/core/styles";
 import clsx from "clsx";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
+import Typography from "@material-ui/core/Typography";
+import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 
 interface ClockProps {
     secondsElapsed: number,
     isPaused: boolean,
     togglePaused: () => void,
     isWorking: boolean,
-    solvedByApp: boolean,
+    solutionShown: boolean,
     solved: boolean,
     visible: boolean
 }
@@ -33,9 +35,10 @@ export const Clock = (props: ClockProps) => {
         return <Box className={classes.root}>
             <TimerRounded/>
         </Box>
-    } else if (props.solvedByApp) {
-        return <Box className={classes.root}>
-            <Done/>
+    } else if (props.solutionShown) {
+        return <Box className={classes.root} style={{justifyContent: 'center'}}>
+            <Done style={{marginInlineEnd: ksuduoThemeNormal.spacing(1)}}/>
+            <Typography>Solution shown</Typography>
         </Box>
     } else if (props.secondsElapsed === undefined || props.secondsElapsed < 2) {
         return <Box className={clsx(classes.root, 'pulse')}>

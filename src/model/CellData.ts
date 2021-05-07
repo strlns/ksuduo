@@ -29,6 +29,8 @@ export const NUM_POSSIBLE_VALUES = CellValueEnumAsArray.length / 2;
 
 export const CellValues: CellValue[] = Object.entries(CellValue).slice(NUM_POSSIBLE_VALUES).map(entry => entry[1]) as CellValue[];
 
+export const NonEmptyCellValues: CellValue[] = CellValues.filter(val => val !== CellValue.EMPTY);
+
 export const cellIsEmpty = (cell: CellData): boolean => cell.value === CellValue.EMPTY;
 
 export type CellData = {

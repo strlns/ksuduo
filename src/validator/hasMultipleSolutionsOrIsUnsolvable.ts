@@ -1,11 +1,13 @@
 import {Puzzle, puzzleToSudoku} from "../model/Sudoku";
 import assert from "../utility/assert";
-import {solve, solveWithMattsSolver} from "../solver/solver";
+import {solve} from "../solver/solver";
 import {CellData, CellValue, NUM_POSSIBLE_VALUES} from "../model/CellData";
 import pickRandomArrayValue from "../utility/pickRandom";
 import arraysEqualSimple from "../utility/arraysEqualSimple";
 import {DIFFICULTY_LEVEL} from "../generator/generator";
 import {coordsToFlatIndex} from "../model/Board";
+import {LOGLEVEL_NORMAL, LOGLEVEL_VERBOSE} from "../loglevels";
+import drawPuzzle from "../debug/puzzleAsTableOnConsole";
 
 export class InitiallyUnsolvableError extends Error {
 
@@ -27,7 +29,7 @@ export function hasMultipleSolutionsOrIsUnsolvable(boardToTest: Puzzle, difficul
     } catch (e) {
         /**
          * Already unsolvable without filling any more cells.
-         *"Unsolvable" means that the algo can't solve it (so a human can't either.)
+         * "Unsolvable" means that the algo can't solve it (so a human can't either.)
          * Instead of returning true, we throw a special Error.
          * That's useful because we can cheat in the generator by adding a cell from the solution
          * and removing another cell instead of starting over with a completely fresh board.
@@ -49,11 +51,11 @@ export function hasMultipleSolutionsOrIsUnsolvable(boardToTest: Puzzle, difficul
         if (!cell) {
             break; //no more cells left
         }
-        //cast needed because TypeScript can't analyze the populated Map
+        //cast needed because TypeScript can't statically analyze the populated Map
         const possibleValuesForThisCell = cellValuePossibilities.get(cell) as CellValue[];
-        // if (IS_DEVELOPMENT) {
-        //     console.log(possibleValuesForThisCell, cell);
-        // }
+        if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+            console.log(possibleValuesForThisCell, cell);
+        }
         const newLegalValue = possibleValuesForThisCell.pop();
         if (newLegalValue === undefined) {
             //possible values exhausted, again relatively unlikely.
@@ -65,11 +67,21 @@ export function hasMultipleSolutionsOrIsUnsolvable(boardToTest: Puzzle, difficul
         //try out a new legal value to test for a new solution.
         flatPuzzle[currentFlatIndex] = newLegalValue;
         try {
-            const solutionAfterAdd = solveWithMattsSolver(flatPuzzle);
+            const solutionAfterAdd = solve(flatPuzzle);
             //if we found a new solution after adding a legal value,
             //we have multiple solutions and can return!
             if (!arraysEqualSimple(solution, solutionAfterAdd)) {
-                // console.log("found a 2nd solution, backtracking")
+                if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_NORMAL) {
+                    /**
+                     Problem - solution 2 might be nonsense even if using @mattflow solver.
+                     (currently the case with {@link hardSudoku}
+                     This code is currently wrong.
+                     */
+                    console.log("found a 2nd solution. Solution 1:");
+                    drawPuzzle(solution)
+                    console.log("Solution 2:");
+                    drawPuzzle(solutionAfterAdd)
+                }
                 return true;
             }
                 //if the solution didn't change, we can ignore this possible value and unset it.

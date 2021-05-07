@@ -5,13 +5,14 @@
 import {Puzzle, puzzleToSudoku, Sudoku} from '../model/Sudoku';
 import {CellData, cellIsEmpty, CellValue} from "../model/CellData";
 import pickRandomArrayValue from "../utility/pickRandom";
-import {Solution} from "../solver/solver";
+import {getCallsToSolver, resetCallsToSolver, Solution} from "../solver/solver";
 import {wait} from "../utility/debug/synchronousWait";
 import {
     hasMultipleSolutionsOrIsUnsolvable,
     InitiallyUnsolvableError
 } from "../validator/hasMultipleSolutionsOrIsUnsolvable";
-import {BOARD_SIZE, BOARD_WIDTH, CellIndex, flatIndexToCoords, MINIMUM_CLUES} from "../model/Board";
+import {BOARD_SIZE, BOARD_WIDTH, flatIndexToCoords, MINIMUM_CLUES} from "../model/Board";
+import {LOGLEVEL_NORMAL, LOGLEVEL_VERBOSE} from "../loglevels";
 
 export const verboseGeneratorExplanationText = `Start with a randomly generated, completely filled board.
 Then clear cells one at a time - after each removal, use backtracking:
@@ -38,7 +39,7 @@ export enum DIFFICULTY_LEVEL {
 
 export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): Sudoku {
     // debug load spinner. don't set this to 20s, then forget and wonder why generating has become slow...
-    if (IS_DEVELOPMENT) {
+    if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
         wait(500);
     }
     if (numberOfClues < MINIMUM_CLUES) {
@@ -65,11 +66,10 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
             maximumFilledRowsOrCols = 0;
     }
     const target = BOARD_SIZE - numberOfClues;
-    if (IS_DEVELOPMENT) {
+    if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
         console.log(`target are ${target} empty cells, board size is ${BOARD_SIZE}`)
     }
     let achievedNumberOfEmptyCells = 0;
-    // const MAX_TOPLEVEL_ITERATIONS = 1 << 8;
     const MAX_TOPLEVEL_ITERATIONS = 4;
     let it = 0;
     let board = new Sudoku();
@@ -77,15 +77,17 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
     while (
         (achievedNumberOfEmptyCells < target || boardIsUneven) && it < MAX_TOPLEVEL_ITERATIONS
         ) {
-        boardIsUneven = false;
-        if (IS_DEVELOPMENT) {
+        if (IS_DEVELOPMENT && it > 0) {
             console.log("testing a new board. the previous one sucked.");
+            console.log(`discarded board: ${board.getFlatValues()}`)
         }
+        boardIsUneven = false;
         board = new Sudoku();
         let numberOfDeleteTries = 0;
         let numberOfDiscardedUnevenBoards = 0;
         board.fillWithRandomCompleteSolution();
-        if (IS_DEVELOPMENT) {
+        achievedNumberOfEmptyCells = 0;
+        if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
             console.log(board.getFlatValues());
         }
         board.setSolution(board.getFlatValues() as Solution);
@@ -108,7 +110,7 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
                 (numberOfDiscardedUnevenBoards > (MAX_TRIES_DISCARD_UNEVEN_BOARDS / 2))
                 && (numFullCols > maximumFilledRowsOrCols || numFullRows > maximumFilledRowsOrCols)
             ) {
-                if (IS_DEVELOPMENT) {
+                if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
                     console.log("discard full row/col", numFullRows, numFullCols)
                     console.log(numberOfFilledCellsPerRow(board));
                 }
@@ -120,11 +122,15 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
         it++;
     }
     /**
-     * history is used in generator for backtracing. after generating, we clear it.
+     * history is used in generator for backtracking. after generating, we clear it.
      */
     board.clearHistory();
     if (achievedNumberOfEmptyCells < target) {
         throw new Error("SORRY ;( The generator couldn't generate a valid Sudoku.");
+    }
+    if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_NORMAL) {
+        console.log(`${getCallsToSolver()} calls to solver algorithm while generating.`)
+        resetCallsToSolver();
     }
     return board;
 }
@@ -138,20 +144,6 @@ function getCellValuePossibilityMap(board: Sudoku, cells: CellData[]) {
         )
     );
     return cellValuePossibilities;
-}
-
-// noinspection JSUnusedLocalSymbols
-/**
- * @deprecated
- * @param sudoku
- * @param coordsGenerator
- */
-const clearRandomCell = (sudoku: Sudoku, coordsGenerator: Generator<CellIndex[]>): void => {
-    const generatorResult = coordsGenerator.next();
-    if (!generatorResult.done) {
-        const coords = generatorResult.value;
-        sudoku.setValue(coords[0], coords[1], CellValue.EMPTY, false);
-    }
 }
 
 const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficulty: DIFFICULTY_LEVEL): void => {
@@ -180,15 +172,24 @@ const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficulty: DIFF
          * HARD:   Don't care about the number of possible values when removing cells.
          */
         if (!cell) {
+            if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+                console.log('Could not find a cell to clear.')
+            }
             return;
+        }
+        if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+            console.log('Trying to clear cell at', cell.x, cell.y)
         }
         //Try to clear the cell. Then we test if the puzzle still (probably) has a unique solution
         sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
-        let isAmbiguousOrInterestinglyUnsolvable: boolean;
+        let unsolvableOrMultipleSolutions: boolean = false;
         try {
-            isAmbiguousOrInterestinglyUnsolvable = hasMultipleSolutionsOrIsUnsolvable(sudoku, difficulty);
+            unsolvableOrMultipleSolutions = hasMultipleSolutionsOrIsUnsolvable(sudoku, difficulty);
+            if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+                console.log('Board ambiguous after clear?', unsolvableOrMultipleSolutions)
+            }
         } catch (e) {
-            //swap a removed cell with a cell from the solution
+            //re-add a random cell that we removed before
             if (e instanceof InitiallyUnsolvableError) {
                 const solutionCellsAlreadyRemoved = sudoku.getSolution().map(
                     (cellValue, flatIndex) => sudoku.getCell(...flatIndexToCoords(flatIndex)))
@@ -200,15 +201,22 @@ const clearCellButOnlyIfSolutionsDontExplode = (sudoku: Sudoku, difficulty: DIFF
                 /** no need to remove another cell instead.
                  * the cell we re-added is not in the candidates array anymore,
                  and the loop continues to try removing other cells.*/
+                unsolvableOrMultipleSolutions = hasMultipleSolutionsOrIsUnsolvable(sudoku);
+                console.log('Board ambiguous after clear?', unsolvableOrMultipleSolutions)
             }
-            isAmbiguousOrInterestinglyUnsolvable = false;
         }
 
-        if (isAmbiguousOrInterestinglyUnsolvable) {
+        if (unsolvableOrMultipleSolutions) {
+            if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+                console.log("undo");
+            }
             sudoku.undo();
             //seems like we shouldn't remove this cell.
             candidates.splice(candidates.indexOf(cell), 1);
         } else {
+            if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+                console.log("Cell was cleared.")
+            }
             break;
         }
     }

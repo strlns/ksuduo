@@ -471,10 +471,14 @@ export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cell
     }
     const startIndex = getFlatStartIndexForBlock(flatPuzzle, cellIndex);
     const res = [];
-    for (let i = 0; i < BLOCK_HEIGHT; i++) {
+    let i = 0;
+    let index = startIndex;
+    while (i < BLOCK_HEIGHT) {
+        index = startIndex + i * BOARD_WIDTH;
         for (let j = 0; j < BLOCK_WIDTH; j++) {
-            res.push(flatPuzzle[startIndex + j + i * BOARD_WIDTH]);
+            res.push(flatPuzzle[index + j]);
         }
+        i++;
     }
     return res;
 }

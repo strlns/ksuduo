@@ -77,7 +77,7 @@ export interface GameState {
     highlightedCell: OptionalCell,
     isWorking: boolean,
     forceFocus: OptionalCell,
-    solvedByApp: boolean,
+    solutionShown: boolean,
     isPaused: boolean, //paused by user
     secondsElapsed: number,
     timerEnabled: boolean
@@ -109,14 +109,14 @@ export const Game = (props: GameProps) => {
         isWorking: false,
         forceFocus: undefined as OptionalCell,
         // do not repeat congratulation on reload.
-        solvedByApp: initialBoard.isSolved(),
+        solutionShown: initialBoard.isSolved(),
         secondsElapsed: initialSeconds,
         isPaused: initialIsPaused,
         timerEnabled: initialTimerEnabled,
     } as GameState);
 
     const resetStateCommons = {
-        solvedByApp: false,
+        solutionShown: false,
         highlightedCell: undefined,
         isWorking: false,
         isPaused: false,
@@ -198,7 +198,7 @@ export const Game = (props: GameProps) => {
     const showSolution = () => {
         const sudoku = cloneDeep(state.sudoku);
         sudoku.showSolution();
-        setState(prevState => ({...prevState, sudoku, ...resetStateCommons, solvedByApp: true}));
+        setState(prevState => ({...prevState, sudoku, ...resetStateCommons, solutionShown: true}));
     }
 
     const persistState = () => {
@@ -285,7 +285,7 @@ export const Game = (props: GameProps) => {
 
     /*Stop timer on completion. */
     useEffect(() => {
-            setWinnerModalOpen(state.sudoku.isSolved() && !state.solvedByApp);
+            setWinnerModalOpen(state.sudoku.isSolved() && !state.solutionShown);
             if (state.sudoku.isSolved()) {
                 timer.pause();
             } else if (!state.isPaused) {
@@ -314,7 +314,7 @@ export const Game = (props: GameProps) => {
                     sudoku,
                     highlightedCell: cell,
                     forceFocus: cell,
-                    solvedByApp: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1
+                    solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1
                 }));
                 setTimeout(() => {
                     setState(prevState => ({...prevState, highlightedCell: undefined, forceFocus: undefined}))
@@ -329,7 +329,7 @@ export const Game = (props: GameProps) => {
         setState(prevState => ({
             ...prevState,
             sudoku,
-            solvedByApp: false
+            solutionShown: false
         }));
     }
 
@@ -357,7 +357,7 @@ export const Game = (props: GameProps) => {
                         </Typography>
                     </Box>
                     <Board
-                        solutionIsFromApp={state.solvedByApp}
+                        solutionIsFromApp={state.solutionShown}
                         sudoku={state.sudoku}
                         cellCallback={updateCallback}
                         highlightedCell={state.highlightedCell}
@@ -396,7 +396,7 @@ export const Game = (props: GameProps) => {
                             isPaused={state.isPaused}
                             togglePaused={togglePaused}
                             isWorking={state.isWorking}
-                            solvedByApp={state.solvedByApp}
+                            solutionShown={state.solutionShown}
                             solved={state.sudoku.isSolved()}
                             visible={state.timerEnabled}
                         />
@@ -411,6 +411,7 @@ export const Game = (props: GameProps) => {
                                 label={`${state.timerEnabled ? 'Hide timer' : 'Show timer'}`}
                                 labelPlacement={`${state.timerEnabled ? 'start' : 'end'}` as ('end' | 'start')}
                             />
+                            {/*the changing label placement is a funny idea, but also a bad idea. switch should not jump around */}
                         </Box>
                     </PaperBox>
                 </Grid>

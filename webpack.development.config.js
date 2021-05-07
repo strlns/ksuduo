@@ -3,7 +3,10 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 // const {HotModuleReplacementPlugin} = require("webpack");
 const {DefinePlugin} = require('webpack');
 module.exports = (
-    env,
+    /**
+     * 1 = {@see LOGLEVEL_NORMAL}
+     */
+    {loglevel = 1},
     {mode = 'development'}
 ) => {
     console.log(`WEBPACK MODE: ${mode}`);
@@ -72,7 +75,8 @@ module.exports = (
             new DefinePlugin({
                     IS_DEVELOPMENT,
                     // JSON.stringify is required here for quoting!
-                    'process.env.NODE_ENV': JSON.stringify(mode)
+                    'process.env.NODE_ENV': JSON.stringify(mode),
+                    LOG_LEVEL: loglevel
                 }
             ),
             // new HotModuleReplacementPlugin()

@@ -8,6 +8,7 @@ import {
 import {Puzzle} from "../src/model/Sudoku";
 import assert from "../src/utility/assert";
 import {hasMultipleSolutionsOrIsUnsolvable} from "../src/validator/hasMultipleSolutionsOrIsUnsolvable";
+import drawPuzzle from "../src/debug/puzzleAsTableOnConsole";
 
 export default function testInvalidBoards() {
     console.log("Testing invalid boards with non-unique solutions.");
@@ -21,6 +22,7 @@ export default function testInvalidBoards() {
     ].forEach(
         ([board, boardName]) => {
             try {
+                drawPuzzle(board as Puzzle);
                 assert(hasMultipleSolutionsOrIsUnsolvable(board as Puzzle));
             } catch (e) {
                 console.error(`Test failed for ${boardName}, multiple solutions were not recognized.`)

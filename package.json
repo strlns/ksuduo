@@ -48,8 +48,8 @@
   "scripts": {
     "build": "webpack --config webpack.production.config.js --mode production",
     "serve": "webpack serve --config webpack.development.config.js --mode development",
-    "serve-debug": "webpack serve --config src/debug/debug.webpack.config.js --mode development",
-    "serve-tests": "webpack serve --config tests/test.webpack.config.js --mode development"
+    "serve-tests": "webpack serve --config tests/test.webpack.config.js --mode development",
+    "serve-tests-verbose": "webpack serve --config tests/test.webpack.config.js --mode development --env loglevel=2"
   },
   "version": "0.1.0"
 }
