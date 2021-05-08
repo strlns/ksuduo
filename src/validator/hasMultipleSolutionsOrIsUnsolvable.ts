@@ -6,8 +6,9 @@ import pickRandomArrayValue from "../utility/pickRandom";
 import arraysEqualSimple from "../utility/arraysEqualSimple";
 import {DIFFICULTY_LEVEL} from "../generator/generator";
 import {coordsToFlatIndex} from "../model/Board";
-import {LOGLEVEL_NORMAL, LOGLEVEL_VERBOSE} from "../loglevels";
+import {LOGLEVEL_NORMAL} from "../loglevels";
 import drawPuzzle from "../debug/puzzleAsTableOnConsole";
+import {cloneDeep} from "lodash-es";
 
 export class InitiallyUnsolvableError extends Error {
 
@@ -36,27 +37,26 @@ export function hasMultipleSolutionsOrIsUnsolvable(boardToTest: Puzzle, difficul
          */
         throw new InitiallyUnsolvableError();
     }
-    const solution = board.getSolution();
+    const solution = cloneDeep(board.getSolution());
     const cellValuePossibilities = new Map<CellData, CellValue[]>();
     const emptyCells = board.getEmptyCells();
-    emptyCells.forEach(
-        cell => cellValuePossibilities.set(
-            cell,
-            board.getAllowedCellValues(cell)
-        )
-    );
+    const populateMap = () => {
+        emptyCells.forEach(
+            cell => cellValuePossibilities.set(
+                cell,
+                board.getAllowedCellValues(cell)
+            )
+        );
+    }
+    populateMap();
     let deadEndCount = 0;
     for (let i = 0; i < MAX_ITERATIONS && deadEndCount < MAX_DEAD_ENDS; i++) {
         const cell = pickRandomArrayValue(emptyCells);
         if (!cell) {
             break; //no more cells left
         }
-        //cast needed because TypeScript can't statically analyze the populated Map
         const possibleValuesForThisCell = cellValuePossibilities.get(cell) as CellValue[];
-        if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
-            console.log(possibleValuesForThisCell, cell);
-        }
-        const newLegalValue = possibleValuesForThisCell.pop();
+        const newLegalValue = pickRandomArrayValue(possibleValuesForThisCell);
         if (newLegalValue === undefined) {
             //possible values exhausted, again relatively unlikely.
             //in this case, the cell is not interesting anymore
@@ -92,10 +92,10 @@ export function hasMultipleSolutionsOrIsUnsolvable(boardToTest: Puzzle, difficul
             }
         } catch (e) {
             //sudoku solver couldn't solve it.
-            //I'm not sure yet what to do in this case.
             //It doesn't mean that the puzzle is unsolvable.
             //(you can add lots of legal values that lead to dead ends)
             deadEndCount++;
+            flatPuzzle[currentFlatIndex] = CellValue.EMPTY;
         }
     }
     return false;
