@@ -21,7 +21,7 @@ export const flatIndexToCoords = (index: number): [CellIndex, CellIndex] => {
 }
 
 export const coordsToFlatIndex = (x: CellIndex, y: CellIndex): number => {
-    return y * BOARD_WIDTH - 1 + x;
+    return x + y * BOARD_WIDTH;
 }
 
 /**

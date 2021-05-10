@@ -14,7 +14,7 @@ import Typography from "@material-ui/core/Typography";
 import {DIFFICULTY_LEVEL, verboseGeneratorExplanationText} from "../../generator/generator";
 import {BOARD_SIZE, DEFAULT_CLUES, MINIMUM_CLUES} from "../../model/Board";
 import intRange from "../../utility/numberRange";
-import {CheckCircleRounded, CloseRounded, HelpOutlineRounded, SentimentSatisfiedRounded} from "@material-ui/icons";
+import {CheckCircleRounded, CloseRounded, HelpOutlineRounded} from "@material-ui/icons";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 import {DiscreteRangeSlider} from "../Controls/DiscreteRangeSlider";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
@@ -28,6 +28,7 @@ interface GeneratorConfigurationProps {
     difficulty: DIFFICULTY_LEVEL,
     setDifficulty: React.ChangeEventHandler<HTMLSelectElement>,
     numberOfFilledCellsInCurrentPuzzle: number,
+    difficultyOfCurrentPuzzle: DIFFICULTY_LEVEL
 }
 
 const infoCollapseStyle = makeStyles({
@@ -42,7 +43,7 @@ const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 - 4));
 const MAXIMUM_CLUES_MEDIUM = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 2));
 const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 4 + 4));
 
-const MINIMUM_CLUES_EASY = Math.min(MINIMUM_CLUES + 4, MAXIMUM_CLUES_EASY);
+const MINIMUM_CLUES_EASY = Math.min(MINIMUM_CLUES + 8, MAXIMUM_CLUES_EASY);
 
 export default (props: GeneratorConfigurationProps) => {
     let MAX_CLUES = MAXIMUM_CLUES_MEDIUM, MIN_CLUES = MINIMUM_CLUES;
@@ -93,7 +94,12 @@ export default (props: GeneratorConfigurationProps) => {
     )
 
     const showMinClueInfo = () => {
-        return props.numberOfClues <= MINIMUM_CLUES && props.numberOfFilledCellsInCurrentPuzzle > MINIMUM_CLUES;
+        return props.numberOfClues <= MIN_CLUES &&
+            //hide the warning after clicking the generate button.
+            (
+                props.numberOfFilledCellsInCurrentPuzzle > MIN_CLUES ||
+                props.difficulty !== props.difficultyOfCurrentPuzzle
+            )
     }
 
     const [isExplanationModalOpen, setExplanationModalOpen] = React.useState(false);
@@ -122,7 +128,7 @@ export default (props: GeneratorConfigurationProps) => {
             </FormControl>
         </ThemeProvider>
         <InputLabel htmlFor="difficulty-select" style={{fontSize: '.75rem'}}>
-            Number of clues (filled cells)
+            Number of hints (filled cells)
         </InputLabel>
         <DiscreteRangeSlider id={"difficulty-select"}
                              marks={marks}
@@ -139,21 +145,17 @@ export default (props: GeneratorConfigurationProps) => {
             <Box className={infoCollapseClass} style={{maxHeight: showMinClueInfo() ? '6rem' : '0'}}>
                 <Typography component='small' variant={'subtitle1'} color={'primary'}
                             style={{lineHeight: '.75'}}>
-                    The minimum number of clues for a solvable Sudoku has been proven to be 17!
+                    Please note that this game is not optimized for generation of Sudokus with a low number of
+                    hints. Generating such Sudokus will take longer.
+                    The minimum number of hints for a solvable Sudoku has been proven to be 17.
                 </Typography>
-                <SentimentSatisfiedRounded color={'primary'} style={{
-                    fontSize: '1em',
-                    position: 'relative',
-                    top: '.25em',
-                    marginLeft: '.25em'
-                }}/>
             </Box>
         </ThemeProvider>
         <Box display={'flex'} justifyContent={'space-between'} alignItems={'center'}>
             <Button fullWidth={true} variant="text" size="small"
                     endIcon={<HelpOutlineRounded/>}
                     onClick={() => setExplanationModalOpen(true)}>
-                How does it work
+                About
             </Button>
         </Box>
         <Modal open={isExplanationModalOpen}>

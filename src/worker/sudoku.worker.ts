@@ -1,5 +1,6 @@
-import generateRandomSudoku from "../generator/generator";
-import {solve} from "../solver/solver";
+import generateRandomSudoku, {GENERATOR_CODE} from "../generator/generator";
+import {solveCheckUnique} from "../solver/solverAlgo";
+import {SudokuStructuredClone} from "../model/Sudoku";
 
 const ctx: Worker = self as any;
 
@@ -11,17 +12,20 @@ export enum WORKER_ACTIONS {
 
 export const MSGEVT_SOURCE = 'ksuduo';
 
+export type GeneratorResultFromWorker = [GENERATOR_CODE, SudokuStructuredClone]
+    | [GENERATOR_CODE, SudokuStructuredClone, string]
+
 ctx.addEventListener("message", (msgEvent: MessageEvent) => {
     if (msgEvent.data.source !== MSGEVT_SOURCE) return;
     switch (msgEvent.data.data[0]) {
         case WORKER_ACTIONS.SOLVE:
             ctx.postMessage(
-                solve(msgEvent.data.data[1])
+                solveCheckUnique(msgEvent.data.data[1])
             )
             break;
         case WORKER_ACTIONS.GENERATE:
-            const sudoku = generateRandomSudoku(msgEvent.data.data[1]);
-            ctx.postMessage(sudoku);
+            const result = generateRandomSudoku(msgEvent.data.data[1]);
+            ctx.postMessage(result);
             break;
         case WORKER_ACTIONS.TEST:
             ctx.postMessage("Test successful.");

@@ -1,6 +1,6 @@
 import assert from "./assert";
 import intRange from "./numberRange";
-import pickRandomArrayValue from "./pickRandom";
+import {pickRandomArrayValue} from "./pickRandom";
 import {BOARD_WIDTH, CellIndex} from "../model/Board";
 
 // noinspection JSUnusedGlobalSymbols

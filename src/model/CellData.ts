@@ -40,6 +40,9 @@ export type CellData = {
     isInitial: boolean,
     isValid: boolean,
 }
+export type CellDataWithPossibilites = CellData & {
+    possibleValues: CellValue[]
+}
 
 export const countFilledCells = (cells: CellData[]): number =>
     cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 1 : 0), 0);

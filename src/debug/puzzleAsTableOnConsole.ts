@@ -1,12 +1,7 @@
-import {Puzzle, Sudoku} from "../model/Sudoku";
-import {BOARD_WIDTH} from "../model/Board";
-import arrayChunk from "../utility/arrayChunk";
+import {Puzzle, puzzleToSudoku} from "../model/Sudoku";
 
 export default function drawPuzzle(puzzle: Puzzle) {
-    //don't use "puzzleToSudoku" because that triggers the solver that we might want to debug...
-    if (puzzle instanceof Sudoku) {
-        console.table(puzzle.getRows());
-    } else {
-        console.table(arrayChunk(puzzle, BOARD_WIDTH));
-    }
+    const board = puzzleToSudoku(puzzle, false);
+    console.log(`%cFlat: ${board.getFlatValues().join('')}\
+        \n${board.getRows().map(row => row.map(cell => cell.value).join(' ')).join(`\n`)}`, 'white-space: pre-wrap');
 }

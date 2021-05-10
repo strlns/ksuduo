@@ -2,9 +2,9 @@ import {CellData, cellIsEmpty, CellValue, CellValues, EXCLUDE_NOTHING} from "./C
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
 import {cloneDeep} from "lodash-es";
-import pickRandomArrayValue from "../utility/pickRandom";
+import {pickRandomArrayValue} from "../utility/pickRandom";
 import assert from "../utility/assert";
-import {Solution, solve} from "../solver/solver";
+import {Solution, solve, solverResultIsError} from "../solver/solver";
 import {
     BLOCK_HEIGHT,
     BLOCK_SIZE,
@@ -91,7 +91,7 @@ export class Sudoku {
         }
     }
 
-    public initWithNumbers(values: number[]) {
+    public initWithNumbers(values: number[], solvePuzzle = true) {
         values.forEach((value, index) => {
             const [x, y] = flatIndexToCoords(index);
             const cell = this.getCell(x, y);
@@ -100,10 +100,11 @@ export class Sudoku {
                 cell.isInitial = true;
             }
         });
-        try {
-            this.solution = solve(values);
-        } catch (e) {
-            throw e;
+        if (solvePuzzle) {
+            const solverResult = solve(values);
+            if (solverResultIsError(solverResult)) {
+                throw new Error('Could not solve puzzle passed to initializer');
+            }
         }
 
     }
@@ -152,6 +153,8 @@ export class Sudoku {
     }
 
     public initializeEmptyBoard() {
+        this.setSolution([]);
+        this.clearHistory();
         for (let y = 0; y < BOARD_WIDTH; y++) {
             this.rows[y] = Array(BOARD_WIDTH).fill(null);
             for (let x = 0; x < this.rows[y].length; x++) {
@@ -168,29 +171,37 @@ export class Sudoku {
         }
     }
 
+    /*
+     Get a random completely filled initial board.
+     Uses naive brute-force approach - discard "impossible" boards and try again,
+     don't think about blocks at all while filling the board.
+     Could be improved for better performance.
+    */
     public fillWithRandomCompleteSolution() {
-        let itsUnsolvable = false;
-        this.rows.forEach((row, y) => {
-            if (itsUnsolvable) {
-                return;
+        let invalid = false;
+        let tries = 0;
+        while (invalid || !this.isFilled()) {
+            if (IS_DEVELOPMENT) {
+                tries++;
             }
-            for (let x = 0; x < row.length; x++) {
-                const val = this.getAllowedCellValue(x as CellIndex, y as CellIndex);
-                if (val === CellValue.EMPTY) {
-                    itsUnsolvable = true;
-                    if (IS_DEVELOPMENT) {
-                        // console.log(`Discarding random solution. No allowed cell value found for coordinates (${x}, ${y})`)
+            this.initializeEmptyBoard();
+            invalid = false;
+            for (const [y, row] of this.rows.entries()) {
+                for (let x = 0; x < row.length; x++) {
+                    const val = this.getAllowedCellValue(x as CellIndex, y as CellIndex);
+                    if (val === CellValue.EMPTY) {
+                        invalid = true;
+                        break;
+                    } else {
+                        this.setValue(x as CellIndex, y as CellIndex, val, true);
                     }
-                    break;
-                } else {
-                    this.setValue(x as CellIndex, y as CellIndex, val, true);
                 }
             }
-        });
-        if (itsUnsolvable) {
-            this.initializeEmptyBoard();
-            this.fillWithRandomCompleteSolution();
         }
+        if (IS_DEVELOPMENT) {
+            console.log(`Tried ${tries} times to find an initial completed board.`)
+        }
+        this.setSolution(this.getFlatValues());
     }
 
     public getCell(x: CellIndex, y: CellIndex) {
@@ -225,13 +236,13 @@ export class Sudoku {
         return Object.freeze(this.rows);
     }
 
-    public getFlatValues(): readonly CellValue[] {
+    public getFlatValues(): CellValue[] {
         return this.rows.reduce((prev, curr) => {
             return prev.concat(curr);
         }, []).map(cellData => cellData.value);
     }
 
-    public getFlatCells(): readonly CellData[] {
+    public getFlatCells(): CellData[] {
         return this.rows.reduce((prev, curr) => {
             return prev.concat(curr);
         }, []);
@@ -318,22 +329,26 @@ export class Sudoku {
         return this.getFlatCells().filter(cell => cellIsEmpty(cell));
     }
 
-    public getRandomEmptyOrInvalidCell(): CellData {
-        assert(!this.isSolved(), "Sudoku is already completed, there are no empty cells");
-        const res = pickRandomArrayValue(this.getEmptyCells()) ||
-            this.getFlatCells().find(cell => !cell.isValid);
-        if (!res) {
-            throw new Error("Oops, no invalid cells, no empty cells and not solved??")
-        }
-        return res;
+    public getEmptyOrInvalidCellWithMinimumPossibilites(): CellData | undefined {
+        const candidates = getCandidatesWithPossibilites(
+            this.getFlatCells().filter(cell => cellIsEmpty(cell) || !cell.isValid),
+            this
+        ).sort(
+            (a, b) =>
+                a.possibleValues.length < b.possibleValues.length ? 1 : -1
+        );
+        return candidates.pop() as CellData
     }
 
     public getAllowedCellValue(x: CellIndex, y: CellIndex): CellValue {
+        if (this.getAllowedCellValuesByCoords(x, y).length === 0) {
+            return CellValue.EMPTY;
+        }
         return pickRandomArrayValue(this.getAllowedCellValuesByCoords(x, y)) || CellValue.EMPTY;
     }
 
-    public getAllowedCellValues(cell: CellData): CellValue[] {
-        return this.getAllowedCellValuesByCoords(cell.x, cell.y);
+    public getAllowedCellValues(cell: CellData, ignoreSelf = false): CellValue[] {
+        return this.getAllowedCellValuesByCoords(cell.x, cell.y, ignoreSelf);
     }
 
     public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex, ignoreSelf = false): CellValue[] {
@@ -401,6 +416,11 @@ export class Sudoku {
         return cellIsEmpty(cell) || this.isCellValueValid(cell.value, cell.x, cell.y);
     }
 
+    public isFilled(): boolean {
+        return this.getFilledCells().length === BOARD_SIZE;
+        // return this.getFilledCells().length === this.getFlatCells().length;
+    }
+
     public isSolved(): boolean {
         return this.getFlatCells().every(
             cell => cell.value !== CellValue.EMPTY && this.isCellValid(cell)
@@ -456,12 +476,12 @@ export class Sudoku {
 
 export type Puzzle = Sudoku | CellValue[] | number[];
 
-export const puzzleToSudoku = (puzzle: Puzzle) => {
+export const puzzleToSudoku = (puzzle: Puzzle, solvePuzzle = true) => {
     if (puzzle instanceof Sudoku) {
         return puzzle;
     }
     const res = new Sudoku();
-    res.initWithNumbers(puzzle as number[]);
+    res.initWithNumbers(puzzle as number[], solvePuzzle);
     return res;
 }
 
@@ -482,3 +502,10 @@ export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cell
     }
     return res;
 }
+
+export const getValueInFlatPuzzleByCoords = (flatPuzzle: CellValue[], cellX: CellIndex, cellY: CellIndex): CellValue => {
+    return flatPuzzle[coordsToFlatIndex(cellX, cellY)];
+}
+export const getCandidatesWithPossibilites = (candidates: CellData[], board: Sudoku) => candidates.map(
+    cell => ({...cell, possibleValues: board.getAllowedCellValues(cell, true)})
+);
