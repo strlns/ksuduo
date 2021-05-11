@@ -24,12 +24,11 @@ In the end I spent way more time on it than planned, to make it playable. :)
 
 #### Laundry list / Nice-to-have features:
 
-* Own solver algorithm (not really needed). Credits to https://github.com/mattflow/sudoku-solver !
 * Import/Export, preferably in simple text format like OpenSudok
 * Note-taking feature
 * State is persisted in localStorage already, but only for one game. Some kind of High-Score or Load/Save feature would
   be nice.
-* Improve puzzle generation
+* Improve puzzle generation and performance
 
 ---
 
@@ -40,6 +39,30 @@ This does not follow npm convention and there is no "test" script that executes 
 
 "serve-tests" is used to quickly test problems using the desired modules, but in browser context.
 "serve-tests" should just do console I/O
+
+---
+
+As usual, `WebpackDefinePlugin` is used for debugging and
+
+```JavaScript
+if (IS_DEVELOPMENT) {
+  //...
+}
+```
+
+becomes
+
+```JavaScript
+if (false) {
+  //...
+}
+```
+
+so there is no need to comment out often-used debugging code.
+
+---
+
+## Very unimportant things
 
 ### Compatibility, Babel, Webpack configuration.
 
@@ -57,27 +80,5 @@ like `"SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED"` from the compiled output.
 
 Then I ran `build` in an ejected project bootstrapped with `create-react-app`, and found the same garbage in its output.
 So we just ignore this stuff.
-
----
-
-As usual, `WebpackDefinePlugin` is used for debugging and
-
-```JavaScript
-if (IS_DEVELOPMENT) {
-   //...
-}
-```
-
-becomes
-
-```JavaScript
-if (false) {
-   //...
-}
-```
-
-so there is no need to comment out often-used debugging code.
-
----
 
 _author: Moritz Rehbach_

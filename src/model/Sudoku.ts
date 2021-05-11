@@ -451,10 +451,14 @@ export class Sudoku {
      * Clear user input / hints.
      */
     public reset(): void {
-        for (let cell of this.getFlatCells()) {
-            if (!cell.isInitial) {
-                cell.value = CellValue.EMPTY;
-                this.setCell(cell, false);
+        if (this.history.length > 0) {
+            this.initWithFlatCellData(this.history[0]);
+        } else {
+            for (let cell of this.getFlatCells()) {
+                if (!cell.isInitial) {
+                    cell.value = CellValue.EMPTY;
+                    this.setCell(cell, false);
+                }
             }
         }
         this.clearHistory();

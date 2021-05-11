@@ -20,7 +20,10 @@ export const ModalBaseStyles = makeStyles(
             backgroundColor: theme.palette.background.default,
             transform: 'translateX(-50%) translateY(-50%)',
             filter: 'drop-shadow(2px 4px 6px black)',
-            zIndex: 9999
+            zIndex: 9999,
+            '& h3': {
+                textAlign: 'left'
+            }
         }
     })
 );

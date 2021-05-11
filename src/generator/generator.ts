@@ -9,35 +9,6 @@ import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "
 import {BOARD_SIZE, MINIMUM_CLUES} from "../model/Board";
 import {LOGLEVEL_NORMAL, LOGLEVEL_VERBOSE} from "../loglevels";
 
-export const verboseGeneratorExplanationText = `
-<h3>How to play?</h3>
-
-See <a href="https://en.wikipedia.org/wiki/Sudoku" target="_blank">Wikipedia on Sudoku</a>
-
-<h3>How does the generator work? Why is it slow?</h3>
-
-It starts with a randomly generated, completely filled board.
-
-Then cells are cleared one at a time, after each removal, the board is solved and checked for
-multiple solutions.
-
-A sudoku with more than one solution is not a sudoku.
-
-If no cell can be removed without rendering the board invalid,
-the fully completed "seed" board is discarded.
-Rinse, repeat until the desired number of cells is cleared.
-
-This process is not optimized for good performance. 
-
-This is a learning project.
-
-<h3>Difficulty levels</h3>
-
-Different kinds of cells are preferred while deleting at the 3 difficulty levels - in easy mode, the cells that are
-cleared tend to be the ones that are easier to fill. In hard mode, cells with greater numbers of possible values are
-preferred.
-`;
-
 export enum DIFFICULTY_LEVEL {
     EASY,
     MEDIUM,
