@@ -1,6 +1,6 @@
 export type IntervalId = undefined | number;
 
-const MAGIC_NUMBER_COMPENSATE_JIT_JITTER = 2;
+const MAGIC_NUMBER_COMPENSATE_OFF_BY_ONE_ON_PAUSE = 2;
 
 export class Timer {
     public secondsElapsed: number;
@@ -27,6 +27,15 @@ export class Timer {
         } else {
             this.secondsElapsed = 0;
         }
+
+        /**
+         * this line has an unhealthy relationship with {@see MAGIC_NUMBER_COMPENSATE_OFF_BY_ONE_ON_PAUSE}
+         * {@see pause()}
+         * The "magic number" variant leads to off-by-one errors when restoring a paused game.
+         * This variant leads to a stolen second on pause, that is returned to the player when resuming.
+         */
+        this.callback && this.callback.call(null);
+
         this.intervalId = window.setInterval(() => {
             this.callback && this.callback.call(null);
             this.secondsElapsed++;
@@ -34,20 +43,18 @@ export class Timer {
     }
 
     public pause(): void {
-        if (this.secondsElapsed > MAGIC_NUMBER_COMPENSATE_JIT_JITTER) {
-            this.secondsElapsed--;
-        }
+        // if (this.secondsElapsed > MAGIC_NUMBER_COMPENSATE_OFF_BY_ONE_ON_PAUSE) {
+        //     this.secondsElapsed--;
+        // }
         this.clearInterval();
     }
 
     public resume(): void {
-        if (this.secondsElapsed > 0 && !this.intervalId) {
-            if (this.secondsElapsed > MAGIC_NUMBER_COMPENSATE_JIT_JITTER) {
-                setTimeout(() => {
-                    this.secondsElapsed++
-                });
-            }
-            this.start(this.secondsElapsed);
-        }
+        // if (this.secondsElapsed > MAGIC_NUMBER_COMPENSATE_OFF_BY_ONE_ON_PAUSE) {
+        //     setTimeout(() => {
+        //         this.secondsElapsed++
+        //     });
+        // }
+        this.start(this.secondsElapsed);
     }
 }

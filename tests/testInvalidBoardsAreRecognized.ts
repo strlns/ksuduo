@@ -7,11 +7,10 @@ import {
 } from "../src/examples/invalidExamples";
 import {Puzzle} from "../src/model/Sudoku";
 import assert from "../src/utility/assert";
-import {hasMultipleSolutionsOrIsUnsolvable} from "../src/validator/hasMultipleSolutionsOrIsUnsolvable";
+import {solveCheckUnique, SOLVER_FAILURE} from "../src/solver/solverAlgo";
 
 export default function testInvalidBoards() {
     console.log("Testing invalid boards with non-unique solutions.");
-
     [
         [invalid2Solutions, "invalid2Solutions"],
         [invalid3Solutions, "invalid3Solutions"],
@@ -20,13 +19,9 @@ export default function testInvalidBoards() {
         [invalid125Solutions, "invalid125Solutions"],
     ].forEach(
         ([board, boardName]) => {
-            try {
-                assert(hasMultipleSolutionsOrIsUnsolvable(board as Puzzle));
-            } catch (e) {
-                console.error(`Test failed for ${boardName}, multiple solutions were not recognized.`)
-                throw e;
-            }
-            console.log(`%c Test passed for ${boardName}, recognized as invalid board (not a Sudoku)`, 'color: #00df00')
+            const solverResult = solveCheckUnique(board as Puzzle);
+            assert(solverResult === SOLVER_FAILURE.MULTIPLE_SOLUTIONS, 'Invalid board with multiple solutions was not recognized.');
+            console.log(`%c Test passed for ${boardName}`, 'color: #00df00')
         }
     );
 }

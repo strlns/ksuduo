@@ -1,12 +1,16 @@
-import {BOARD_SIZE, Sudoku} from "../model/Sudoku";
+import {Sudoku} from "../model/Sudoku";
 import {Solution} from "../solver/solver";
+import {BOARD_SIZE} from "../model/Board";
+import {DIFFICULTY_LEVEL} from "../generator/generator";
 
-export const LOCALSTORAGE_KEY = 'ksuduoState';
+export const LOCALSTORAGE_KEY = 'thirtySixState';
 
 export type GameStateSerializable = {
     board: Sudoku,
     secondsElapsed: number,
-    isPaused: boolean
+    isPaused: boolean,
+    timerEnabled: boolean,
+    currentDifficulty: DIFFICULTY_LEVEL
 }
 
 const withLocalStorage = (func: Function) => {
@@ -38,14 +42,21 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
             return {
                 board: sudoku,
                 secondsElapsed: data[3],
-                isPaused: data[4]
+                isPaused: data[4],
+                timerEnabled: data[5] ?? false,
+                currentDifficulty: data[6] ?? DIFFICULTY_LEVEL.EASY
             };
         }
     });
+    if (IS_DEVELOPMENT) {
+        console.log('localStorage read.')
+    }
     return lsResult ?? {
         board: new Sudoku(),
         secondsElapsed: 0,
-        isPaused: false
+        isPaused: false,
+        timerEnabled: false,
+        currentDifficulty: DIFFICULTY_LEVEL.EASY
     };
 }
 /**
@@ -65,7 +76,9 @@ export const persist = (state: GameStateSerializable): void => {
                     state.board.history,
                     state.board.getSolution(),
                     state.secondsElapsed,
-                    state.isPaused
+                    state.isPaused,
+                    state.timerEnabled,
+                    state.currentDifficulty
                 ])
             );
         }

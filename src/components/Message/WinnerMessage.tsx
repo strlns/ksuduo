@@ -1,7 +1,7 @@
 import {Box, BoxProps, Theme} from "@material-ui/core";
 import * as React from "react";
 import {ModalBaseStyles} from "./ModalBaseStyles";
-import {makeStyles} from "@material-ui/styles";
+import {makeStyles} from "@material-ui/core/styles";
 import clsx from 'clsx';
 
 // IDE complains about unused `ref` paramter, React complains about missing `ref` paramter at runtime (in dev mode).

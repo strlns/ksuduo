@@ -1,3 +1,9 @@
-import testInvalidBoards from "./invalidBoardsAreRecognized";
+import testInvalidBoardsAreRecognized from "./testInvalidBoardsAreRecognized";
+import testValidBoardsAreNotClassifiedAsInvalid from "./testValidBoardsAreNotClassifiedAsInvalid";
+import testValidSudokuIsSolved from "./testValidSudokuIsSolved";
+import testCoordsFlatIndexConversion from "./testCoordsFlatIndexConversion";
 
-testInvalidBoards();
+testCoordsFlatIndexConversion();
+testValidSudokuIsSolved()
+testValidBoardsAreNotClassifiedAsInvalid();
+testInvalidBoardsAreRecognized();

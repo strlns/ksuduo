@@ -5,23 +5,17 @@ const CssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 module.exports = (
     env,
-    {mode = 'development'}
+    {mode = 'production'}
 ) => {
     console.log(`WEBPACK MODE: ${mode}`);
     const IS_DEVELOPMENT = mode === 'development';
     return {
-        devtool: 'source-map',
         entry: {
             'main': path.resolve(__dirname, './src/index.tsx')
         },
         module: {
             rules: [
-                //use babel in production, ts-loader in development
-                (IS_DEVELOPMENT ? {
-                    test: /\.tsx?$/,
-                    use: 'ts-loader',
-                    exclude: /node_modules/,
-                } : {
+                {
                     test: /\.(js|jsx|tsx|ts)$/,
                     exclude: /node_modules/,
                     use: {
@@ -40,7 +34,6 @@ module.exports = (
                             ],
                             plugins: [
                                 '@babel/plugin-transform-runtime',
-
                                 /**
                                  * Doesn't work? prop types are still in production build with this uncommented.
                                  */
@@ -54,12 +47,12 @@ module.exports = (
                             ],
                         },
                     },
-                }),
+                },
                 {
                     test: /\.css$/i,
                     exclude: /node_modules/,
                     use: [
-                        IS_DEVELOPMENT ? "style-loader" : CssExtractPlugin.loader,
+                        CssExtractPlugin.loader,
                         "css-loader"
                     ],
                 },
@@ -107,7 +100,7 @@ module.exports = (
             }),
             new DefinePlugin({
                     IS_DEVELOPMENT,
-                    // JSON.stringify is required here for string-escaping!!
+                    // JSON.stringify is required here for quoting!
                     'process.env.NODE_ENV': JSON.stringify(mode)
                 }
             ),

@@ -1,4 +1,4 @@
-import {CellIndex} from "./Sudoku";
+import {CellIndex} from "./Board";
 
 export const EMPTY_CELL_VALUE: null = null;
 
@@ -24,9 +24,12 @@ export enum CellValue {
 export const EXCLUDE_NOTHING = false;
 
 const CellValueEnumAsArray = Object.values(CellValue);
-export const NUM_POSSIBLE_VALUES = CellValueEnumAsArray.length / 2; //10  ...this is just an exercise :)
+
+export const NUM_POSSIBLE_VALUES = CellValueEnumAsArray.length / 2;
 
 export const CellValues: CellValue[] = Object.entries(CellValue).slice(NUM_POSSIBLE_VALUES).map(entry => entry[1]) as CellValue[];
+
+export const NonEmptyCellValues: CellValue[] = CellValues.filter(val => val !== CellValue.EMPTY);
 
 export const cellIsEmpty = (cell: CellData): boolean => cell.value === CellValue.EMPTY;
 
@@ -36,6 +39,9 @@ export type CellData = {
     y: CellIndex,
     isInitial: boolean,
     isValid: boolean,
+}
+export type CellDataWithPossibilites = CellData & {
+    possibleValues: CellValue[]
 }
 
 export const countFilledCells = (cells: CellData[]): number =>

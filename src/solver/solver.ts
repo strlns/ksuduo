@@ -1,43 +1,26 @@
-import {BOARD_SIZE, Puzzle, Sudoku} from "../model/Sudoku";
-import assert from "../utility/assert";
+import {Puzzle} from "../model/Sudoku";
 import {CellValue} from "../model/CellData";
+import {solveCheckUnique, SOLVER_FAILURE} from "./solverAlgo";
 
-let mattsSolver = require('@mattflow/sudoku-solver/index');
+let callsToSolver = 0;
 
-/**
- * @param sudoku
- * @param solver
- */
-export function solve(sudoku: Puzzle, solver: SOLVERS = SOLVERS.MATTFLOW): Solution {
-    switch (solver) {
-        case SOLVERS.MATTFLOW:
-            return solveWithMattsSolver(sudoku);
-        case SOLVERS.FOO:
-            return [];
-        default:
-            throw new Error()
-    }
+export function getCallsToSolver() {
+    return callsToSolver;
 }
 
-export enum SOLVERS {
-    MATTFLOW,
-    FOO
+export function resetCallsToSolver() {
+    callsToSolver = 0;
+}
+
+export function solve(sudoku: Puzzle): Solution | SOLVER_FAILURE {
+    if (IS_DEVELOPMENT) {
+        callsToSolver++;
+    }
+    return solveCheckUnique(sudoku);
 }
 
 export type Solution = CellValue[];
 
-export function solveWithMattsSolver(sudoku: Sudoku | CellValue[], maxIterations = 1 << 20): Solution {
-    try {
-        const values = sudoku instanceof Sudoku ? sudoku.getFlatValues().map(val => val as number) :
-            sudoku.map(cellVal => cellVal as number);
-        const solution: number[] = mattsSolver(
-            values,
-            {outputArray: true, maxIterations}
-        );
-        assert(solution.length === BOARD_SIZE);
-        return solution;
-    } finally {
-        //solver holds internal state and needs a re-init if it fails
-        mattsSolver = require('@mattflow/sudoku-solver/index');
-    }
-}
+export type SolverResult = Solution | SOLVER_FAILURE;
+
+export const solverResultIsError = (result: SolverResult) => !Array.isArray(result);
