@@ -1,14 +1,17 @@
 # KSUDUO
 
-## Simple Sudoku Generator
+## Simple Sudoku Game and Generator
 
 https://strlns.github.io/ksuduo/index.html
 
 ## What does it do?
 
-It's a Sudoku game and Sudoku generator. The number of clues is configurable. It works by generating a full grid and
-then deleting some cells. The generator works hard to guarantee that the puzzle has a unique solution (is a proper
-SUDOKU). If possible, puzzle generation runs in a background thread (Web Worker)
+It's a Sudoku game and Sudoku generator.
+
+A backtracking solver is used to detect invalid boards. The generator can be resource-hungry and slow, but should always
+produce a valid Sudoku.
+
+If possible, puzzle generation runs in a background thread (Web Worker)
 
 ---
 
@@ -24,6 +27,7 @@ In the end I spent way more time on it than planned, to make it playable. :)
 
 #### Laundry list / Nice-to-have features:
 
+* Dark mode support
 * Import/Export, preferably in simple text format like OpenSudok
 * Note-taking feature
 * State is persisted in localStorage already, but only for one game. Some kind of High-Score or Load/Save feature would
@@ -42,7 +46,7 @@ This does not follow npm convention and there is no "test" script that executes 
 
 ---
 
-As usual, `WebpackDefinePlugin` is used for debugging and
+`WebpackDefinePlugin` is used for debugging and
 
 ```JavaScript
 if (IS_DEVELOPMENT) {
@@ -58,7 +62,7 @@ if (false) {
 }
 ```
 
-so there is no need to comment out often-used debugging code.
+so such statements will be removed in the minified bundle.
 
 ---
 

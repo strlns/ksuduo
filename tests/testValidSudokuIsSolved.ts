@@ -3,7 +3,7 @@ import {Solution, solverResultIsError} from "../src/solver/solver";
 import solutionIsValid from "../src/validator/isValidSolution";
 import assert from "../src/utility/assert";
 import solutionRespectsHints from "../src/debug/solutionRespectsHints";
-import drawPuzzle from "../src/debug/puzzleAsTableOnConsole";
+import drawPuzzle from "../src/debug/drawPuzzleOnConsole";
 import {pickRandomArrayValue} from "../src/utility/pickRandom";
 import {solveCheckUnique} from "../src/solver/solverAlgo";
 

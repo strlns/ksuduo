@@ -17,6 +17,8 @@ main {
 
 body {
     position: relative;
+    /*just for fun. to do: support dark mode, make things look nice*/
+    background: linear-gradient(38deg, darkgrey, lightgrey);
 }
 
 footer {
@@ -29,6 +31,12 @@ footer {
     padding: .5em;
     border-radius: 0 0 0 .75rem;
     color: #cfcfcf;
+    z-index: 5;
+}
+
+.link-inherit {
+    color: inherit;
+    text-decoration: none;
 }
 
 input[type='number'] {
@@ -185,9 +193,8 @@ input::-webkit-inner-spin-button {
     box-shadow: inset 0 0 0 4px #37de95;
 }
 
-h1, h2, h3 {
+h1, h2 {
     font-family: "Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif;
-    text-align: center; /* <3 90s */
 }
 
 .pulse {

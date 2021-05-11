@@ -81,6 +81,7 @@ const solveWithBacktrackingCheckUnique = (flatPuzzle: CellValue[], maxIterations
 
         for (let value of NonEmptyCellValues) {
             if (solutionCount > 1) {
+                //we are not interested in the actual solutions if there is more than one.
                 break;
             }
             if (check(puzzle, value, index)) {

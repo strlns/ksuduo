@@ -3,30 +3,20 @@ import * as React from "react";
 import {ChangeEvent, useCallback, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
-import generateRandomSudoku, {DIFFICULTY_LEVEL, GENERATOR_CODE} from "../../generator/generator";
+import generateRandomSudoku, {DIFFICULTY_LEVEL, GENERATOR_CODE, GeneratorResult} from "../../generator/generator";
 import {
     CheckCircleRounded,
     EmojiObjectsRounded,
     HighlightOffRounded,
     HighlightRounded,
+    InfoOutlined,
     ThumbUp,
     UndoRounded
 } from '@material-ui/icons';
-import {
-    Box,
-    Container,
-    FormControlLabel,
-    Grid,
-    Icon,
-    IconButton,
-    LinearProgress,
-    Modal,
-    Switch,
-    Typography
-} from "@material-ui/core";
+import {Box, Container, Grid, Icon, IconButton, LinearProgress, Modal, Switch, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
-import {Sudoku} from "../../model/Sudoku";
+import {puzzleToSudoku, Sudoku} from "../../model/Sudoku";
 import {PaperBox, paperBoxDefaultLayoutProps} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
 
@@ -36,14 +26,17 @@ import testWorker from "../../worker/testWorkerActuallyWorks";
 import {GameStateSerializable, persist, restoreGameStateOrInitialize} from "../../persistence/localStorage";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 import {GenerateButton} from "../Generator/GenerateButton";
-import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import {Clock} from "../Board/Clock";
 import isInputModeAttributeSupported from "../../utility/isInputModeAttributeSupported";
 import {BOARD_SIZE, DEFAULT_CLUES} from "../../model/Board";
-import {ksuduoThemeSecondWinnerModal} from "../Theme/WinnerModalTheme";
 import {WinnerMessage} from "../Message/WinnerMessage";
 import {formatTime} from "../../utility/formatTime";
 import {Timer} from "../../model/Timer";
+import {makeStyles} from "@material-ui/core/styles";
+import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
+import About from "./About";
+import {gnomeGs4EasySudokus} from "../../examples/validExamples";
+import {pickRandomArrayValue} from "../../utility/pickRandom";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -103,8 +96,6 @@ const {
     currentDifficulty
 } = restoreGameStateOrInitialize();
 
-console.log(currentDifficulty);
-
 export const Game = (props: GameProps) => {
     const [state, setState] = useState({
         sudoku: initialBoard,
@@ -135,6 +126,31 @@ export const Game = (props: GameProps) => {
 
     const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
 
+    interface StateFromGen {
+        msg?: string,
+        sudoku?: Sudoku
+    }
+
+    const stateFromGenerator = (result: GeneratorResult | GeneratorResultFromWorker): StateFromGen => {
+        const board = result[1] instanceof Sudoku ? result[1] : new Sudoku(result[1]);
+        switch (result[0]) {
+            case GENERATOR_CODE.OK:
+            case GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL:
+                return {
+                    sudoku: board,
+                    ...(result[0] !== GENERATOR_CODE.OK ? {msg: result[2]} : {})
+                }
+            case GENERATOR_CODE.UNKNOWN_ERROR:
+            default:
+                if (IS_DEVELOPMENT) {
+                    console.error(result);
+                }
+                return {
+                    msg: result[2]
+                }
+        }
+    };
+
     const generateSudoku = () => {
         if (IS_DEVELOPMENT) {
             console.log(useWebWorker ? 'Using web worker, test succeeded.' : 'Falling back to synchronous puzzle generation.')
@@ -144,7 +160,7 @@ export const Game = (props: GameProps) => {
             setState(prevState => ({...prevState, isWorking: true, msg: ''}));
             sudokuWorker.postMessage({
                 source: MSGEVT_SOURCE,
-                data: [WORKER_ACTIONS.GENERATE, state.numberOfClues]
+                data: [WORKER_ACTIONS.GENERATE, state.numberOfClues, state.difficulty]
             });
             const listener = (event: MessageEvent) => {
                 const result = event.data as GeneratorResultFromWorker;
@@ -157,8 +173,7 @@ export const Game = (props: GameProps) => {
                         ...prevState,
                         ...resetStateCommons,
                         currentDifficulty: state.difficulty,
-                        sudoku: new Sudoku(result[1]),
-                        ...(result[0] === GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL ? {msg: result[2]} : {})
+                        ...stateFromGenerator(result)
                     })
                 );
                 timer.start();
@@ -169,14 +184,13 @@ export const Game = (props: GameProps) => {
                 console.log("Falling back to synchronous generation.");
             }
             setState(prevState => ({...prevState, isWorking: true}));
-            const result = generateRandomSudoku(state.numberOfClues);
+            const result = generateRandomSudoku(state.numberOfClues, state.difficulty);
             setState(prevState =>
                 ({
                     ...prevState,
                     ...resetStateCommons,
                     currentDifficulty: state.difficulty,
-                    sudoku: result[1],
-                    ...(result[0] === GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL ? {msg: result[2]} : {})
+                    ...stateFromGenerator(result)
                 })
             );
             timer.start();
@@ -185,7 +199,16 @@ export const Game = (props: GameProps) => {
 
     //no Sudoku in localStorage
     if (state.sudoku.isEmpty()) {
-        generateSudoku();
+        /*
+        cheat and use a predefined sudoku because the initial generation would be synchronous and
+        lead to slowdown.
+        */
+        setState(prevState => {
+            return ({
+                ...prevState,
+                sudoku: puzzleToSudoku(pickRandomArrayValue(gnomeGs4EasySudokus))
+            });
+        })
     }
 
     const updateNumberOfClues = (e: ChangeEvent | {}, numberOfClues: number): void => {
@@ -223,16 +246,13 @@ export const Game = (props: GameProps) => {
             board, isPaused, secondsElapsed, timerEnabled, currentDifficulty
         } as GameStateSerializable);
     }
-    /**
-     * Terminate service worker before unload, pause the timer
-     * (This is NOT the same as pausing the game. It's only to stop time tracking earlier.)
-     * Persist before unload, including the timer state.
-     *
-     * @todo replace beforeunload event with visibilitychange event
-     */
-    window.onbeforeunload = () => {
+
+    /*
+    Begin visibility and unload handling.
+    This should probably be wrapped in a hook.
+    */
+    const persistAndPause = () => {
         timer.pause();
-        sudokuWorker.terminate();
         setState(
             prevState => ({
                 ...prevState
@@ -240,6 +260,34 @@ export const Game = (props: GameProps) => {
         );
         persistState();
     }
+    const resume = () => {
+        timer.resume();
+        setState(
+            prevState => ({
+                ...prevState
+            })
+        );
+    }
+
+    if (!('visibilityState' in document)) {
+        window.onbeforeunload = () => {
+            sudokuWorker.terminate();
+            persistAndPause();
+        };
+    }
+
+    window.addEventListener('pagehide', persistAndPause);
+    window.addEventListener('pageshow', resume);
+    window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            persistAndPause();
+        } else {
+            resume();
+        }
+    });
+    /*
+    End visibility and unload handling.
+    */
 
     const updateCallback = useCallback(() => {
         setState(prevState => ({...prevState, isWorking: false}));
@@ -304,7 +352,6 @@ export const Game = (props: GameProps) => {
             if (state.sudoku.isSolved()) {
                 timer.pause();
             } else if (!state.isPaused) {
-                // keep it consistent when jumping between solution and undo etc.
                 timer.resume();
             }
         },
@@ -367,25 +414,26 @@ export const Game = (props: GameProps) => {
         }
     }
 
+    const smallText = makeStyles({
+        root: {
+            fontSize: '.75em',
+        }
+    });
+
+    const smallTextClass = smallText().root;
+
     return <Container style={{padding: 0}}>
         <Grid container spacing={3} justify={"center"}
-              style={{padding: 0, position: 'relative', zIndex: 3}}
+              style={{padding: '2rem 0 0', position: 'relative', zIndex: 3}}
               className={`game${state.isWorking ? ' working' : ''}`}>
-            <Grid item xs={12}>
-                <h1>Ksuduo</h1>
-                <h2>Sudoku Toy Project</h2>
-            </Grid>
             <Grid item xs={12} md={8} lg={6} justify={"center"} container>
                 <PaperBox {...paperBoxDefaultLayoutProps} width={'100%'}>
                     <Box p={1}>
                         <LinearProgress value={percentFilled()} variant={'determinate'} style={{marginTop: '12px'}}/>
-                        <Typography component={'small'}
-                                    style={{
-                                        textAlign: 'center',
-                                        marginBottom: ksuduoThemeNormal.spacing(1),
-                                        fontSize: '.75em',
-                                    }}>
-                            {state.sudoku.getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE} ({`${percentFilled().toFixed(1)}%`})
+                        <Typography component={'legend'}
+                                    style={{textAlign: 'center', marginTop: ksuduoThemeNormal.spacing(1)}}
+                                    className={smallTextClass}>
+                            {state.sudoku.getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
                         </Typography>
                     </Box>
                     <Board
@@ -398,14 +446,12 @@ export const Game = (props: GameProps) => {
                         togglePaused={togglePaused}
                         supportsInputMode={supportsInputModeAttribute}
                     />
-                    <Box p={1} display={'flex'} justifyContent={'space-between'} style={{
-                        fontSize: '.75em',
-                    }}>
-                        <Typography component={'small'}
+                    <Box p={1} display={'flex'} justifyContent={'space-between'}>
+                        <Typography component={'small'} className={smallTextClass}
                         >
-                            Current difficulty: {difficultyLabel()}
+                            Difficulty: {difficultyLabel()}
                         </Typography>
-                        <Typography component={'small'}>
+                        <Typography component={'small'} className={smallTextClass}>
                             Hints: {state.sudoku.getFilledCells().filter(cell => cell.isInitial).length}
                         </Typography>
                     </Box>
@@ -413,7 +459,7 @@ export const Game = (props: GameProps) => {
             </Grid>
             <Grid item xs container alignItems={"stretch"} alignContent={"flex-start"}>
                 <Grid item xs={12}>
-                    <PaperBox {...paperBoxDefaultLayoutProps}>
+                    <PaperBox {...paperBoxDefaultLayoutProps} className={smallTextClass}>
                         <Clock
                             secondsElapsed={state.secondsElapsed}
                             isPaused={state.isPaused}
@@ -424,17 +470,18 @@ export const Game = (props: GameProps) => {
                             visible={state.timerEnabled}
                         />
                         <Box justifyContent={'center'} display={'flex'}>
-                            <FormControlLabel
-                                control={
-                                    <Switch checked={state.timerEnabled}
-                                            onChange={(event, value: boolean) => {
-                                                setState(prevState => ({...prevState, timerEnabled: value}))
-                                            }}/>
-                                }
-                                label={`${state.timerEnabled ? 'Hide timer' : 'Show timer'}`}
-                                labelPlacement={`${state.timerEnabled ? 'start' : 'end'}` as ('end' | 'start')}
-                            />
-                            {/*the changing label placement is a funny idea, but also a bad idea. switch should not jump around */}
+                            <label style={{
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center'
+                            }}>
+                                <Switch checked={state.timerEnabled}
+                                        onChange={(event, value: boolean) => {
+                                            setState(prevState => ({...prevState, timerEnabled: value}))
+                                        }}/>
+                                {`${state.timerEnabled ? 'Click to hide timer' : 'Click to show timer'}`}
+                            </label>
                         </Box>
                     </PaperBox>
                 </Grid>
@@ -471,6 +518,14 @@ export const Game = (props: GameProps) => {
                 <Grid item xs={12}>
                     <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
                         <GenerateButton onClick={generateSudoku} isWorking={state.isWorking}/>
+                        {state.msg.length > 0 ?
+                            <Box display={'flex'} alignItems={'center'}>
+                                <InfoOutlined style={{margin: '0 .75rem'}}/>
+                                <Typography className={smallTextClass}>
+                                    {state.msg}
+                                </Typography>
+                            </Box>
+                            : null}
                         <GeneratorConfiguration numberOfClues={state.numberOfClues}
                                                 setNumberOfClues={updateNumberOfClues}
                                                 difficulty={state.difficulty}
@@ -478,15 +533,16 @@ export const Game = (props: GameProps) => {
                                                 setDifficulty={selectDifficulty}
                                                 numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
                         />
-                        {state.msg.length > 0 ? <Typography>
-                                {state.msg}
-                            </Typography>
-                            : null}
+                    </PaperBox>
+                </Grid>
+                <Grid item xs={12}>
+                    <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
+                        <About/>
                     </PaperBox>
                 </Grid>
             </Grid>
         </Grid>
-        <ThemeProvider theme={ksuduoThemeSecondWinnerModal}>
+        <ThemeProvider theme={ksuduoThemeSecond}>
             <Modal
                 open={winnerModalOpen}
                 onClose={() => setWinnerModalOpen(false)}>

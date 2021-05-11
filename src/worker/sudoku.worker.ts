@@ -24,7 +24,7 @@ ctx.addEventListener("message", (msgEvent: MessageEvent) => {
             )
             break;
         case WORKER_ACTIONS.GENERATE:
-            const result = generateRandomSudoku(msgEvent.data.data[1]);
+            const result = generateRandomSudoku(msgEvent.data.data[1], msgEvent.data.data[2]);
             ctx.postMessage(result);
             break;
         case WORKER_ACTIONS.TEST:

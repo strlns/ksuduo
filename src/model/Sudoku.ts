@@ -1,7 +1,7 @@
-import {CellData, cellIsEmpty, CellValue, CellValues, EXCLUDE_NOTHING} from "./CellData";
+import {CellData, cellIsEmpty, CellValue, CellValues, EXCLUDE_NOTHING, NonEmptyCellValues,} from "./CellData";
 import {BlockData} from "./BlockData";
 import arrayChunk from "../utility/arrayChunk";
-import {cloneDeep} from "lodash-es";
+import {cloneDeep, fromPairs, shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
 import assert from "../utility/assert";
 import {Solution, solve, solverResultIsError} from "../solver/solver";
@@ -35,7 +35,7 @@ export class Sudoku {
      * main source of truth.
      * @private
      */
-    private readonly rows: CellData[][] = [];
+    private rows: CellData[][] = [];
 
     /**
      * history stored as array of flat board states (2nd dimension contains Array(81)<CellData>).
@@ -45,11 +45,11 @@ export class Sudoku {
 
     private solution: Solution = [];
 
-    constructor(structuredCloneInializer?: SudokuStructuredClone) {
-        if (structuredCloneInializer) {
-            this.rows = structuredCloneInializer.rows;
-            this.solution = structuredCloneInializer.solution;
-            this.history = structuredCloneInializer.history;
+    constructor(structuredCloneInitializer?: SudokuStructuredClone) {
+        if (structuredCloneInitializer) {
+            this.rows = structuredCloneInitializer.rows;
+            this.solution = structuredCloneInitializer.solution;
+            this.history = structuredCloneInitializer.history;
         } else {
             this.rows = [];
             this.history = [];
@@ -85,10 +85,11 @@ export class Sudoku {
         }
     }
 
-    public getValueFromSolution(x: CellIndex, y: CellIndex): CellValue | undefined {
-        if (this.solution !== undefined) {
-            return this.solution[coordsToFlatIndex(x, y)];
+    public getValueFromSolution(x: CellIndex, y: CellIndex): CellValue {
+        if (!this.hasSolutionSet()) {
+            throw new Error();
         }
+        return this.solution[coordsToFlatIndex(x, y)];
     }
 
     public initWithNumbers(values: number[], solvePuzzle = true) {
@@ -152,7 +153,12 @@ export class Sudoku {
         this.rows[cell.y][cell.x] = cell;
     }
 
-    public initializeEmptyBoard() {
+    /**
+     * This may only be called from the constructor.
+     * Changing references inside this.rows directly leads to
+     * direct mutation of React state (which is not allowed).
+     */
+    private initializeEmptyBoard() {
         this.setSolution([]);
         this.clearHistory();
         for (let y = 0; y < BOARD_WIDTH; y++) {
@@ -164,42 +170,53 @@ export class Sudoku {
                         x: x as CellIndex,
                         y: y as CellIndex,
                         isInitial: true,
-                        isValid: true
+                        isValid: true,
+                        blockIndex: getBlockIndexForCoords(x as CellIndex, y as CellIndex)
                     } as CellData
                 );
             }
         }
     }
 
+    public clearBoard() {
+        this.setSolution([]);
+        this.clearHistory();
+        this.getFlatCells().forEach(
+            cell => this.setCell({...cell, value: CellValue.EMPTY, isInitial: false, isValid: true})
+        );
+    }
+
     /*
      Get a random completely filled initial board.
-     Uses naive brute-force approach - discard "impossible" boards and try again,
-     don't think about blocks at all while filling the board.
+     Uses naive brute-force approach - discard "impossible" boards and try again.
      Could be improved for better performance.
     */
     public fillWithRandomCompleteSolution() {
-        let invalid = false;
-        let tries = 0;
-        while (invalid || !this.isFilled()) {
-            if (IS_DEVELOPMENT) {
-                tries++;
+        let deadEnd = false;
+        while (deadEnd || !this.isFilled()) {
+            this.clearBoard();
+            const blocks = this.getBlocks();
+            const middleBlock = blocks[Math.floor(blocks.length / 2)];
+            deadEnd = false;
+            const middleValues = shuffle(NonEmptyCellValues);
+            let i = 0;
+            for (const cell of middleBlock.cells) {
+                cell.value = middleValues[i];
+                cell.isInitial = true;
+                i++;
             }
-            this.initializeEmptyBoard();
-            invalid = false;
-            for (const [y, row] of this.rows.entries()) {
-                for (let x = 0; x < row.length; x++) {
-                    const val = this.getAllowedCellValue(x as CellIndex, y as CellIndex);
-                    if (val === CellValue.EMPTY) {
-                        invalid = true;
-                        break;
-                    } else {
-                        this.setValue(x as CellIndex, y as CellIndex, val, true);
-                    }
+            for (const cell of this.getFlatCells()) {
+                if (middleBlock.cells.includes(cell)) {
+                    continue;
                 }
+                const val = this.getAllowedCellValue(cell.x, cell.y);
+                if (val === CellValue.EMPTY) {
+                    deadEnd = true;
+                    break;
+                }
+                cell.value = val;
+                cell.isInitial = true;
             }
-        }
-        if (IS_DEVELOPMENT) {
-            console.log(`Tried ${tries} times to find an initial completed board.`)
         }
         this.setSolution(this.getFlatValues());
     }
@@ -330,7 +347,7 @@ export class Sudoku {
     }
 
     public getEmptyOrInvalidCellWithMinimumPossibilites(): CellData | undefined {
-        const candidates = getCandidatesWithPossibilites(
+        const candidates = addPossibleValuesToCellDataArray(
             this.getFlatCells().filter(cell => cellIsEmpty(cell) || !cell.isValid),
             this
         ).sort(
@@ -341,30 +358,27 @@ export class Sudoku {
     }
 
     public getAllowedCellValue(x: CellIndex, y: CellIndex): CellValue {
-        if (this.getAllowedCellValuesByCoords(x, y).length === 0) {
+        const allowedValues = this.getAllowedCellValuesByCoords(x, y);
+        if (allowedValues.length === 0) {
             return CellValue.EMPTY;
         }
-        return pickRandomArrayValue(this.getAllowedCellValuesByCoords(x, y)) || CellValue.EMPTY;
+        return pickRandomArrayValue(allowedValues);
     }
 
-    public getAllowedCellValues(cell: CellData, ignoreSelf = false): CellValue[] {
+    public getAllowedCellValues(cell: CellData, ignoreSelf = true): CellValue[] {
         return this.getAllowedCellValuesByCoords(cell.x, cell.y, ignoreSelf);
     }
 
-    public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex, ignoreSelf = false): CellValue[] {
+    public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex, ignoreSelf = true): CellValue[] {
         return CellValues.filter(
             value => !(
                 value === CellValue.EMPTY ||
                 this.getRowValues(y, ignoreSelf ? x : EXCLUDE_NOTHING).includes(value) ||
                 this.getColumnValues(x, ignoreSelf ? y : EXCLUDE_NOTHING).includes(value)
                 || this.getFlatBlockValuesForCoords(x, y, ignoreSelf).includes(value)
+
             )
         );
-    }
-
-    // noinspection JSUnusedLocalSymbols
-    private getFlatBlockValuesForCell(cell: CellData) {
-        return this.getFlatBlockValuesForCoords(cell.x, cell.y);
     }
 
     private getFlatBlockValuesForCoords(cellX: CellIndex, cellY: CellIndex, excludeSelf = false): CellValue[] {
@@ -476,6 +490,20 @@ export class Sudoku {
         return this.getFlatValues().join()
     }
 
+    public numberOfFilledCellsPerRow(): number[] {
+        //careful, callback fn passed directly because it takes only 1 parameter
+        return this.getRows().map(numberOfFilledCellsInArray);
+    }
+
+    public numberOfFilledCellsPerColumn(): number[] {
+        //careful, callback fn passed directly because it takes only 1 parameter
+        return this.getColumns().map(numberOfFilledCellsInArray);
+    }
+
+    public getCellsInBlock(cell: CellData): CellData[] {
+        return this.getBlocks()[getBlockIndexForCell(cell)].cells;
+    }
+
 }
 
 export type Puzzle = Sudoku | CellValue[] | number[];
@@ -507,9 +535,46 @@ export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cell
     return res;
 }
 
+export const numberOfFilledCellsInArray = (cells: CellData[]): number => {
+    return cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 0 : 1), 0);
+}
+
 export const getValueInFlatPuzzleByCoords = (flatPuzzle: CellValue[], cellX: CellIndex, cellY: CellIndex): CellValue => {
     return flatPuzzle[coordsToFlatIndex(cellX, cellY)];
 }
-export const getCandidatesWithPossibilites = (candidates: CellData[], board: Sudoku) => candidates.map(
-    cell => ({...cell, possibleValues: board.getAllowedCellValues(cell, true)})
+export const addPossibleValuesToCellDataArray = (candidates: CellData[], board: Sudoku, onlyEmpty = false) => candidates.map(
+    cell => ({
+        ...cell,
+        possibleValues: (onlyEmpty && !cellIsEmpty(cell)) ? [] : board.getAllowedCellValues(cell, !onlyEmpty)
+    })
 );
+type PossibilityCountHash = {
+    [value in CellValue]: number
+};
+
+/*
+ *
+ * return an object with the cell values as key and the number of occurrences as a possible value
+ * in the given array of cells, for the given board, as value.
+ * Currently unused, could be useful for detection of BUG situations
+ */
+// noinspection JSUnusedGlobalSymbols
+export const getPossibleValuesInCellsWithCount = (cells: CellData[], board: Sudoku): PossibilityCountHash => {
+    const res = fromPairs(NonEmptyCellValues.map(val => [val, 0]));
+    const cellsWithP = addPossibleValuesToCellDataArray(cells, board, false);
+    for (const cell of cellsWithP) {
+        for (const value of cell.possibleValues) {
+            res[value] += 1;
+        }
+    }
+    return res as PossibilityCountHash;
+}
+
+export const getBlockIndexForCell = (cell: CellData): number => {
+    return getBlockIndexForCoords(cell.x, cell.y);
+}
+export const getBlockIndexForCoords = (x: CellIndex, y: CellIndex): number => {
+    const yPart = Math.floor(y / BLOCK_HEIGHT) * BLOCK_HEIGHT;
+    const xPart = Math.floor(x / BLOCK_WIDTH);
+    return yPart + xPart;
+}

@@ -50,6 +50,7 @@ module.exports = (
         ],
         resolve: {
             extensions: ['.tsx', '.ts', '.js'],
-        }
+        },
+        target: 'web' // https://github.com/webpack/webpack-dev-server/issues/2758
     }
 };

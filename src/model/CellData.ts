@@ -39,6 +39,7 @@ export type CellData = {
     y: CellIndex,
     isInitial: boolean,
     isValid: boolean,
+    blockIndex: number
 }
 export type CellDataWithPossibilites = CellData & {
     possibleValues: CellValue[]
