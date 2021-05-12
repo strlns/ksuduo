@@ -3,6 +3,8 @@
  * See https://opensudoku.p43.eu/
  */
 import {puzzleFromString} from "../utility/puzzleFromString";
+import {pickRandomArrayValue} from "../utility/pickRandom";
+import {puzzleToSudoku} from "../model/Sudoku";
 
 export const gnomeGs4EasySudokus = [
     '070009050106070890040150002720040030604000507010060049200036070063020901090400020',
@@ -11,6 +13,8 @@ export const gnomeGs4EasySudokus = [
     '020800500007020398030000072070000951980601037215000080690000040841060700002003010',
     '370680000100074803008100060720040630030802010015060049080006400403720001000018026',
 ].map(str => puzzleFromString(str));
+
+export const staticInitBoard = () => puzzleToSudoku(pickRandomArrayValue(gnomeGs4EasySudokus));
 
 export const gnomeGs4HardSudokus = [
     '000700000000391204028600307205006070004907500070800402802009740609574000000008000',

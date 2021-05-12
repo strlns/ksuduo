@@ -97,9 +97,7 @@ export class Sudoku {
             const [x, y] = flatIndexToCoords(index);
             const cell = this.getCell(x, y);
             cell.value = value;
-            if (value as CellValue !== CellValue.EMPTY) {
-                cell.isInitial = true;
-            }
+            cell.isInitial = !cellIsEmpty(cell);
         });
         if (solvePuzzle) {
             const solverResult = solve(values);

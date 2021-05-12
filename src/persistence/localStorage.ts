@@ -2,6 +2,7 @@ import {Sudoku} from "../model/Sudoku";
 import {Solution} from "../solver/solver";
 import {BOARD_SIZE} from "../model/Board";
 import {DIFFICULTY_LEVEL} from "../generator/generator";
+import {staticInitBoard} from "../examples/validExamples";
 
 export const LOCALSTORAGE_KEY = 'thirtySixState';
 
@@ -10,7 +11,7 @@ export type GameStateSerializable = {
     secondsElapsed: number,
     isPaused: boolean,
     timerEnabled: boolean,
-    currentDifficulty: DIFFICULTY_LEVEL
+    currentDifficulty: DIFFICULTY_LEVEL,
 }
 
 const withLocalStorage = (func: Function) => {
@@ -49,10 +50,10 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
         }
     });
     if (IS_DEVELOPMENT) {
-        console.log('localStorage read.')
+        console.log('localStorage read.', lsResult)
     }
     return lsResult ?? {
-        board: new Sudoku(),
+        board: staticInitBoard(),
         secondsElapsed: 0,
         isPaused: false,
         timerEnabled: false,
@@ -60,10 +61,10 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
     };
 }
 /**
- * Persisted JSON contains board, soluton, history and timer state.
+ * Persisted JSON contains board, solution, history and timer state.
  * Separating the timer/elapsed seconds from the rest could help performance a little
  * but is currently unneeded.
- * Persisting is triggered by game actions and on beforeUnload.
+ * Persisting is triggered by game actions and on page hide.
  *
  * @param state
  */

@@ -16,7 +16,7 @@ import {
 import {Box, Container, Grid, Icon, IconButton, LinearProgress, Modal, Switch, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
-import {puzzleToSudoku, Sudoku} from "../../model/Sudoku";
+import {Sudoku} from "../../model/Sudoku";
 import {PaperBox, paperBoxDefaultLayoutProps} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
 
@@ -35,8 +35,6 @@ import {Timer} from "../../model/Timer";
 import {makeStyles} from "@material-ui/core/styles";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import About from "./About";
-import {gnomeGs4EasySudokus} from "../../examples/validExamples";
-import {pickRandomArrayValue} from "../../utility/pickRandom";
 import {usePageVisibility} from "react-page-visibility";
 
 let sudokuWorker: Worker;
@@ -102,7 +100,7 @@ export const Game = (props: GameProps) => {
         sudoku: initialBoard,
         numberOfClues: DEFAULT_CLUES,
         currentDifficulty,
-        difficulty: DIFFICULTY_LEVEL.EASY,
+        difficulty: currentDifficulty ?? DIFFICULTY_LEVEL.EASY,
         highlightedCell: undefined as OptionalCell,
         isWorking: false,
         msg: '',
@@ -198,20 +196,6 @@ export const Game = (props: GameProps) => {
             );
             timer.start();
         }
-    }
-
-    //no Sudoku in localStorage
-    if (state.sudoku.isEmpty()) {
-        /*
-        cheat and use a predefined sudoku because the initial generation would be synchronous and
-        lead to slowdown.
-        */
-        setState(prevState => {
-            return ({
-                ...prevState,
-                sudoku: puzzleToSudoku(pickRandomArrayValue(gnomeGs4EasySudokus))
-            });
-        })
     }
 
     const updateNumberOfClues = (e: ChangeEvent | {}, numberOfClues: number): void => {
@@ -547,7 +531,7 @@ export const Game = (props: GameProps) => {
                     </Typography>
                     <Typography style={{margin: '1em 0'}}>
                         You successfully completed the Sudoku
-                        {state.timerEnabled ? `in ${formatTime(state.secondsElapsed)}.` : ''}
+                        {state.timerEnabled ? ` in ${formatTime(state.secondsElapsed)}.` : ''}
                     </Typography>
 
                     <Box onClick={() => setWinnerModalOpen(false)}>
