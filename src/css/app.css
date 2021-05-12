@@ -2,36 +2,13 @@
     font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
 }
 
-@font-face {
-    font-family: "Bangers Regular";
-    src: url('../../assets/fonts/Bangers-Regular.woff2')
-}
-
 * {
     box-sizing: border-box;
 }
 
-main {
-    padding-bottom: 1.5em;
-}
-
 body {
     position: relative;
-    /*just for fun. to do: support dark mode, make things look nice*/
     background: linear-gradient(38deg, darkgrey, lightgrey);
-}
-
-footer {
-    position: absolute;
-    top: 0;
-    text-align: right;
-    right: 0;
-    font-size: 9px;
-    background-color: #162467;
-    padding: .5em;
-    border-radius: 0 0 0 .75rem;
-    color: #cfcfcf;
-    z-index: 5;
 }
 
 .link-inherit {
@@ -191,10 +168,6 @@ input::-webkit-inner-spin-button {
 .cell.hint {
     background-color: #a2ffa2;
     box-shadow: inset 0 0 0 4px #37de95;
-}
-
-h1, h2 {
-    font-family: "Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif;
 }
 
 .pulse {

@@ -5,12 +5,12 @@ const bodyFont = '"DejaVu Sans", Roboto, Helvetica, sans-serif;'
 
 export const ksuduoThemeNormal = createMuiTheme({
     /*
-     The Button component only
-     supports the values primary|secondary|default|inherit
+     Button component only supports primary|secondary|default|inherit
      for the color property (of which "default" is not supported by createMuiTheme)
-     and I'm not yet able to customize the types. So I use 2 different themes for more colors.
+     and I'm not sure how to customize.
+     So I use 2 different themes for more colors.
 
-     @todo: Get rid of direct access to plain theme objects, support dark mode
+     @todo: Get rid of direct access to plain theme objects to support dark mode
     */
     palette: {
         primary: {

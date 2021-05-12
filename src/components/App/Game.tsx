@@ -37,6 +37,7 @@ import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import About from "./About";
 import {gnomeGs4EasySudokus} from "../../examples/validExamples";
 import {pickRandomArrayValue} from "../../utility/pickRandom";
+import {usePageVisibility} from "react-page-visibility";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -125,6 +126,8 @@ export const Game = (props: GameProps) => {
     const [supportsInputModeAttribute, setSupportsInputModeAttribute] = useState(false);
 
     const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
+
+    const pageIsVisible = usePageVisibility();
 
     interface StateFromGen {
         msg?: string,
@@ -247,10 +250,6 @@ export const Game = (props: GameProps) => {
         } as GameStateSerializable);
     }
 
-    /*
-    Begin visibility and unload handling.
-    This should probably be wrapped in a hook.
-    */
     const persistAndPause = () => {
         timer.pause();
         setState(
@@ -260,34 +259,25 @@ export const Game = (props: GameProps) => {
         );
         persistState();
     }
+
     const resume = () => {
-        timer.resume();
-        setState(
-            prevState => ({
-                ...prevState
-            })
-        );
-    }
-
-    if (!('visibilityState' in document)) {
-        window.onbeforeunload = () => {
-            sudokuWorker.terminate();
-            persistAndPause();
-        };
-    }
-
-    window.addEventListener('pagehide', persistAndPause);
-    window.addEventListener('pageshow', resume);
-    window.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            persistAndPause();
-        } else {
-            resume();
+        if (!state.isPaused) {
+            timer.resume();
+            setState(
+                prevState => ({
+                    ...prevState
+                })
+            );
         }
-    });
-    /*
-    End visibility and unload handling.
-    */
+    }
+
+    useEffect(() => {
+        if (pageIsVisible) {
+            resume()
+        } else {
+            persistAndPause();
+        }
+    }, [pageIsVisible]);
 
     const updateCallback = useCallback(() => {
         setState(prevState => ({...prevState, isWorking: false}));

@@ -55,8 +55,8 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
     }
 
     let achievedNumberOfEmptyCells = 0;
-    const MAX_TOPLEVEL_ITERATIONS = 8;
-    const MAX_UNDOS = difficulty >= DIFFICULTY_LEVEL.EASY ? 8 : 16;
+    const MAX_TOPLEVEL_ITERATIONS = 6;
+    const MAX_UNDOS = difficulty > DIFFICULTY_LEVEL.EASY ? 12 : 16;
     const MAX_DISCARDED_UNEVEN_BOARDS = 4;
     let it = 0;
     let board = new Sudoku();

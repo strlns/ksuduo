@@ -10,7 +10,7 @@ export const App = () => {
         <ThemeProvider theme={ksuduoThemeNormal}>
             <Container style={{position: 'relative', paddingBottom: '3rem'}}>
                 <Game/>
-                <Box position="fixed" bottom={0} left={0}>
+                <Box position="absolute" bottom={0} left={0}>
                     <Link style={{display: 'flex', alignItems: 'center'}} href="https://github.com/strlns/ksuduo"
                           title="Source code" className={'link-inherit'}>
                         <IconButton>

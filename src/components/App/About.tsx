@@ -15,13 +15,12 @@ export default () => {
 
         <Modal open={isExplanationModalOpen}>
             <Box className={ModalBaseStyles().root}>
-                <Box display='flex' justifyContent={'space-between'} alignItems={'flex-start'}>
-                    <h1 style={{marginTop: 0}}>Ksuduo</h1>
+                <Box display='flex' justifyContent={'space-between'} alignItems={'center'}>
+                    <h1>Ksuduo</h1>
                     <IconButton edge='end' title="Close" onClick={() => setExplanationModalOpen(false)}>
                         <CloseRounded/>
                     </IconButton>
                 </Box>
-                <h2>Sudoku Toy Project</h2>
                 <h3>How to play?</h3>
                 <p>
                     See <a href="https://en.wikipedia.org/wiki/Sudoku" target="_blank">Wikipedia on Sudoku</a>
