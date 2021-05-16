@@ -50,15 +50,6 @@ if (window.Worker) {
 const checkWebWorkerSupport = async (): Promise<boolean> => {
     return await testWorker();
 }
-/**
- * jump through some hoops, because presence of window.Worker alone doesn't guarantee that
- * the Worker actually works (CORS, Blockers...). Verify with a test message that the Web Worker works.
- */
-checkWebWorkerSupport().then(
-    (value => {
-        useWebWorker = value;
-    })
-);
 
 let timer = new Timer();
 
@@ -71,6 +62,7 @@ export interface GameState {
     highlightedCell: OptionalCell,
     isWorking: boolean,
     forceFocus: OptionalCell,
+    initialBoardIsSolved: boolean,
     solutionShown: boolean,
     isPaused: boolean, //paused by user
     secondsElapsed: number,
@@ -91,6 +83,7 @@ const {
     board: initialBoard,
     secondsElapsed: initialSeconds,
     isPaused: initialIsPaused,
+    solutionShown: initialSolutionShown,
     timerEnabled: initialTimerEnabled,
     currentDifficulty
 } = restoreGameStateOrInitialize();
@@ -105,8 +98,8 @@ export const Game = (props: GameProps) => {
         isWorking: false,
         msg: '',
         forceFocus: undefined as OptionalCell,
-        // do not repeat congratulation on reload.
-        solutionShown: initialBoard.isSolved(),
+        initialBoardIsSolved: initialBoard.isSolved(),
+        solutionShown: initialSolutionShown,
         secondsElapsed: initialSeconds,
         isPaused: initialIsPaused,
         timerEnabled: initialTimerEnabled,
@@ -119,6 +112,7 @@ export const Game = (props: GameProps) => {
         isPaused: false,
         msg: '',
         secondsElapsed: 0,
+        initialBoardIsSolved: false
     };
 
     const [supportsInputModeAttribute, setSupportsInputModeAttribute] = useState(false);
@@ -228,9 +222,9 @@ export const Game = (props: GameProps) => {
     }
 
     const persistState = () => {
-        const {sudoku: board, isPaused, secondsElapsed, timerEnabled, currentDifficulty} = state;
+        const {sudoku: board, isPaused, secondsElapsed, timerEnabled, currentDifficulty, solutionShown} = state;
         persist({
-            board, isPaused, secondsElapsed, timerEnabled, currentDifficulty
+            board, isPaused, secondsElapsed, timerEnabled, currentDifficulty, solutionShown
         } as GameStateSerializable);
     }
 
@@ -289,6 +283,18 @@ export const Game = (props: GameProps) => {
     useEffect(
         () => {
             setSupportsInputModeAttribute(isInputModeAttributeSupported());
+            /**
+             * jump through some hoops, because presence of window.Worker alone doesn't guarantee that
+             * the Worker actually works (CORS, Blockers...). Verify with a test message that the Web Worker works.
+             */
+            checkWebWorkerSupport().then(
+                (value => {
+                    useWebWorker = value;
+                    if (state.sudoku.isEmpty()) {
+                        generateSudoku();
+                    }
+                })
+            );
             if (!state.isPaused) {
                 timer.start(state.secondsElapsed)
             }
@@ -322,7 +328,7 @@ export const Game = (props: GameProps) => {
 
     /*Stop timer on completion. */
     useEffect(() => {
-            setWinnerModalOpen(state.sudoku.isSolved() && !state.solutionShown);
+            setWinnerModalOpen(state.sudoku.isSolved() && !state.solutionShown && !state.initialBoardIsSolved);
             if (state.sudoku.isSolved()) {
                 timer.pause();
             } else if (!state.isPaused) {

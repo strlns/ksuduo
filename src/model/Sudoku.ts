@@ -167,7 +167,7 @@ export class Sudoku {
                         value: CellValue.EMPTY,
                         x: x as CellIndex,
                         y: y as CellIndex,
-                        isInitial: true,
+                        isInitial: false,
                         isValid: true,
                         blockIndex: getBlockIndexForCoords(x as CellIndex, y as CellIndex)
                     } as CellData
