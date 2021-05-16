@@ -1,21 +1,21 @@
 import {CellData, cellIsEmpty, CellValue, CellValues, EXCLUDE_NOTHING, NonEmptyCellValues,} from "./CellData";
 import {BlockData} from "./BlockData";
-import arrayChunk from "../utility/arrayChunk";
-import {cloneDeep, fromPairs, shuffle} from "lodash-es";
+import {fromPairs, shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
 import assert from "../utility/assert";
 import {Solution, solve, solverResultIsError} from "../solver/solver";
 import {
     BLOCK_HEIGHT,
-    BLOCK_SIZE,
     BLOCK_WIDTH,
+    BLOCKS_PER_BAND,
     BOARD_SIZE,
     BOARD_WIDTH,
     CELL_INDICES,
     CellIndex,
     coordsToFlatIndex,
     flatIndexToCoords,
-    getFlatStartIndexForBlock
+    getFlatStartIndexForBlock,
+    NUMBER_OF_BLOCKS
 } from "./Board";
 
 /**
@@ -236,10 +236,11 @@ export class Sudoku {
         if (useHistory) {
             this.history.push(this.getFlatCells().slice());
         }
-        const cell = this.rows[y][x];
-        const newCell = cloneDeep(cell);
-        newCell.isInitial = fixed;
-        newCell.value = value;
+        const newCell = {
+            ...this.rows[y][x],
+            isInitial: fixed,
+            value
+        };
         this.rows[y][x] = newCell;
     }
 
@@ -265,19 +266,11 @@ export class Sudoku {
 
     public getBlocks(): BlockData[] {
         const blocks: BlockData[] = [];
-        const numberOfBlocks = BOARD_SIZE / BLOCK_SIZE; //This must result in an int (field is a square).
-        for (let i = 0; i < numberOfBlocks; i++) {
+        for (let i = 0; i < NUMBER_OF_BLOCKS; i++) {
             blocks.push(new BlockData(i));
         }
-        for (let i = 0; i < this.rows.length; i++) {
-            const chunks: CellData[][] = arrayChunk(this.rows[i], BLOCK_WIDTH);
-            chunks.forEach((chunk, chunkIndex) => {
-                const blockIndexForChunk = Math.floor(i / BLOCK_WIDTH) * BLOCK_WIDTH + chunkIndex;
-                const block = blocks[blockIndexForChunk];
-                block.cells.push(...chunk);
-                block.leftTopX = chunkIndex * BLOCK_WIDTH as CellIndex;
-                block.leftTopY = (Math.floor(i / BLOCK_WIDTH) * BLOCK_WIDTH) as CellIndex;
-            });
+        for (const cell of this.getFlatCells()) {
+            blocks[getBlockIndexForCell(cell)].cells.push(cell);
         }
         return blocks;
     }
@@ -572,7 +565,7 @@ export const getBlockIndexForCell = (cell: CellData): number => {
     return getBlockIndexForCoords(cell.x, cell.y);
 }
 export const getBlockIndexForCoords = (x: CellIndex, y: CellIndex): number => {
-    const yPart = Math.floor(y / BLOCK_HEIGHT) * BLOCK_HEIGHT;
+    const yPart = Math.floor(y / BLOCK_HEIGHT) * BLOCKS_PER_BAND;
     const xPart = Math.floor(x / BLOCK_WIDTH);
     return yPart + xPart;
 }

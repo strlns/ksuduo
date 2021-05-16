@@ -1,6 +1,6 @@
 import * as React from "react"
 import {ForwardedRef, SetStateAction} from "react"
-import {CellData, CellValue, CellValues} from "../../model/CellData";
+import {CellData, CellValue} from "../../model/CellData";
 import {Input, withStyles} from "@material-ui/core";
 
 interface CellProps {
@@ -49,18 +49,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     const onKeyPress: React.KeyboardEventHandler = event => {
         if (props.cell.isInitial) return;
         const val = Number(event.key) as CellValue;
-        if (CellValues.includes(val)) {
-            props.setCellValue(val);
-        } else {
-            /**
-             * see:
-             * https://next.material-ui.com/components/text-fields/#type-quot-number-quot
-             *
-             * I cannot prevent 'e', '+' or '-' on desktop
-             * without showing a full keyboard on older mobile devices that do not
-             * support the `inputmode` attribute.
-             */
-        }
+        props.setCellValue(val);
     };
 
     const onKeyUp: React.KeyboardEventHandler = (event: React.KeyboardEvent) => {

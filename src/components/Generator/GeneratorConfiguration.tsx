@@ -46,7 +46,7 @@ export default (props: GeneratorConfigurationProps) => {
             break;
     }
 
-    const marks = intRange(MIN_CLUES + 2, MAX_CLUES, 4).map(
+    const marks = intRange(MIN_CLUES, MAX_CLUES, Math.ceil((MAX_CLUES - MIN_CLUES) / 4), true).map(
         value => ({
             value,
             label: value
@@ -81,9 +81,9 @@ export default (props: GeneratorConfigurationProps) => {
 
     const showMinClueInfo = () => {
         return props.numberOfClues <= MIN_CLUES + 3 &&
-            //hide the warning after clicking the generate button.
+            //hide warning if the specified number of hints was achieved.
             (
-                props.numberOfFilledCellsInCurrentPuzzle > MIN_CLUES ||
+                props.numberOfFilledCellsInCurrentPuzzle >= props.numberOfClues ||
                 props.difficulty !== props.difficultyOfCurrentPuzzle
             )
     }
@@ -129,9 +129,9 @@ export default (props: GeneratorConfigurationProps) => {
             <Box className={infoCollapseClass} style={{maxHeight: showMinClueInfo() ? '15rem' : '0'}}>
                 <Typography component='small' variant={'subtitle1'}
                             style={{lineHeight: '.75'}}>
-                    The generator is not optimized for sudokus with a low number of
-                    hints. Generating such sudokus might take a while.
-                    After trying for some time, the generator will accept a sudoku with more hints than specified.
+                    Generating sudokus with a few hints and/or high difficulty can take some time.
+                    <br/>
+                    After trying for a while, the generator might accept a sudoku with more hints than specified.
                     The minimum number of hints for a solvable sudoku has been proven to be 17.
                     But puzzles like that are not in the scope of this generator.
                 </Typography>

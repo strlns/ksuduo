@@ -9,6 +9,7 @@
 body {
     position: relative;
     background: linear-gradient(38deg, darkgrey, lightgrey);
+    min-height: 100%;
 }
 
 .link-inherit {

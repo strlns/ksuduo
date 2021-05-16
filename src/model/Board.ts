@@ -1,6 +1,6 @@
 import {CellValue, NUM_POSSIBLE_VALUES} from "./CellData";
 
-export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type CellIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 //All possible cell indices on x- or y-axis (board is a square)
 export const CELL_INDICES =
@@ -10,7 +10,10 @@ export const BOARD_WIDTH = CELL_INDICES.length;
 export const BOARD_SIZE = Math.pow(BOARD_WIDTH, 2);
 export const BLOCK_WIDTH = 3;
 export const BLOCK_HEIGHT = 3;
+export const BLOCKS_PER_BAND = BOARD_WIDTH / BLOCK_WIDTH;
+export const BLOCKS_PER_STACK = BOARD_WIDTH / BLOCK_HEIGHT;
 export const BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
+export const NUMBER_OF_BLOCKS = BOARD_SIZE / BLOCK_SIZE;
 export const MINIMUM_CLUES = 17;
 export const DEFAULT_CLUES = 24;
 

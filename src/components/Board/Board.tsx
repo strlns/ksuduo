@@ -2,7 +2,7 @@ import * as React from "react";
 import {ForwardedRef, KeyboardEventHandler, useEffect, useState} from "react";
 import {Sudoku} from "../../model/Sudoku";
 import {Block} from "../Cell/Block";
-import {CellData, CellValue} from "../../model/CellData";
+import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
 import {IconButton} from "@material-ui/core";
 import {PauseCircleFilledTwoTone} from "@material-ui/icons";
@@ -45,11 +45,13 @@ export const Board = React.memo(
      }: BoardProps) => {
 
         const updateCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
-        sudoku.setValue(x, y, v);
-        if (cellCallback) {
-            cellCallback();
+            if (CellValues.includes(v)) {
+                sudoku.setValue(x, y, v);
+            }
+            if (cellCallback) {
+                cellCallback();
+            }
         }
-    }
 
     //make sure that a new Sudoku object triggers re-render, focus first empty cell again if possible
     useEffect(() => {

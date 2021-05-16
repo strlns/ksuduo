@@ -8,9 +8,9 @@ import {CellData, CellDataWithPossibilites, cellIsEmpty, CellValue} from "../mod
 import {pickRandomArrayIndex, pickRandomArrayValue} from "../utility/pickRandom";
 import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "../solver/solver";
 import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../model/Board";
-import {LOGLEVEL_NORMAL, LOGLEVEL_VERBOSE} from "../loglevels";
-import {SOLVER_FAILURE} from "../solver/solverAlgo";
+import {LOGLEVEL_NORMAL} from "../loglevels";
 import assert from "../utility/assert";
+import {cloneDeep} from "lodash-es";
 
 export enum DIFFICULTY_LEVEL {
     EASY,
@@ -54,30 +54,29 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
         console.log(`target are ${target} empty cells, board size is ${BOARD_SIZE}`)
     }
 
-    let achievedNumberOfEmptyCells = 0;
-    const MAX_TOPLEVEL_ITERATIONS = 6;
-    const MAX_UNDOS = difficulty > DIFFICULTY_LEVEL.EASY ? 12 : 16;
-    const MAX_DISCARDED_UNEVEN_BOARDS = 4;
     let it = 0;
+    let achievedNumberOfEmptyCells = 0;
+    let undos = 0;
     let board = new Sudoku();
     let numberOfDiscardedUnevenBoards = 0;
     let boardIsUneven = false;
+    const MAX_TOPLEVEL_ITERATIONS = difficulty > DIFFICULTY_LEVEL.MEDIUM ? 10 : 6;
+    const MAX_UNDOS = difficulty > DIFFICULTY_LEVEL.MEDIUM ? 12 : 16;
+    const MAX_DISCARDED_UNEVEN_BOARDS = 4;
+    let bestBoardSoFar;
+    let bestAchievedEmptyCellsSoFar = 0;
     while (
         (achievedNumberOfEmptyCells < target && it < MAX_TOPLEVEL_ITERATIONS)
         || (boardIsUneven && numberOfDiscardedUnevenBoards < MAX_DISCARDED_UNEVEN_BOARDS)
         ) {
-
         if (IS_DEVELOPMENT && it > 0) {
-            console.log("testing a new board. the previous one sucked. ");
-            if (LOG_LEVEL >= LOGLEVEL_VERBOSE) {
-                console.log(`discarded board: ${board.getFlatValues()}`)
-            }
+            console.log(`Testing a new board. Achieved ${BOARD_SIZE - achievedNumberOfEmptyCells} hints in previous board (target was ${numberOfClues}) and undo-ing ${undos} times`)
         }
         board.fillWithRandomCompleteSolution();
         const candidates = board.getFlatCells();
         boardIsUneven = false;
         achievedNumberOfEmptyCells = 0;
-        let undos = 0;
+        undos = 0;
 
         while (achievedNumberOfEmptyCells < target && undos < MAX_UNDOS) {
             const candidatesWithPossibilites = addPossibleValuesToCellDataArray(candidates, board, false);
@@ -123,12 +122,10 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
              */
             const solverResult = solve(board);
             if (solverResultIsError(solverResult)) {
-                if (IS_DEVELOPMENT) {
-                    console.log(`UNDO after clearing ${achievedNumberOfEmptyCells + 1}th cell. Reason: ${
-                        solverResult === SOLVER_FAILURE.MULTIPLE_SOLUTIONS ? 'MULTIPLE SOLUTIONS' : 'NO SOLUTION'
-                    }`);
-                }
-                // board.undo();
+                /*
+                    //we don't need to use the history feature here
+                    board.undo();
+                 */
                 board.setCell({...cell, value: board.getValueFromSolution(cell.x, cell.y), isInitial: true}, false);
                 undos++;
             } else {
@@ -145,24 +142,33 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
             }
             boardIsUneven = true;
             numberOfDiscardedUnevenBoards++;
+            continue;
+        }
+
+        if (achievedNumberOfEmptyCells > bestAchievedEmptyCellsSoFar) {
+            bestAchievedEmptyCellsSoFar = achievedNumberOfEmptyCells;
+            bestBoardSoFar = cloneDeep(board);
+            if (IS_DEVELOPMENT) {
+                console.log(`New best board has ${BOARD_SIZE - bestAchievedEmptyCellsSoFar} hints. (${bestBoardSoFar.getNumberOfFilledCells()})`)
+            }
         }
 
         it++;
     }
-    /**
-     * history is used in generator for backtracking. after generating, we clear it.
-     */
-    board.clearHistory();
-    if (achievedNumberOfEmptyCells < target) {
-        const msg = `Could not generate a valid Sudoku (unique solution) with the desired number of hints. Achieved ${BOARD_SIZE - achievedNumberOfEmptyCells} hints (instead of ${numberOfClues}).`;
-        return [GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL, board, msg];
+    if (bestAchievedEmptyCellsSoFar < target) {
+        const msg = `Could not generate a valid Sudoku (unique solution) with the desired number of hints. Achieved ${BOARD_SIZE - bestAchievedEmptyCellsSoFar} hints (instead of ${numberOfClues}).`;
+        return [GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL, bestBoardSoFar, msg];
     }
     if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_NORMAL) {
         console.log(`${getCallsToSolver()} calls to solver algorithm while generating.`)
         resetCallsToSolver();
         assert(!solverResultIsError(solve(board)));
     }
-    return [GENERATOR_CODE.OK, board];
+    if (bestBoardSoFar === undefined) {
+        // This should never happen if at least 1 cell can be cleared
+        throw new Error()
+    }
+    return [GENERATOR_CODE.OK, bestBoardSoFar];
 }
 
 type CellDataAndIndex = [CellDataWithPossibilites, number];
@@ -179,7 +185,7 @@ function getIndexOfCellToClear(
     }
     if (achievedEmptyCells < THRESHOLD_USE_DIFFICULTY) {
         return pickRandomArrayIndex(candidates);
-    } else if (achievedEmptyCells > BOARD_SIZE / 3) {
+    } else if (achievedEmptyCells > BOARD_SIZE / 2) {
         return getCellToClearWithMinimumPossibilites(candidates)[1];
     }
     let result = 0;

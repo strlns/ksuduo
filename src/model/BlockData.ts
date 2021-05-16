@@ -1,10 +1,8 @@
 import {CellData} from "./CellData";
 import arrayChunk from "../utility/arrayChunk";
-import {BLOCK_WIDTH, CellIndex} from "./Board";
+import {BLOCK_WIDTH} from "./Board";
 
 export class BlockData {
-    public leftTopX: CellIndex;
-    public leftTopY: CellIndex;
     public cells: CellData[];
     public blockIndex: number;
 
