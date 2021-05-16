@@ -180,7 +180,7 @@ export class Sudoku {
         this.setSolution([]);
         this.clearHistory();
         this.getFlatCells().forEach(
-            cell => this.setCell({...cell, value: CellValue.EMPTY, isInitial: false, isValid: true})
+            cell => this.setCell({...cell, value: CellValue.EMPTY, isInitial: false, isValid: true}, false)
         );
     }
 
@@ -373,40 +373,13 @@ export class Sudoku {
     }
 
     private getFlatBlockValuesForCoords(cellX: CellIndex, cellY: CellIndex, excludeSelf = false): CellValue[] {
-        //find top left block corner
-        let x0 = cellX;
-        let y0 = cellY;
-        while (x0 % BLOCK_WIDTH !== 0) {
-            x0--;
+        const cell = this.getCell(cellX, cellY);
+        let blockCells = this.getBlocks()[cell.blockIndex].cells;
+        if (excludeSelf) {
+            blockCells = blockCells.slice();
+            blockCells.splice(blockCells.indexOf(cell))
         }
-        while (y0 % BLOCK_HEIGHT !== 0) {
-            y0--;
-        }
-        //add values
-        const res: CellValue[] = [];
-        for (let i = 0; i < BLOCK_WIDTH; i++) {
-            for (let j = 0; j < BLOCK_HEIGHT; j++) {
-                const x = (x0 + j) as CellIndex;
-                const y = (y0 + i) as CellIndex;
-                if (excludeSelf && y === cellY && x === cellX) {
-                    continue;
-                }
-                if (IS_DEVELOPMENT) {
-                    try {
-                        res.push(this.rows[y][x].value);
-                    } catch (e) {
-                        console.error(e)
-                    }
-                } else {
-                    try {
-                        res.push(this.rows[y][x].value);
-                    } catch {
-                    }
-                }
-
-            }
-        }
-        return res;
+        return blockCells.map(cell => cell.value);
     }
 
     private isCellValueValid(cellValue: CellValue, x: CellIndex, y: CellIndex) {
