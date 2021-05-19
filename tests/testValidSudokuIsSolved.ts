@@ -5,7 +5,7 @@ import assert from "../src/utility/assert";
 import solutionRespectsHints from "../src/debug/solutionRespectsHints";
 import drawPuzzle from "../src/debug/drawPuzzleOnConsole";
 import {pickRandomArrayValue} from "../src/utility/pickRandom";
-import {solveCheckUnique} from "../src/solver/solverAlgo";
+import {solveCheckUnique} from "../src/solver/solverBacktracking";
 
 export default function testValidSudokuIsSolved() {
     console.log('Testing that a sudoku is correctly solved.')

@@ -1,15 +1,16 @@
-:root {
-    font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
-}
-
 * {
     box-sizing: border-box;
 }
 
+:root {
+    font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
+    height: 100%;
+}
+
 body {
+    min-height: 100%;
     position: relative;
     background: linear-gradient(38deg, darkgrey, lightgrey);
-    min-height: 100%;
 }
 
 .link-inherit {

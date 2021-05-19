@@ -3,14 +3,15 @@
  *
  */
 
-import {addPossibleValuesToCellDataArray, Sudoku} from '../model/Sudoku';
-import {CellData, CellDataWithPossibilites, cellIsEmpty, CellValue} from "../model/CellData";
-import {pickRandomArrayIndex, pickRandomArrayValue} from "../utility/pickRandom";
+import {addPossibleValuesToCellDataArray, isTriviallySolvable, Sudoku} from '../model/Sudoku';
+import {CellDataWithPossibilites, cellIsEmpty, CellValue} from "../model/CellData";
+import {pickRandomArrayIndex} from "../utility/pickRandom";
 import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "../solver/solver";
 import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../model/Board";
 import {LOGLEVEL_NORMAL} from "../loglevels";
 import assert from "../utility/assert";
 import {cloneDeep} from "lodash-es";
+import {getCellToClearWithFewPossibilites, getCellToClearWithMinimumPossibilites} from "../cellPicker/cellPicker";
 
 export enum DIFFICULTY_LEVEL {
     EASY,
@@ -27,9 +28,9 @@ export enum GENERATOR_CODE {
 export type GeneratorResult = [GENERATOR_CODE, Sudoku]
     | [GENERATOR_CODE, Sudoku, string] | [GENERATOR_CODE, undefined, string]
 
-export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): GeneratorResult {
+export default function generateRandomSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY, fewerRetries = false): GeneratorResult {
     try {
-        return generateSudoku(numberOfClues, difficulty);
+        return generateSudoku(numberOfClues, difficulty, fewerRetries);
     } catch (e) {
         if (IS_DEVELOPMENT) {
             console.error(...(e.message && e.message.length ? [e.message] : []), e.stack);
@@ -38,7 +39,7 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
     }
 }
 
-function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY): GeneratorResult {
+function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY, fewerRetries = false): GeneratorResult {
     if (numberOfClues < MINIMUM_CLUES) {
         numberOfClues = MINIMUM_CLUES;
     }
@@ -59,9 +60,9 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
     let undos = 0;
     let board = new Sudoku();
     let numberOfDiscardedUnevenBoards = 0;
-    let boardIsUneven = false;
-    const MAX_TOPLEVEL_ITERATIONS = difficulty > DIFFICULTY_LEVEL.MEDIUM ? 10 : 6;
-    const MAX_UNDOS = difficulty > DIFFICULTY_LEVEL.MEDIUM ? 12 : 16;
+    let boardIsUneven = false
+    const MAX_TOPLEVEL_ITERATIONS = fewerRetries ? 2 : (difficulty >= DIFFICULTY_LEVEL.MEDIUM ? 4 : 8);
+    const MAX_UNDOS = fewerRetries ? 4 : (difficulty >= DIFFICULTY_LEVEL.MEDIUM ? 16 : 8);
     const MAX_DISCARDED_UNEVEN_BOARDS = 4;
     let bestBoardSoFar;
     let bestAchievedEmptyCellsSoFar = 0;
@@ -98,18 +99,19 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
             const cell = candidatesWithPossibilites[cellIndex];
             candidates.splice(cellIndex, 1);
 
-            const numEmptyCellsInBlock = board.getCellsInBlock(cell).filter(cell => cellIsEmpty(cell)).length;
-            if (numEmptyCellsInBlock === BLOCK_SIZE - 1) {
-                if (IS_DEVELOPMENT) {
-                    console.log("don't remove last cell in block");
+            if (achievedNumberOfEmptyCells > BLOCK_SIZE) {
+                const numEmptyCellsInBlock = board.getCellsInBlock(cell).filter(cell => cellIsEmpty(cell)).length;
+                if (numEmptyCellsInBlock === BLOCK_SIZE - 1) {
+                    if (IS_DEVELOPMENT) {
+                        console.log("don't remove last cell in block");
+                    }
+                    continue; //don't remove the last cell in a block.
                 }
-                continue; //don't remove the last cell in a block.
             }
 
             board.setCell({...cell, value: CellValue.EMPTY, isInitial: false}, false);
-            // board.setCell({...cell, value: CellValue.EMPTY, isInitial: false});
 
-            if (achievedNumberOfEmptyCells < 4) {
+            if (achievedNumberOfEmptyCells < 4 || isTriviallySolvable(board)) {
                 // At least 4 empty cells are needed to make the board invalid.
                 // So we can skip the following logic.
                 achievedNumberOfEmptyCells++;
@@ -122,10 +124,7 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
              */
             const solverResult = solve(board);
             if (solverResultIsError(solverResult)) {
-                /*
-                    //we don't need to use the history feature here
-                    board.undo();
-                 */
+                //we don't need to use the history feature here, we know which cell to restore.
                 board.setCell({...cell, value: board.getValueFromSolution(cell.x, cell.y), isInitial: true}, false);
                 undos++;
             } else {
@@ -171,8 +170,6 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
     return [GENERATOR_CODE.OK, bestBoardSoFar];
 }
 
-type CellDataAndIndex = [CellDataWithPossibilites, number];
-
 const THRESHOLD_USE_DIFFICULTY = BLOCK_SIZE;
 
 function getIndexOfCellToClear(
@@ -203,36 +200,3 @@ function getIndexOfCellToClear(
     return result;
 }
 
-function getCellToClearWithMinimumPossibilites(candidates: CellData[]): CellDataAndIndex {
-    // Sort candidates by number of possible values (ignoring the value currently set).
-    // Save original index in given array for later.
-    const candidatesSortedDesc = candidates.map(
-        (cell, index) => [cell, index] as CellDataAndIndex
-    ).sort(
-        (a, b) =>
-            a[0].possibleValues.length < b[0].possibleValues.length ? 1 : -1
-    )
-    //@ts-ignore This array has at least one member, checked before call.
-    return candidatesSortedDesc.pop();
-}
-
-function getCellToClearWithFewPossibilites(candidates: CellData[]): CellDataAndIndex {
-    // Sort candidates by number of possible values (ignoring the value currently set).
-    // Save original index in given array for later.
-    const candidatesSortedDesc = candidates.map(
-        (cell, index) => [cell, index] as CellDataAndIndex
-    ).sort(
-        (a, b) =>
-            a[0].possibleValues.length < b[0].possibleValues.length ? 1 : -1
-    );
-
-    // MEDIUM: pick one of the two cells with min. possibilities, if possible
-    if (candidatesSortedDesc.length > 1) {
-        return candidatesSortedDesc.length > 1 ?
-            pickRandomArrayValue(candidatesSortedDesc.slice(
-                -2, candidatesSortedDesc.length
-            )) : candidatesSortedDesc[0];
-    }
-    //@ts-ignore This array has at least one member, checked before call.
-    return candidatesSortedDesc.pop();
-}

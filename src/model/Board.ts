@@ -15,7 +15,7 @@ export const BLOCKS_PER_STACK = BOARD_WIDTH / BLOCK_HEIGHT;
 export const BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
 export const NUMBER_OF_BLOCKS = BOARD_SIZE / BLOCK_SIZE;
 export const MINIMUM_CLUES = 17;
-export const DEFAULT_CLUES = 24;
+export const DEFAULT_CLUES = 28;
 
 export const flatIndexToCoords = (index: number): [CellIndex, CellIndex] => {
     const x = index % BOARD_WIDTH as CellIndex;

@@ -10,6 +10,11 @@ export default function drawPuzzle(puzzle: Puzzle) {
         \n${board.getRows().map(row => row.map(cell => cell.value).join(' ')).join(`\n`)}`, 'white-space: pre-wrap');
 }
 
+/*
+  Draw a board on the console, including the possible values left for each cell.
+ */
+
+// noinspection JSUnusedGlobalSymbols
 export function drawPuzzleWithPossibilities(puzzle: Puzzle) {
     const board = puzzleToSudoku(puzzle, false);
     const rowsCells = board.getRows()
@@ -28,7 +33,6 @@ export function drawPuzzleWithPossibilities(puzzle: Puzzle) {
             cell => arrayChunk(cell.possibleValues, 3, 3)
         )
     )
-    console.log(possibilitiesChunked)
     drawPuzzle(board);
     const boardString = Array(BOARD_WIDTH * 4).fill('').map(
         (v, index) => {
@@ -43,10 +47,6 @@ export function drawPuzzleWithPossibilities(puzzle: Puzzle) {
             }
         }
     ).join('\n')
-    // const boardStr = board.getRows()
-    //     .map(row => row.map(cell => `%c${cell.value}%c`)
-    //     .join('     '))
-    //     .join(`\n\n\n\n`)
-    console.log(boardString, ...styles)
 
+    console.log(boardString, ...styles)
 }

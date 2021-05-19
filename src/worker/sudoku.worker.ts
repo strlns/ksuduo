@@ -1,5 +1,5 @@
 import generateRandomSudoku, {GENERATOR_CODE} from "../generator/generator";
-import {solveCheckUnique} from "../solver/solverAlgo";
+import {solveCheckUnique} from "../solver/solverBacktracking";
 import {SudokuStructuredClone} from "../model/Sudoku";
 
 const ctx: Worker = self as any;

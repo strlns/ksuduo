@@ -1,6 +1,6 @@
 import {Puzzle} from "../model/Sudoku";
 import {CellValue} from "../model/CellData";
-import {solveCheckUnique, SOLVER_FAILURE} from "./solverAlgo";
+import {solveCheckUnique, SOLVER_FAILURE} from "./solverBacktracking";
 
 let callsToSolver = 0;
 
@@ -25,12 +25,17 @@ export type SolverResult = Solution | SOLVER_FAILURE;
 
 export const solverResultIsError = (result: SolverResult) => !Array.isArray(result);
 
-// export function detectBugSituation(puzzle: Puzzle): boolean {
-//     const board = puzzleToSudoku(puzzle);
-//     const emptyCells = board.getEmptyCells();
-//     if (emptyCells.length < 2) return false;
-//     const emptyCellsWithP = addPossibleValuesToCellDataArray(emptyCells, board);
-//     const allCellsHaveTwoPossibleValues = emptyCellsWithP.every(cell => cell.possibleValues.length === 2);
-//     if (!allCellsHaveTwoPossibleValues) return false;
-//     return false;
-// }
+export const solverErrorString = (result: SolverResult): string => {
+    if (solverResultIsError(result)) {
+        switch (result) {
+            case SOLVER_FAILURE.MULTIPLE_SOLUTIONS:
+                return 'MULTIPLE_SOLUTIONS'
+            case SOLVER_FAILURE.NO_SOLUTION_FOUND:
+                return 'NO_SOLUTION_FOUND'
+            default:
+                return 'UNKNOWN_ERROR';
+        }
+    } else {
+        return 'OK';
+    }
+}

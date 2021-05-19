@@ -7,7 +7,7 @@ import {
 } from "../src/examples/invalidExamples";
 import {Puzzle} from "../src/model/Sudoku";
 import assert from "../src/utility/assert";
-import {solveCheckUnique, SOLVER_FAILURE} from "../src/solver/solverAlgo";
+import {solveCheckUnique, SOLVER_FAILURE} from "../src/solver/solverBacktracking";
 
 export default function testInvalidBoards() {
     console.log("Testing invalid boards with non-unique solutions.");

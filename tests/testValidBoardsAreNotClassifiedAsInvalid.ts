@@ -1,6 +1,6 @@
 import assert from "../src/utility/assert";
 import {almostDailyNightmareSudokus, gnomeGs4HardSudokus} from "../src/examples/validExamples";
-import {solveCheckUnique, SOLVER_FAILURE} from "../src/solver/solverAlgo";
+import {solveCheckUnique, SOLVER_FAILURE} from "../src/solver/solverBacktracking";
 
 export default function testValidBoardsAreNotClassifiedAsInvalid() {
     console.log("Testing that valid boards are not being classified as invalid.");

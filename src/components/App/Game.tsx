@@ -16,7 +16,7 @@ import {
 import {Box, Container, Grid, Icon, IconButton, LinearProgress, Modal, Switch, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
-import {Sudoku} from "../../model/Sudoku";
+import {addPossibleValuesToCellDataArray, Sudoku} from "../../model/Sudoku";
 import {PaperBox, paperBoxDefaultLayoutProps} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
 
@@ -36,6 +36,12 @@ import {makeStyles} from "@material-ui/core/styles";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import About from "./About";
 import {usePageVisibility} from "react-page-visibility";
+import {
+    getCellWithPossibleValueUniqueInBlock,
+    getCellWithPossibleValueUniqueInCol,
+    getCellWithPossibleValueUniqueInRow
+} from "../../solver/solverHumanTechniques";
+import {candidatesSortedDescByPossibilities} from "../../cellPicker/cellPicker";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -178,17 +184,21 @@ export const Game = (props: GameProps) => {
             if (IS_DEVELOPMENT) {
                 console.log("Falling back to synchronous generation.");
             }
-            setState(prevState => ({...prevState, isWorking: true}));
-            const result = generateRandomSudoku(state.numberOfClues, state.difficulty);
-            setState(prevState =>
-                ({
-                    ...prevState,
-                    ...resetStateCommons,
-                    currentDifficulty: state.difficulty,
-                    ...stateFromGenerator(result)
-                })
-            );
-            timer.start();
+            requestAnimationFrame(() => {
+                setState(prevState => ({...prevState, isWorking: true}));
+                setTimeout(() => {
+                    const result = generateRandomSudoku(state.numberOfClues, state.difficulty, true);
+                    setState(prevState =>
+                        ({
+                            ...prevState,
+                            ...resetStateCommons,
+                            currentDifficulty: state.difficulty,
+                            ...stateFromGenerator(result)
+                        })
+                    );
+                    timer.start();
+                }, 25)
+            });
         }
     }
 
@@ -348,27 +358,55 @@ export const Game = (props: GameProps) => {
 
     const giveHint = () => {
         if (!(state.sudoku.isSolved() || state.isWorking)) {
-            const cell = state.sudoku.getEmptyOrInvalidCellWithMinimumPossibilites();
-            if (cell) {
-                const value = state.sudoku.getValueFromSolution(cell.x, cell.y);
-                if (value !== undefined) {
-                    const sudoku = cloneDeep(state.sudoku);
-                    sudoku.setCell({...cell, value, isInitial: true});
-                    setState(prevState => ({
-                        ...prevState,
-                        sudoku,
-                        highlightedCell: cell,
-                        forceFocus: cell,
-                        solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1
-                    }));
-                    if (hintTimeout !== undefined) {
-                        clearTimeout(hintTimeout);
-                    }
-                    hintTimeout = window.setTimeout(() => {
-                        setState(prevState => ({...prevState, highlightedCell: undefined, forceFocus: undefined}))
-                    }, 5000);
+            let cellWithVal = getCellWithPossibleValueUniqueInRow(state.sudoku)
+            if (IS_DEVELOPMENT && cellWithVal) {
+                console.log('using cell with possible value unique in row', cellWithVal)
+            }
+            if (!cellWithVal) {
+                cellWithVal = getCellWithPossibleValueUniqueInCol(state.sudoku);
+                if (IS_DEVELOPMENT && cellWithVal) {
+                    console.log('using cell with possible value unique in col', cellWithVal)
                 }
             }
+            if (!cellWithVal) {
+                cellWithVal = getCellWithPossibleValueUniqueInBlock(state.sudoku);
+                if (IS_DEVELOPMENT && cellWithVal) {
+                    console.log('using cell with possible value unique in block', cellWithVal)
+                }
+            }
+            if (!cellWithVal) {
+                const cell = candidatesSortedDescByPossibilities(
+                    addPossibleValuesToCellDataArray(
+                        state.sudoku.getEmptyCells(),
+                        state.sudoku
+                    )
+                ).pop();
+                if (cell === undefined) {
+                    return;
+                }
+                if (IS_DEVELOPMENT) {
+                    console.log('found no possible value unique in row, col or block, returning cell with min. possibilities instead.')
+                    console.log(cell)
+                }
+                cellWithVal = [cell, state.sudoku.getValueFromSolution(cell.x, cell.y)];
+            }
+            const sudoku = cloneDeep(state.sudoku);
+            const cell = cellWithVal[0];
+            const value = cellWithVal[1];
+            sudoku.setCell({...cell, value, isInitial: true});
+            setState(prevState => ({
+                ...prevState,
+                sudoku,
+                highlightedCell: cell,
+                forceFocus: cell,
+                solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1
+            }));
+            if (hintTimeout !== undefined) {
+                clearTimeout(hintTimeout);
+            }
+            hintTimeout = window.setTimeout(() => {
+                setState(prevState => ({...prevState, highlightedCell: undefined, forceFocus: undefined}))
+            }, 5000);
         }
     }
 

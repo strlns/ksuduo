@@ -1,4 +1,11 @@
-import {CellData, cellIsEmpty, CellValue, CellValues, EXCLUDE_NOTHING, NonEmptyCellValues,} from "./CellData";
+import {
+    CellData,
+    CellDataWithPossibilites,
+    cellIsEmpty,
+    CellValue,
+    EXCLUDE_NOTHING,
+    NonEmptyCellValues,
+} from "./CellData";
 import {BlockData} from "./BlockData";
 import {fromPairs, shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
@@ -17,6 +24,7 @@ import {
     getFlatStartIndexForBlock,
     NUMBER_OF_BLOCKS
 } from "./Board";
+import {candidatesSortedDescByPossibilities} from "../cellPicker/cellPicker";
 
 /**
  * We rely on the structured clone algorithm to result in this type when serializing a
@@ -337,17 +345,6 @@ export class Sudoku {
         return this.getFlatCells().filter(cell => cellIsEmpty(cell));
     }
 
-    public getEmptyOrInvalidCellWithMinimumPossibilites(): CellData | undefined {
-        const candidates = addPossibleValuesToCellDataArray(
-            this.getFlatCells().filter(cell => cellIsEmpty(cell) || !cell.isValid),
-            this
-        ).sort(
-            (a, b) =>
-                a.possibleValues.length < b.possibleValues.length ? 1 : -1
-        );
-        return candidates.pop() as CellData
-    }
-
     public getAllowedCellValue(x: CellIndex, y: CellIndex): CellValue {
         const allowedValues = this.getAllowedCellValuesByCoords(x, y);
         if (allowedValues.length === 0) {
@@ -361,13 +358,11 @@ export class Sudoku {
     }
 
     public getAllowedCellValuesByCoords(x: CellIndex, y: CellIndex, ignoreSelf = true): CellValue[] {
-        return CellValues.filter(
+        return NonEmptyCellValues.filter(
             value => !(
-                value === CellValue.EMPTY ||
                 this.getRowValues(y, ignoreSelf ? x : EXCLUDE_NOTHING).includes(value) ||
-                this.getColumnValues(x, ignoreSelf ? y : EXCLUDE_NOTHING).includes(value)
-                || this.getFlatBlockValuesForCoords(x, y, ignoreSelf).includes(value)
-
+                this.getColumnValues(x, ignoreSelf ? y : EXCLUDE_NOTHING).includes(value) ||
+                this.getFlatBlockValuesForCoords(x, y, ignoreSelf).includes(value)
             )
         );
     }
@@ -377,7 +372,7 @@ export class Sudoku {
         let blockCells = this.getBlocks()[cell.blockIndex].cells;
         if (excludeSelf) {
             blockCells = blockCells.slice();
-            blockCells.splice(blockCells.indexOf(cell))
+            blockCells.splice(blockCells.indexOf(cell), 1)
         }
         return blockCells.map(cell => cell.value);
     }
@@ -468,6 +463,26 @@ export class Sudoku {
         return this.getBlocks()[getBlockIndexForCell(cell)].cells;
     }
 
+    public static sudokuCloneWithoutHistory(sudoku: Sudoku) {
+        return new Sudoku(
+            {
+                rows: sudoku.rows.map(row => row.slice()),
+                solution: sudoku.solution.slice(),
+                history: []
+            }
+        );
+    }
+
+    public fillSinglePossibilityCells(): void {
+        addPossibleValuesToCellDataArray(this.getEmptyCells(), this).forEach(
+            cell => {
+                if (cell.possibleValues.length === 1) {
+                    this.setValue(cell.x, cell.y, cell.possibleValues[0], false, false);
+                }
+            }
+        )
+    }
+
 }
 
 export type Puzzle = Sudoku | CellValue[] | number[];
@@ -498,6 +513,61 @@ export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cell
     }
     return res;
 }
+/**
+ * Board is trivially solvable if, after we fill each cell with only 1 possible value:
+ *
+ * a) all remaining empty cells have at most 2 possible values, AND
+ * b) there is no pair of 2 cells with 2 possible values each where both
+ *    cells belong to the same row, column or block AND share at least one possible value.
+ */
+export const isTriviallySolvable = (board: Sudoku): boolean => {
+    const emptyCells = board.getEmptyCells();
+    //only one empty cell => true
+    if (emptyCells.length < 2) {
+        if (IS_DEVELOPMENT) {
+            console.log('Board is trivially solvable')
+        }
+        return true;
+    }
+    const boardWithoutSingles = Sudoku.sudokuCloneWithoutHistory(board);
+    boardWithoutSingles.fillSinglePossibilityCells();
+    const candidates = addPossibleValuesToCellDataArray(emptyCells, boardWithoutSingles);
+    // const candidates = addPossibleValuesToCellDataArray(emptyCells, board);
+    //at least one empty cell with more than 2 possible values => false
+    if (candidates.some(
+        cell => cell.possibleValues.length > 2
+    )) return false;
+
+    const candidatesWithMoreThanOnePossibility = candidatesSortedDescByPossibilities(
+        candidates.filter(
+            cell => cell.possibleValues.length > 1
+        ));
+
+    // check for pairwise condition above.
+    for (const cell of candidatesWithMoreThanOnePossibility) {
+        const otherCell = candidatesWithMoreThanOnePossibility.find(
+            otherCell => otherCell !== cell && (
+                //same block, col or row
+                otherCell.x === cell.x ||
+                otherCell.y === cell.y ||
+                otherCell.blockIndex === cell.blockIndex
+            ) && (
+                //share at least 1 possible value
+                otherCell.possibleValues.some(
+                    otherPossibleValue => cell.possibleValues.includes(otherPossibleValue)
+                )
+            )
+        );
+        if (otherCell) {
+            return false;
+        }
+    }
+    if (IS_DEVELOPMENT) {
+        console.log('Board is trivially solvable')
+    }
+
+    return true;
+}
 
 export const numberOfFilledCellsInArray = (cells: CellData[]): number => {
     return cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 0 : 1), 0);
@@ -506,12 +576,14 @@ export const numberOfFilledCellsInArray = (cells: CellData[]): number => {
 export const getValueInFlatPuzzleByCoords = (flatPuzzle: CellValue[], cellX: CellIndex, cellY: CellIndex): CellValue => {
     return flatPuzzle[coordsToFlatIndex(cellX, cellY)];
 }
-export const addPossibleValuesToCellDataArray = (candidates: CellData[], board: Sudoku, onlyEmpty = false) => candidates.map(
+
+export const addPossibleValuesToCellDataArray = (candidates: CellData[], board: Sudoku, onlyEmpty = false): CellDataWithPossibilites[] => candidates.map(
     cell => ({
         ...cell,
         possibleValues: (onlyEmpty && !cellIsEmpty(cell)) ? [] : board.getAllowedCellValues(cell, !onlyEmpty)
     })
 );
+
 type PossibilityCountHash = {
     [value in CellValue]: number
 };
@@ -523,9 +595,8 @@ type PossibilityCountHash = {
  * Currently unused, could be useful for detection of BUG situations
  */
 // noinspection JSUnusedGlobalSymbols
-export const getPossibleValuesInCellsWithCount = (cells: CellData[], board: Sudoku): PossibilityCountHash => {
+export const getCountOfPossibleValues = (cellsWithP: CellDataWithPossibilites[]): PossibilityCountHash => {
     const res = fromPairs(NonEmptyCellValues.map(val => [val, 0]));
-    const cellsWithP = addPossibleValuesToCellDataArray(cells, board, false);
     for (const cell of cellsWithP) {
         for (const value of cell.possibleValues) {
             res[value] += 1;
