@@ -1,4 +1,4 @@
-import {Solution} from "../solver/solver";
+import {Solution} from "../algorithm/solver/solver";
 import assert from "../utility/assert";
 import {CellValue} from "../model/CellData";
 

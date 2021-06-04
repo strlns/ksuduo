@@ -1,15 +1,34 @@
-import {addPossibleValuesToCellDataArray, Puzzle, puzzleToSudoku} from "../model/Sudoku";
-import {BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
+import {Puzzle} from "../model/Sudoku";
+import {CellData, cellIsEmpty} from "../model/CellData";
+import {addPossibleValuesToCellDataArray, puzzleToSudoku} from "../algorithm/solver/transformations";
+import {BLOCK_HEIGHT, BLOCK_WIDTH, BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
 import arrayChunk from "../utility/arrayChunk";
 import {rightPad} from "../utility/stringLib";
-import {cellIsEmpty} from "../model/CellData";
 
-export default function drawPuzzle(puzzle: Puzzle) {
+export default function drawPuzzle(puzzle: Puzzle, prependFlatRepresantation = true) {
     const board = puzzleToSudoku(puzzle, false);
-    console.log(`%cFlat: ${board.getFlatValues().join('')}\
-        \n${board.getRows().map(row => row.map(cell => cell.value).join(' ')).join(`\n`)}`, 'white-space: pre-wrap');
+    const flatStr = `Flat: ${board.getFlatValues().join('')}`
+    const cellValStr = (cell: CellData) => cellIsEmpty(cell) ? '·' : cell.value;
+    const cellStr = (cell: CellData, i: number) => {
+        if (i % BLOCK_WIDTH === 0) return `| ${cellValStr(cell)}`
+        if (i === BOARD_WIDTH - 1) return `${cellValStr(cell)} |`
+        return `${cellValStr(cell)}`
+    }
+    console.log(`%c${prependFlatRepresantation ? flatStr + '\n' : ''}${
+            board.getRows().map(
+                row => {
+                    return row.map((cell, i) =>
+                        cellStr(cell, i))
+                        .join(' ')
+                })
+                .reduce(
+                    (acc, curr, index) => {
+                        return acc + ((index % BLOCK_HEIGHT === 0) ? ('\n' + '―'.repeat(BOARD_WIDTH * 3 - 2)) + '\n'
+                            : '\n') + curr
+                    })
+        }`,
+        'white-space: pre-wrap;font-size:1.5rem');
 }
-
 /*
   Draw a board on the console, including the possible values left for each cell.
  */
@@ -18,7 +37,10 @@ export default function drawPuzzle(puzzle: Puzzle) {
 export function drawPuzzleWithPossibilities(puzzle: Puzzle) {
     const board = puzzleToSudoku(puzzle, false);
     const rowsCells = board.getRows()
-        .map(row => row.map(cell => `%c  ${cellIsEmpty(cell) ? '?' : cell.value}  %c`)
+        .map(row => row.map(cell =>
+
+            `%c  ${cellIsEmpty(cell) ? '?' : cell.value}  %c`
+        )
             .join('  '));
 
     const styles = [];

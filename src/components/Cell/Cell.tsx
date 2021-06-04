@@ -9,9 +9,8 @@ interface CellProps {
     setCellValue(v: CellValue): void,
 
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
-
-    isHighlightedCell(c: CellData): boolean,
-
+    isHighlighted: boolean,
+    isSecondarilyHighlighted: boolean,
     supportsInputMode: boolean
 }
 
@@ -28,8 +27,7 @@ const NumInput = withStyles({
 export const formatValue = (value: CellValue) => value === null ||
 isNaN(value) ||
 value === CellValue.EMPTY ||
-value === undefined ?
-    '' : value;
+value === undefined ? '' : value;
 
 /**
  * see:
@@ -40,10 +38,10 @@ value === undefined ?
  * support the `inputmode` attribute.
  */
 const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElement>) => {
-    const isHighlighted = () => props.isHighlightedCell(props.cell);
     const className = `cell${props.cell.isInitial ? ' fixed' : ''}\
     ${props.cell.isValid ? '' : ' invalid'}\
-    ${isHighlighted() ? 'hint' : ''}\
+    ${props.isHighlighted ? 'hint' : ''}\
+    ${props.isSecondarilyHighlighted && !props.isHighlighted ? 'hint-origin' : ''}\
     `;
 
     const onKeyPress: React.KeyboardEventHandler = event => {
@@ -76,7 +74,6 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                   disableUnderline={true}
                   readOnly={props.cell.isInitial}
         />
-        {/*<small className="details">x:{props.cell.x} y:{props.cell.y}</small>*/}
     </div>
 });
 export default Cell;

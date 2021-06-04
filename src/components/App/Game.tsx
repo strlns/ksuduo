@@ -1,9 +1,13 @@
 import {ThemeProvider} from "@material-ui/styles";
 import * as React from "react";
-import {ChangeEvent, useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
-import generateRandomSudoku, {DIFFICULTY_LEVEL, GENERATOR_CODE, GeneratorResult} from "../../generator/generator";
+import generateRandomSudoku, {
+    DIFFICULTY_LEVEL,
+    GENERATOR_CODE,
+    GeneratorResult
+} from "../../algorithm/generator/generator";
 import {
     CheckCircleRounded,
     EmojiObjectsRounded,
@@ -16,14 +20,14 @@ import {
 import {Box, Container, Grid, Icon, IconButton, LinearProgress, Modal, Switch, Typography} from "@material-ui/core";
 import {Button, Button45Mt} from "../Controls/Button";
 import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
-import {addPossibleValuesToCellDataArray, Sudoku} from "../../model/Sudoku";
+import {Sudoku} from "../../model/Sudoku";
 import {PaperBox, paperBoxDefaultLayoutProps} from "../MaterialUiTsHelper/PaperBox";
 import {cloneDeep} from "lodash-es";
 
 import SudokuWorker from "worker-loader!../../worker/sudoku.worker";
 import {GeneratorResultFromWorker, MSGEVT_SOURCE, WORKER_ACTIONS} from "../../worker/sudoku.worker";
 import testWorker from "../../worker/testWorkerActuallyWorks";
-import {GameStateSerializable, persist, restoreGameStateOrInitialize} from "../../persistence/localStorage";
+import {GameStateSerializable, persist} from "../../persistence/localStorage";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 import {GenerateButton} from "../Generator/GenerateButton";
 import {Clock} from "../Board/Clock";
@@ -36,12 +40,10 @@ import {makeStyles} from "@material-ui/core/styles";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import About from "./About";
 import {usePageVisibility} from "react-page-visibility";
-import {
-    getCellWithPossibleValueUniqueInBlock,
-    getCellWithPossibleValueUniqueInCol,
-    getCellWithPossibleValueUniqueInRow
-} from "../../solver/solverHumanTechniques";
-import {candidatesSortedDescByPossibilities} from "../../cellPicker/cellPicker";
+import {getNextCellToFill} from "../../algorithm/solver/solverHumanTechniques";
+import {SOLVING_TECHNIQUE} from "../../algorithm/solver/solver";
+import {CellData} from "../../model/CellData";
+import {restoreGameStateOrInitialize} from "../../persistence/restoreGameStateOrInitialize";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -66,6 +68,7 @@ export interface GameState {
     difficulty: DIFFICULTY_LEVEL,
     currentDifficulty: DIFFICULTY_LEVEL,
     highlightedCell: OptionalCell,
+    secondaryHighlight: CellData[],
     isWorking: boolean,
     forceFocus: OptionalCell,
     initialBoardIsSolved: boolean,
@@ -80,8 +83,8 @@ interface GameProps {
 }
 
 /**
- * This component wraps way too much state
- * @todo unwrap child components.
+ * This component wraps way too much state.
+ * Better decompose logic in next project, maybe using redux.
  * Done: Board.tsx doesn't re-render every 1000ms.
  */
 
@@ -101,6 +104,7 @@ export const Game = (props: GameProps) => {
         currentDifficulty,
         difficulty: currentDifficulty ?? DIFFICULTY_LEVEL.EASY,
         highlightedCell: undefined as OptionalCell,
+        secondaryHighlight: [],
         isWorking: false,
         msg: '',
         forceFocus: undefined as OptionalCell,
@@ -118,7 +122,12 @@ export const Game = (props: GameProps) => {
         isPaused: false,
         msg: '',
         secondsElapsed: 0,
-        initialBoardIsSolved: false
+        initialBoardIsSolved: false,
+        /*
+         this line causes a re-render of Board.tsx every 1000ms.
+         @todo place it somewhere else.
+         forceFocus: state.sudoku.getInitialFocusCell()
+        */
     };
 
     const [supportsInputModeAttribute, setSupportsInputModeAttribute] = useState(false);
@@ -202,7 +211,7 @@ export const Game = (props: GameProps) => {
         }
     }
 
-    const updateNumberOfClues = (e: ChangeEvent | {}, numberOfClues: number): void => {
+    const updateNumberOfClues = (numberOfClues: number): void => {
         setState(prevState => {
             return ({
                 ...prevState,
@@ -221,8 +230,9 @@ export const Game = (props: GameProps) => {
         }));
         if (state.sudoku.isEmpty()) {
             generateSudoku();
+        } else {
+            timer.start();
         }
-        timer.start();
     }
 
     const showSolution = () => {
@@ -357,56 +367,63 @@ export const Game = (props: GameProps) => {
     let hintTimeout: number;
 
     const giveHint = () => {
-        if (!(state.sudoku.isSolved() || state.isWorking)) {
-            let cellWithVal = getCellWithPossibleValueUniqueInRow(state.sudoku)
-            if (IS_DEVELOPMENT && cellWithVal) {
-                console.log('using cell with possible value unique in row', cellWithVal)
+        if (!(state.isWorking || state.sudoku.isSolved())) {
+            const sudoku = cloneDeep(state.sudoku)
+            let usedTechnique: SOLVING_TECHNIQUE
+            let setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
+                usedTechnique = tech
             }
+            let cellWithVal = getNextCellToFill(sudoku, setUsedTechnique)
+
             if (!cellWithVal) {
-                cellWithVal = getCellWithPossibleValueUniqueInCol(state.sudoku);
-                if (IS_DEVELOPMENT && cellWithVal) {
-                    console.log('using cell with possible value unique in col', cellWithVal)
-                }
+                throw new Error();
             }
-            if (!cellWithVal) {
-                cellWithVal = getCellWithPossibleValueUniqueInBlock(state.sudoku);
-                if (IS_DEVELOPMENT && cellWithVal) {
-                    console.log('using cell with possible value unique in block', cellWithVal)
-                }
+
+            const hintCellData = {...cellWithVal[0], value: cellWithVal[1], isInitial: true}
+
+            if (cellWithVal) {
+                sudoku.setValueUseCell(hintCellData)
+                setState(prevState => ({
+                    ...prevState,
+                    sudoku,
+                    highlightedCell: sudoku.getCell(hintCellData.x, hintCellData.y),
+                    secondaryHighlight: getSecondaryHighlightFromCellAndTechnique(
+                        usedTechnique,
+                        hintCellData,
+                        sudoku
+                    ),
+                    forceFocus: hintCellData,
+                    solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1,
+                }));
             }
-            if (!cellWithVal) {
-                const cell = candidatesSortedDescByPossibilities(
-                    addPossibleValuesToCellDataArray(
-                        state.sudoku.getEmptyCells(),
-                        state.sudoku
-                    )
-                ).pop();
-                if (cell === undefined) {
-                    return;
-                }
-                if (IS_DEVELOPMENT) {
-                    console.log('found no possible value unique in row, col or block, returning cell with min. possibilities instead.')
-                    console.log(cell)
-                }
-                cellWithVal = [cell, state.sudoku.getValueFromSolution(cell.x, cell.y)];
-            }
-            const sudoku = cloneDeep(state.sudoku);
-            const cell = cellWithVal[0];
-            const value = cellWithVal[1];
-            sudoku.setCell({...cell, value, isInitial: true});
-            setState(prevState => ({
-                ...prevState,
-                sudoku,
-                highlightedCell: cell,
-                forceFocus: cell,
-                solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1
-            }));
             if (hintTimeout !== undefined) {
-                clearTimeout(hintTimeout);
+                clearTimeout(hintTimeout)
             }
+
             hintTimeout = window.setTimeout(() => {
-                setState(prevState => ({...prevState, highlightedCell: undefined, forceFocus: undefined}))
+                setState(prevState => ({
+                        ...prevState,
+                        highlightedCell: undefined,
+                        secondaryHighlight: [],
+                        forceFocus: undefined
+                    })
+                )
             }, 5000);
+        }
+    }
+
+    const getSecondaryHighlightFromCellAndTechnique = (
+        tech: SOLVING_TECHNIQUE, cell: CellData, board: Sudoku
+    ): CellData[] => {
+        switch (tech) {
+            case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW:
+                return board.getRows()[cell.y]
+            case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_COL:
+                return board.getColumns()[cell.x]
+            case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_BLOCK:
+                return board.getCellsInBlock(cell)
+            default:
+                return []
         }
     }
 
@@ -459,6 +476,7 @@ export const Game = (props: GameProps) => {
                         sudoku={state.sudoku}
                         cellCallback={updateCallback}
                         highlightedCell={state.highlightedCell}
+                        secondaryHighlight={state.secondaryHighlight}
                         forceFocus={state.forceFocus}
                         isPaused={state.isPaused}
                         togglePaused={togglePaused}
@@ -470,7 +488,7 @@ export const Game = (props: GameProps) => {
                             Difficulty: {difficultyLabel()}
                         </Typography>
                         <Typography component={'small'} className={smallTextClass}>
-                            Hints: {state.sudoku.getFilledCells().filter(cell => cell.isInitial).length}
+                            Hints: {state.sudoku.getNumberOfHints()}
                         </Typography>
                     </Box>
                 </PaperBox>

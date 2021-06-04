@@ -1,30 +1,25 @@
-import {
-    CellData,
-    CellDataWithPossibilites,
-    cellIsEmpty,
-    CellValue,
-    EXCLUDE_NOTHING,
-    NonEmptyCellValues,
-} from "./CellData";
+import {CellData, cellIsEmpty, CellValue, EXCLUDE_NOTHING, NonEmptyCellValues,} from "./CellData";
 import {BlockData} from "./BlockData";
-import {fromPairs, shuffle} from "lodash-es";
+import {shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
 import assert from "../utility/assert";
-import {Solution, solve, solverResultIsError} from "../solver/solver";
+import {Solution, solve, solverResultIsError} from "../algorithm/solver/solver";
 import {
-    BLOCK_HEIGHT,
-    BLOCK_WIDTH,
-    BLOCKS_PER_BAND,
     BOARD_SIZE,
     BOARD_WIDTH,
     CELL_INDICES,
     CellIndex,
     coordsToFlatIndex,
     flatIndexToCoords,
-    getFlatStartIndexForBlock,
     NUMBER_OF_BLOCKS
 } from "./Board";
-import {candidatesSortedDescByPossibilities} from "../cellPicker/cellPicker";
+import {
+    addPossibleValuesToCellDataArray,
+    getBlockIndexForCell,
+    getBlockIndexForCoords,
+    numberOfFilledCellsInArray
+} from "../algorithm/solver/transformations";
+import {getCellToFillByMinimumPossibilities} from "../algorithm/solver/solverHumanTechniques";
 
 /**
  * We rely on the structured clone algorithm to result in this type when serializing a
@@ -33,9 +28,9 @@ import {candidatesSortedDescByPossibilities} from "../cellPicker/cellPicker";
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
  */
 export class SudokuStructuredClone {
-    rows: CellData[][];
-    solution: Solution;
-    history: CellData[][];
+    rows: CellData[][] = [];
+    solution: Solution = [];
+    history: CellData[][] = [];
 }
 
 export class Sudoku {
@@ -118,7 +113,7 @@ export class Sudoku {
 
     public initWithFlatCellData(cells: CellData[]) {
         cells.forEach((cell) => {
-            this.setCell(cell, false);
+            this.setValueUseCell(cell, false);
         });
     }
 
@@ -131,13 +126,16 @@ export class Sudoku {
     }
 
     /**
-     * Previously, I did this with a dedicated variable keeping track of the filled cells.
-     * But this "functional" approach is way less error-prone.
-     * The many array iterations are not optimized -
-     * in practise it does not impact performance at all here. Array chaining methods FTW!
+     * Chained array methods are not optimized here -
+     * but way less error-prone than procedurally keeping track
+     * of data changes.
      */
     public getNumberOfFilledCells(): number {
         return this.getFilledCells().length;
+    }
+
+    public getNumberOfHints(): number {
+        return this.getFilledCells().filter(cell => cell.isInitial).length
     }
 
     public getNumberOfCorrectlyFilledCells(): number {
@@ -188,7 +186,7 @@ export class Sudoku {
         this.setSolution([]);
         this.clearHistory();
         this.getFlatCells().forEach(
-            cell => this.setCell({...cell, value: CellValue.EMPTY, isInitial: false, isValid: true}, false)
+            cell => this.setValueUseCell({...cell, value: CellValue.EMPTY, isInitial: false, isValid: true}, false)
         );
     }
 
@@ -244,15 +242,14 @@ export class Sudoku {
         if (useHistory) {
             this.history.push(this.getFlatCells().slice());
         }
-        const newCell = {
+        this.rows[y][x] = {
             ...this.rows[y][x],
             isInitial: fixed,
             value
         };
-        this.rows[y][x] = newCell;
     }
 
-    public setCell(cell: CellData, useHistory = true): void {
+    public setValueUseCell(cell: CellData, useHistory = true): void {
         this.setValue(cell.x, cell.y, cell.value, cell.isInitial, useHistory);
     }
 
@@ -400,7 +397,7 @@ export class Sudoku {
         );
     }
 
-    public getInitialFocusCell(): CellData {
+    public getFirstEmptyCell(): CellData {
         let cell;
         let x = 0 as CellIndex, y = 0 as CellIndex;
         cell = this.getCell(x, y);
@@ -420,6 +417,24 @@ export class Sudoku {
         return cell;
     }
 
+    public getInitialFocusCell(): CellData {
+        let cell;
+        try {
+            const cellWithVal = getCellToFillByMinimumPossibilities(this);
+            if (cellWithVal) {
+                cell = cellWithVal[0]
+                if (IS_DEVELOPMENT) {
+                    console.log("found cell with minimum poss. for initial focus", cell)
+                }
+            }
+        } catch (e) {
+        }
+        if (!cell) {
+            cell = this.getFirstEmptyCell();
+        }
+        return cell;
+    }
+
     /**
      * Clear user input / hints.
      */
@@ -430,7 +445,7 @@ export class Sudoku {
             for (let cell of this.getFlatCells()) {
                 if (!cell.isInitial) {
                     cell.value = CellValue.EMPTY;
-                    this.setCell(cell, false);
+                    this.setValueUseCell(cell, false);
                 }
             }
         }
@@ -463,7 +478,7 @@ export class Sudoku {
         return this.getBlocks()[getBlockIndexForCell(cell)].cells;
     }
 
-    public static sudokuCloneWithoutHistory(sudoku: Sudoku) {
+    public static cloneWithoutHistory(sudoku: Sudoku) {
         return new Sudoku(
             {
                 rows: sudoku.rows.map(row => row.slice()),
@@ -473,143 +488,23 @@ export class Sudoku {
         );
     }
 
-    public fillSinglePossibilityCells(): void {
+    /**
+     * Fill cells with only one possible value left.
+     * @return number of cells filled
+     */
+    public fillSinglePossibilityCells(): number {
+        const filledBefore = this.getNumberOfCorrectlyFilledCells();
         addPossibleValuesToCellDataArray(this.getEmptyCells(), this).forEach(
             cell => {
                 if (cell.possibleValues.length === 1) {
                     this.setValue(cell.x, cell.y, cell.possibleValues[0], false, false);
+
                 }
             }
-        )
+        );
+        return this.getNumberOfCorrectlyFilledCells() - filledBefore;
     }
-
 }
 
 export type Puzzle = Sudoku | CellValue[] | number[];
 
-export const puzzleToSudoku = (puzzle: Puzzle, solvePuzzle = true) => {
-    if (puzzle instanceof Sudoku) {
-        return puzzle;
-    }
-    const res = new Sudoku();
-    res.initWithNumbers(puzzle as number[], solvePuzzle);
-    return res;
-}
-
-export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cellIndex: number): CellValue[] => {
-    if (cellIndex >= flatPuzzle.length) {
-        throw new Error('Invalid cell index.');
-    }
-    const startIndex = getFlatStartIndexForBlock(flatPuzzle, cellIndex);
-    const res = [];
-    let i = 0;
-    let index = startIndex;
-    while (i < BLOCK_HEIGHT) {
-        index = startIndex + i * BOARD_WIDTH;
-        for (let j = 0; j < BLOCK_WIDTH; j++) {
-            res.push(flatPuzzle[index + j]);
-        }
-        i++;
-    }
-    return res;
-}
-/**
- * Board is trivially solvable if, after we fill each cell with only 1 possible value:
- *
- * a) all remaining empty cells have at most 2 possible values, AND
- * b) there is no pair of 2 cells with 2 possible values each where both
- *    cells belong to the same row, column or block AND share at least one possible value.
- */
-export const isTriviallySolvable = (board: Sudoku): boolean => {
-    const emptyCells = board.getEmptyCells();
-    //only one empty cell => true
-    if (emptyCells.length < 2) {
-        if (IS_DEVELOPMENT) {
-            console.log('Board is trivially solvable')
-        }
-        return true;
-    }
-    const boardWithoutSingles = Sudoku.sudokuCloneWithoutHistory(board);
-    boardWithoutSingles.fillSinglePossibilityCells();
-    const candidates = addPossibleValuesToCellDataArray(emptyCells, boardWithoutSingles);
-    // const candidates = addPossibleValuesToCellDataArray(emptyCells, board);
-    //at least one empty cell with more than 2 possible values => false
-    if (candidates.some(
-        cell => cell.possibleValues.length > 2
-    )) return false;
-
-    const candidatesWithMoreThanOnePossibility = candidatesSortedDescByPossibilities(
-        candidates.filter(
-            cell => cell.possibleValues.length > 1
-        ));
-
-    // check for pairwise condition above.
-    for (const cell of candidatesWithMoreThanOnePossibility) {
-        const otherCell = candidatesWithMoreThanOnePossibility.find(
-            otherCell => otherCell !== cell && (
-                //same block, col or row
-                otherCell.x === cell.x ||
-                otherCell.y === cell.y ||
-                otherCell.blockIndex === cell.blockIndex
-            ) && (
-                //share at least 1 possible value
-                otherCell.possibleValues.some(
-                    otherPossibleValue => cell.possibleValues.includes(otherPossibleValue)
-                )
-            )
-        );
-        if (otherCell) {
-            return false;
-        }
-    }
-    if (IS_DEVELOPMENT) {
-        console.log('Board is trivially solvable')
-    }
-
-    return true;
-}
-
-export const numberOfFilledCellsInArray = (cells: CellData[]): number => {
-    return cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 0 : 1), 0);
-}
-
-export const getValueInFlatPuzzleByCoords = (flatPuzzle: CellValue[], cellX: CellIndex, cellY: CellIndex): CellValue => {
-    return flatPuzzle[coordsToFlatIndex(cellX, cellY)];
-}
-
-export const addPossibleValuesToCellDataArray = (candidates: CellData[], board: Sudoku, onlyEmpty = false): CellDataWithPossibilites[] => candidates.map(
-    cell => ({
-        ...cell,
-        possibleValues: (onlyEmpty && !cellIsEmpty(cell)) ? [] : board.getAllowedCellValues(cell, !onlyEmpty)
-    })
-);
-
-type PossibilityCountHash = {
-    [value in CellValue]: number
-};
-
-/*
- *
- * return an object with the cell values as key and the number of occurrences as a possible value
- * in the given array of cells, for the given board, as value.
- * Currently unused, could be useful for detection of BUG situations
- */
-// noinspection JSUnusedGlobalSymbols
-export const getCountOfPossibleValues = (cellsWithP: CellDataWithPossibilites[]): PossibilityCountHash => {
-    const res = fromPairs(NonEmptyCellValues.map(val => [val, 0]));
-    for (const cell of cellsWithP) {
-        for (const value of cell.possibleValues) {
-            res[value] += 1;
-        }
-    }
-    return res as PossibilityCountHash;
-}
-
-export const getBlockIndexForCell = (cell: CellData): number => {
-    return getBlockIndexForCoords(cell.x, cell.y);
-}
-export const getBlockIndexForCoords = (x: CellIndex, y: CellIndex): number => {
-    const yPart = Math.floor(y / BLOCK_HEIGHT) * BLOCKS_PER_BAND;
-    const xPart = Math.floor(x / BLOCK_WIDTH);
-    return yPart + xPart;
-}

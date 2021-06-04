@@ -12,6 +12,7 @@ interface BoardProps {
     sudoku: Sudoku,
     cellCallback?: Function,
     highlightedCell: OptionalCell,
+    secondaryHighlight: CellData[],
     forceFocus: OptionalCell,
     solutionIsFromApp: boolean,
     isPaused: boolean,
@@ -38,6 +39,7 @@ export const Board = React.memo(
          isPaused,
          forceFocus,
          highlightedCell,
+         secondaryHighlight,
          togglePaused,
          sudoku,
          cellCallback,
@@ -53,11 +55,6 @@ export const Board = React.memo(
             }
         }
 
-    //make sure that a new Sudoku object triggers re-render, focus first empty cell again if possible
-    useEffect(() => {
-        setFocusedCell(sudoku.getInitialFocusCell())
-    }, [sudoku]);
-
     useEffect(() => {
         if (forceFocus !== undefined) {
             setFocusedCell(forceFocus);
@@ -65,17 +62,17 @@ export const Board = React.memo(
     }, [forceFocus]);
 
     // brittle code to allow arrow key navigation.
-    let [focusedCell, setFocusedCell] = useState(sudoku.getInitialFocusCell());
-    const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
-        if (isPaused) {
-            return;
-        }
-        let newY, newX: CellIndex;
-        let newCell: CellData = focusedCell;
-        switch (e.key) {
-            case 'ArrowUp':
-                newY = Math.max(focusedCell.y - 1, 0) as CellIndex;
-                newCell = sudoku.getCell(focusedCell.x, newY);
+        let [focusedCell, setFocusedCell] = useState(sudoku.getFirstEmptyCell());
+        const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
+            if (isPaused) {
+                return;
+            }
+            let newY, newX: CellIndex;
+            let newCell: CellData = focusedCell;
+            switch (e.key) {
+                case 'ArrowUp':
+                    newY = Math.max(focusedCell.y - 1, 0) as CellIndex;
+                    newCell = sudoku.getCell(focusedCell.x, newY);
                 break;
             case 'ArrowRight':
                 newX = Math.min(focusedCell.x + 1, BOARD_WIDTH - 1) as CellIndex;
@@ -118,6 +115,7 @@ export const Board = React.memo(
                         updateCellValue={updateCellValue}
                         setFocusedCell={setFocusedCell}
                         highlightedCell={highlightedCell}
+                        secondaryHighlight={secondaryHighlight}
                         supportsInputMode={supportsInputMode}
                     />
                 }

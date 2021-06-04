@@ -2,7 +2,7 @@ import * as React from "react"
 import {useEffect} from "react"
 import {Box, FormControl, FormHelperText, InputLabel, NativeSelect, ThemeProvider} from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import {DIFFICULTY_LEVEL} from "../../generator/generator";
+import {DIFFICULTY_LEVEL} from "../../algorithm/generator/generator";
 import {BOARD_SIZE, DEFAULT_CLUES, MINIMUM_CLUES} from "../../model/Board";
 import intRange from "../../utility/numberRange";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
@@ -12,7 +12,7 @@ import {makeStyles} from "@material-ui/core/styles";
 
 interface GeneratorConfigurationProps {
     numberOfClues: number,
-    setNumberOfClues: (event: React.ChangeEvent<{}>, value: number) => void,
+    setNumberOfClues: (value: number) => void,
     difficulty: DIFFICULTY_LEVEL,
     setDifficulty: React.ChangeEventHandler<HTMLSelectElement>,
     numberOfFilledCellsInCurrentPuzzle: number,
@@ -122,7 +122,7 @@ export default (props: GeneratorConfigurationProps) => {
                              min={MIN_CLUES}
                              max={MAX_CLUES}
                              aria-labelledby="num-clues"
-                             onChange={props.setNumberOfClues}
+                             onChange={(event, value) => props.setNumberOfClues(value as number)}
         />
         <ThemeProvider theme={ksuduoThemeSecond}>
             {/*To do: replace this hideous ad-hoc-solution, maybe with some kind of tooltip*/}

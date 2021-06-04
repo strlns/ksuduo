@@ -3,8 +3,7 @@ import {SetStateAction, useEffect, useState} from 'react';
 import Cell from "./Cell";
 import {BlockData} from "../../model/BlockData";
 import {CellData, CellValue} from '../../model/CellData';
-import {inputRefs} from "../Board/Board";
-import arraysEqualSimple from "../../utility/arraysEqualSimple";
+import {inputRefs, OptionalCell} from "../Board/Board";
 import {BLOCK_WIDTH, BOARD_WIDTH, CellIndex} from "../../model/Board";
 import {makeStyles} from "@material-ui/core/styles";
 import clsx from "clsx";
@@ -17,7 +16,8 @@ interface BlockProps {
     updateCellValue(x: CellIndex, y: CellIndex, v: CellValue): void,
 
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
-    highlightedCell: CellData | undefined,
+    highlightedCell: OptionalCell,
+    secondaryHighlight: CellData[],
     supportsInputMode: boolean
 }
 
@@ -32,12 +32,6 @@ export const Block = (props: BlockProps) => {
     useEffect(() => {
         setState(props)
     }, [props]);
-
-    const isHighlightedCell = (cell: CellData): boolean => {
-        return state.highlightedCell !== undefined && arraysEqualSimple(
-            [cell.x, cell.y],
-            [state.highlightedCell.x, state.highlightedCell.y]);
-    };
 
     const blockClass = blockStyles();
 
@@ -58,7 +52,8 @@ export const Block = (props: BlockProps) => {
                             cell={cell}
                             setCellValue={v => state.updateCellValue(cell.x, cell.y, v)}
                             setFocusedCell={state.setFocusedCell}
-                            isHighlightedCell={isHighlightedCell}
+                            isHighlighted={cell === state.highlightedCell}
+                            isSecondarilyHighlighted={state.secondaryHighlight.includes(cell)}
                             supportsInputMode={props.supportsInputMode}
                         />
                     })

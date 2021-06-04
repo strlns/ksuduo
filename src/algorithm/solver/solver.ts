@@ -1,5 +1,5 @@
-import {Puzzle} from "../model/Sudoku";
-import {CellValue} from "../model/CellData";
+import {Puzzle} from "../../model/Sudoku";
+import {CellValue} from "../../model/CellData";
 import {solveCheckUnique, SOLVER_FAILURE} from "./solverBacktracking";
 
 let callsToSolver = 0;
@@ -12,12 +12,14 @@ export function resetCallsToSolver() {
     callsToSolver = 0;
 }
 
-export function solve(sudoku: Puzzle): Solution | SOLVER_FAILURE {
+export function solve(sudoku: Puzzle): SolverResult {
     if (IS_DEVELOPMENT) {
         callsToSolver++;
     }
     return solveCheckUnique(sudoku);
 }
+
+
 
 export type Solution = CellValue[];
 
@@ -38,4 +40,15 @@ export const solverErrorString = (result: SolverResult): string => {
     } else {
         return 'OK';
     }
+}
+
+enum CHEATER_SOLVING_TECHNIQUE {
+    BACKTRACKING
+}
+
+export enum SOLVING_TECHNIQUE {
+    HUMAN_UNIQPOSS_ROW,
+    HUMAN_UNIQPOSS_COL,
+    HUMAN_UNIQPOSS_BLOCK,
+    MINPOSS_FROM_SOLUTION
 }

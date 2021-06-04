@@ -1,9 +1,7 @@
 import {Sudoku} from "../model/Sudoku";
-import {Solution} from "../solver/solver";
-import {BOARD_SIZE} from "../model/Board";
-import {DIFFICULTY_LEVEL} from "../generator/generator";
+import {DIFFICULTY_LEVEL} from "../algorithm/generator/generator";
 
-export const LOCALSTORAGE_KEY = 'thirtySixState';
+export const LOCALSTORAGE_KEY = 'ksuduoState';
 
 export type GameStateSerializable = {
     board: Sudoku,
@@ -14,54 +12,20 @@ export type GameStateSerializable = {
     solutionShown: boolean
 }
 
-const withLocalStorage = (func: Function) => {
+export const withLocalStorage = (func: Function) => {
     if ('localStorage' in (window || globalThis)) {
         try {
             return func.call(null);
         } catch {
             /**
              * some browsers throw Exceptions when trying to use localStorage
-             * given certain privacy settings.
+             * given certain privacy settings. No need for further error handling here,
+             * localStorage just doesn't work in this case.
              */
         }
     }
 }
 
-export const restoreGameStateOrInitialize = (): GameStateSerializable => {
-    const lsResult = withLocalStorage(() => {
-        const data: any = JSON.parse(localStorage.getItem(
-            LOCALSTORAGE_KEY
-        ) as string);
-        if (Array.isArray(data[0]) && data[0].length === BOARD_SIZE) {
-            const sudoku = new Sudoku();
-            const history: any = data[1];
-            sudoku.initWithFlatCellData(data[0]);
-            sudoku.history = history;
-            if (data[2] as Solution) {
-                sudoku.setSolution(data[2]);
-            }
-            return {
-                board: sudoku,
-                secondsElapsed: data[3],
-                isPaused: data[4],
-                timerEnabled: data[5] ?? false,
-                currentDifficulty: data[6] ?? DIFFICULTY_LEVEL.EASY,
-                solutionShown: data[7] ?? false
-            };
-        }
-    });
-    if (IS_DEVELOPMENT) {
-        console.log('localStorage read.', lsResult)
-    }
-    return lsResult ?? {
-        board: new Sudoku(),
-        secondsElapsed: 0,
-        isPaused: false,
-        timerEnabled: false,
-        currentDifficulty: DIFFICULTY_LEVEL.EASY,
-        solutionShown: false
-    };
-}
 /**
  * Persisted JSON contains board, solution, history and timer state.
  * Separating the timer/elapsed seconds from the rest could help performance a little

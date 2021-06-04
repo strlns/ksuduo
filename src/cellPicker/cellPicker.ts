@@ -20,7 +20,7 @@ export type CellDataAndIndex = [CellDataWithPossibilites, number];
  * argument may be an arbitrary subset of cells.
  * @param candidates
  */
-export function getCellToClearWithMinimumPossibilites(candidates: CellDataWithPossibilites[]): CellDataAndIndex {
+export function getCellWithMinimumPossibilites(candidates: CellDataWithPossibilites[]): CellDataAndIndex {
     // Sort candidates by number of possible values (ignoring the value currently set).
     // Save original index in given array for later.
     const candidatesSortedDesc = candidatesSortedDescByPossibilitiesKeepOriginalIndex(candidates);
@@ -46,7 +46,7 @@ export const candidatesSortedDescByPossibilities = (candidates: CellDataWithPoss
  * @param candidates
  * @return CellDataAndIndex
  */
-export function getCellToClearWithFewPossibilites(candidates: CellDataWithPossibilites[]): CellDataAndIndex {
+export function getCellWithFewPossibilites(candidates: CellDataWithPossibilites[]): CellDataAndIndex {
     // Sort candidates by number of possible values (ignoring the value currently set).
     // Save original index in given array for later.
     const candidatesSortedDesc = candidatesSortedDescByPossibilitiesKeepOriginalIndex(candidates);

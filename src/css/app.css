@@ -168,8 +168,12 @@ input::-webkit-inner-spin-button {
 }
 
 .cell.hint {
-    background-color: #a2ffa2;
-    box-shadow: inset 0 0 0 4px #37de95;
+    background-color: #4df14d;
+    box-shadow: inset 0 0 0 4px #127617;
+}
+
+.cell.hint-origin {
+    background-color: #dcee7c;
 }
 
 .pulse {

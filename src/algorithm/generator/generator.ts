@@ -3,15 +3,17 @@
  *
  */
 
-import {addPossibleValuesToCellDataArray, isTriviallySolvable, Sudoku} from '../model/Sudoku';
-import {CellDataWithPossibilites, cellIsEmpty, CellValue} from "../model/CellData";
-import {pickRandomArrayIndex} from "../utility/pickRandom";
+import {Sudoku} from '../../model/Sudoku';
+import {CellDataWithPossibilites, cellIsEmpty, CellValue} from "../../model/CellData";
+import {pickRandomArrayIndex} from "../../utility/pickRandom";
 import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "../solver/solver";
-import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../model/Board";
-import {LOGLEVEL_NORMAL} from "../loglevels";
-import assert from "../utility/assert";
+import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Board";
+import {LOGLEVEL_NORMAL} from "../../loglevels";
+import assert from "../../utility/assert";
 import {cloneDeep} from "lodash-es";
-import {getCellToClearWithFewPossibilites, getCellToClearWithMinimumPossibilites} from "../cellPicker/cellPicker";
+import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../../cellPicker/cellPicker";
+import {addPossibleValuesToCellDataArray} from "../solver/transformations";
+import {isTriviallySolvable} from "../../solver/transformations";
 
 export enum DIFFICULTY_LEVEL {
     EASY,
@@ -109,7 +111,7 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
                 }
             }
 
-            board.setCell({...cell, value: CellValue.EMPTY, isInitial: false}, false);
+            board.setValueUseCell({...cell, value: CellValue.EMPTY, isInitial: false}, false);
 
             if (achievedNumberOfEmptyCells < 4 || isTriviallySolvable(board)) {
                 // At least 4 empty cells are needed to make the board invalid.
@@ -118,14 +120,18 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
                 continue;
             }
             /*
-             * It would be nice if it was possible to pass the known solution to the backtracking solver
+             * It would be nice if it was possible to pass the known solution to the backtracking algorithm
              * to speed up detection of invalid boards.
-             * This would require to integrate some of the generator logic into the solver and might be impossible.
+             * This would require to integrate some of the generator logic into the algorithm and might be impossible.
              */
             const solverResult = solve(board);
             if (solverResultIsError(solverResult)) {
                 //we don't need to use the history feature here, we know which cell to restore.
-                board.setCell({...cell, value: board.getValueFromSolution(cell.x, cell.y), isInitial: true}, false);
+                board.setValueUseCell({
+                    ...cell,
+                    value: board.getValueFromSolution(cell.x, cell.y),
+                    isInitial: true
+                }, false);
                 undos++;
             } else {
                 achievedNumberOfEmptyCells++;
@@ -183,7 +189,7 @@ function getIndexOfCellToClear(
     if (achievedEmptyCells < THRESHOLD_USE_DIFFICULTY) {
         return pickRandomArrayIndex(candidates);
     } else if (achievedEmptyCells > BOARD_SIZE / 2) {
-        return getCellToClearWithMinimumPossibilites(candidates)[1];
+        return getCellWithMinimumPossibilites(candidates)[1];
     }
     let result = 0;
     switch (difficulty) {
@@ -191,10 +197,10 @@ function getIndexOfCellToClear(
             result = pickRandomArrayIndex(candidates);
             break;
         case DIFFICULTY_LEVEL.MEDIUM:
-            result = getCellToClearWithFewPossibilites(candidates)[1];
+            result = getCellWithFewPossibilites(candidates)[1];
             break;
         case DIFFICULTY_LEVEL.EASY:
-            result = getCellToClearWithMinimumPossibilites(candidates)[1];
+            result = getCellWithMinimumPossibilites(candidates)[1];
             break;
     }
     return result;

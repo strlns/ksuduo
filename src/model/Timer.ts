@@ -6,9 +6,10 @@ export class Timer {
     public callback: Function;
 
     constructor(callback?: Function) {
-        if (callback) {
-            this.callback = callback;
-        }
+        this.callback = () => {
+        };
+        this.secondsElapsed = 0;
+        this.intervalId = undefined;
     }
 
     private clearInterval(): void {
@@ -26,7 +27,7 @@ export class Timer {
             this.secondsElapsed = 0;
         }
 
-        this.callback && this.callback.call(null);
+        this.callback.call(null);
 
         this.intervalId = window.setInterval(() => {
             this.callback && this.callback.call(null);

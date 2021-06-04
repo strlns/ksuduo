@@ -1,15 +1,16 @@
 /**
- * Backtracking Sudoku solver that also detects non-uniqueness of the solution.
+ * Backtracking Sudoku algorithm that also detects non-uniqueness of the solution.
  *
  * Based on
- * @mattflow/sudoku-solver and
+ * @mattflow/sudoku-algorithm and
  * https://stackoverflow.com/questions/24343214/determine-whether-a-sudoku-has-a-unique-solution
  */
-import {CellValue, NonEmptyCellValues} from "../model/CellData";
+import {CellValue, NonEmptyCellValues} from "../../model/CellData";
 import {Solution} from "./solver";
-import {BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../model/Board";
-import {getBlockValuesForIndexInFlatPuzzle, Puzzle, Sudoku} from "../model/Sudoku";
-import {LOGLEVEL_VERBOSE} from "../loglevels";
+import {BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Board";
+import {Puzzle, Sudoku} from "../../model/Sudoku";
+import {LOGLEVEL_VERBOSE} from "../../loglevels";
+import {getBlockValuesForIndexInFlatPuzzle} from "./transformations";
 
 export enum SOLVER_FAILURE {
     NO_SOLUTION_FOUND = 0,
