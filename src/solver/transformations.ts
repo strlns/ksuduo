@@ -1,64 +1,26 @@
-import {Sudoku} from "../model/Sudoku";
-import {addPossibleValuesToCellDataArray} from "../algorithm/solver/transformations";
-import {CellDataWithPossibilites} from "../model/CellData";
-import {candidatesSortedDescByPossibilities} from "../cellPicker/cellPicker";
-
-/**
- * Board is trivially solvable iff
- *
- * a) less than 3 empty cells OR
- *  b1) all remaining empty cells have at most 2 possible values
- *    AND
- *  b2) there is no pair of 2 cells with 2 possible values each where both
- *      cells belong to the same row, column or block AND share at least one possible value.
+/*
+Get cell where a possible value occurs uniquely within
+a given array of cells and their possible values
  */
-export const isTriviallySolvable = (board: Sudoku): boolean => {
-    const clonedBoard = Sudoku.cloneWithoutHistory(board);
-    clonedBoard.fillSinglePossibilityCells();
-    const emptyCells = clonedBoard.getEmptyCells();
-    let res = true;
-    /*a) fall through if board has less than 3 empty cells*/
-    if (emptyCells.length > 2) {
-        const candidates = addPossibleValuesToCellDataArray(emptyCells, clonedBoard);
-        /* b1) all remaining empty cells have at most 2 possible values */
-        if (candidates.some(
-            cell => cell.possibleValues.length > 2
-        )) {
-            /*b2) no non-trivial possibility pairs*/
-            res = !hasNonTrivialPossibilityPairs(candidates)
-        }
-    }
-    return res;
-}
+import {CellDataWithPossibilites, CellValue} from "../model/CellData";
+import {getCountOfPossibleValues, PossibilityCountHash} from "../algorithm/solver/transformations";
+import {CellWithNewValue} from "../algorithm/solver/humanTechniques";
 
-function hasNonTrivialPossibilityPairs(candidates: CellDataWithPossibilites[]): boolean {
-    const candidatesWithMoreThanOnePossibility = candidatesSortedDescByPossibilities(
-        candidates.filter(
-            cell => cell.possibleValues.length > 1
-        ));
-    /*
-      there is no pair of 2 cells with 2 possible values each where both
-      cells belong to the same row, column or block AND share at least one possible value.
-    */
-    let res = false;
-    for (const cell of candidatesWithMoreThanOnePossibility) {
-        const otherCell = candidatesWithMoreThanOnePossibility.find(
-            otherCell => otherCell !== cell && (
-                //same block, col or row
-                otherCell.x === cell.x ||
-                otherCell.y === cell.y ||
-                otherCell.blockIndex === cell.blockIndex
-            ) && (
-                //share at least 1 possible value
-                otherCell.possibleValues.some(
-                    otherPossibleValue => cell.possibleValues.includes(otherPossibleValue)
-                )
-            )
-        );
-        if (otherCell) {
-            res = true;
-            break;
+export function getCellWithUniquePossibleValue(
+    cellsWithP: CellDataWithPossibilites[],
+    possibilitiesCount?: PossibilityCountHash
+): CellWithNewValue | undefined {
+    const possibilities = possibilitiesCount ?? getCountOfPossibleValues(cellsWithP);
+    const entriesOccurringOneTime = Object.entries(possibilities).filter(
+        entry => entry[1] === 1
+    );
+    const valueAsString = entriesOccurringOneTime.length > 0 ? entriesOccurringOneTime[0][0] : undefined;
+    if (valueAsString !== undefined) {
+        const value = +valueAsString as CellValue;
+        const cell = cellsWithP.find(cell => cell.possibleValues.includes(value));
+        if (cell === undefined) {
+            throw new Error();
         }
+        return [cell, value];
     }
-    return res;
 }

@@ -2,7 +2,7 @@ import {Sudoku} from "../../model/Sudoku";
 import {BOARD_SIZE} from "../../model/Board";
 import {pickRandomArrayValue} from "../../utility/pickRandom";
 import {CellValue} from "../../model/CellData";
-import {isTriviallySolvable} from "../../solver/transformations";
+import {isTriviallySolvable} from "../transformations";
 
 export function generateTriviallySolvableBoard(): Sudoku {
     const board = new Sudoku();

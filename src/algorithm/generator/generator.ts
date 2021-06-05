@@ -11,9 +11,9 @@ import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Bo
 import {LOGLEVEL_NORMAL} from "../../loglevels";
 import assert from "../../utility/assert";
 import {cloneDeep} from "lodash-es";
-import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../../cellPicker/cellPicker";
+import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../cellPicker/cellPicker";
 import {addPossibleValuesToCellDataArray} from "../solver/transformations";
-import {isTriviallySolvable} from "../../solver/transformations";
+import {isTriviallySolvable} from "../transformations";
 
 export enum DIFFICULTY_LEVEL {
     EASY,

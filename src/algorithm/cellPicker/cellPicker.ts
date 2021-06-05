@@ -4,8 +4,8 @@
  *
  * Used by generator and when providing additional hints.
  */
-import {CellDataWithPossibilites} from "../model/CellData";
-import {pickRandomArrayValue} from "../utility/pickRandom";
+import {CellDataWithPossibilites} from "../../model/CellData";
+import {pickRandomArrayValue} from "../../utility/pickRandom";
 
 /**
  * An array with two values:

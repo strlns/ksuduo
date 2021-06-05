@@ -1,6 +1,9 @@
-import {Puzzle} from "../../model/Sudoku";
-import {CellValue} from "../../model/CellData";
+import {Puzzle, Sudoku} from "../../model/Sudoku";
+import {CellDataWithPossibilites, CellValue, isEmptyAndNonInitial} from "../../model/CellData";
 import {solveCheckUnique, SOLVER_FAILURE} from "./solverBacktracking";
+import {addPossibleValuesToCellDataArray} from "./transformations";
+import {getCellWithMinimumPossibilites} from "../cellPicker/cellPicker";
+import {CellWithNewValue, SOLVING_TECHNIQUE} from "./humanTechniques";
 
 let callsToSolver = 0;
 
@@ -42,13 +45,19 @@ export const solverErrorString = (result: SolverResult): string => {
     }
 }
 
-enum CHEATER_SOLVING_TECHNIQUE {
-    BACKTRACKING
-}
-
-export enum SOLVING_TECHNIQUE {
-    HUMAN_UNIQPOSS_ROW,
-    HUMAN_UNIQPOSS_COL,
-    HUMAN_UNIQPOSS_BLOCK,
-    MINPOSS_FROM_SOLUTION
+export function getCellWithMinPossAndValueFromSolution(
+    board: Sudoku,
+    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void,
+    possibilities?: CellDataWithPossibilites[]
+): CellWithNewValue | undefined {
+    const cellsWithP = possibilities ? possibilities.filter(cell => isEmptyAndNonInitial(cell)) :
+        addPossibleValuesToCellDataArray(
+            board.getEmptyCells(), board
+        );
+    if (cellsWithP.length < 1) {
+        return
+    }
+    const cellToFill = getCellWithMinimumPossibilites(cellsWithP)[0];
+    setUsedTechnique && setUsedTechnique(SOLVING_TECHNIQUE.MINPOSS_FROM_SOLUTION)
+    return [cellToFill, board.getValueFromSolution(cellToFill.x, cellToFill.y)]
 }

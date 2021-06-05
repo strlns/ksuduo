@@ -4,7 +4,10 @@ import {addPossibleValuesToCellDataArray, puzzleToSudoku} from "../algorithm/sol
 import {BLOCK_HEIGHT, BLOCK_WIDTH, BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
 import arrayChunk from "../utility/arrayChunk";
 import {rightPad} from "../utility/stringLib";
-
+/*
+  Draw a puzzle on the console to debug algorithmic issues without having to
+  use the game itself
+ */
 export default function drawPuzzle(puzzle: Puzzle, prependFlatRepresantation = true) {
     const board = puzzleToSudoku(puzzle, false);
     const flatStr = `Flat: ${board.getFlatValues().join('')}`
@@ -14,7 +17,9 @@ export default function drawPuzzle(puzzle: Puzzle, prependFlatRepresantation = t
         if (i === BOARD_WIDTH - 1) return `${cellValStr(cell)} |`
         return `${cellValStr(cell)}`
     }
+    const hLine = `${'―'.repeat(BOARD_WIDTH * 3 - 2)}\n`;
     console.log(`%c${prependFlatRepresantation ? flatStr + '\n' : ''}${
+            hLine}${
             board.getRows().map(
                 row => {
                     return row.map((cell, i) =>
@@ -23,12 +28,13 @@ export default function drawPuzzle(puzzle: Puzzle, prependFlatRepresantation = t
                 })
                 .reduce(
                     (acc, curr, index) => {
-                        return acc + ((index % BLOCK_HEIGHT === 0) ? ('\n' + '―'.repeat(BOARD_WIDTH * 3 - 2)) + '\n'
+                        return acc + ((index % BLOCK_HEIGHT === 0) ? ('\n' + hLine)
                             : '\n') + curr
                     })
-        }`,
-        'white-space: pre-wrap;font-size:1.5rem');
+        }\n${hLine}`,
+        'white-space: pre-wrap;font-size:1.25rem');
 }
+
 /*
   Draw a board on the console, including the possible values left for each cell.
  */

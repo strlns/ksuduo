@@ -3,7 +3,7 @@ import {BlockData} from "./BlockData";
 import {shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
 import assert from "../utility/assert";
-import {Solution, solve, solverResultIsError} from "../algorithm/solver/solver";
+import {getCellWithMinPossAndValueFromSolution, Solution, solve, solverResultIsError} from "../algorithm/solver/solver";
 import {
     BOARD_SIZE,
     BOARD_WIDTH,
@@ -19,7 +19,6 @@ import {
     getBlockIndexForCoords,
     numberOfFilledCellsInArray
 } from "../algorithm/solver/transformations";
-import {getCellToFillByMinimumPossibilities} from "../algorithm/solver/solverHumanTechniques";
 
 /**
  * We rely on the structured clone algorithm to result in this type when serializing a
@@ -90,7 +89,12 @@ export class Sudoku {
 
     public getValueFromSolution(x: CellIndex, y: CellIndex): CellValue {
         if (!this.hasSolutionSet()) {
-            throw new Error();
+            const res = solve(this);
+            if (solverResultIsError(res)) {
+                throw new Error();
+            } else {
+                this.solution = res as Solution;
+            }
         }
         return this.solution[coordsToFlatIndex(x, y)];
     }
@@ -420,7 +424,7 @@ export class Sudoku {
     public getInitialFocusCell(): CellData {
         let cell;
         try {
-            const cellWithVal = getCellToFillByMinimumPossibilities(this);
+            const cellWithVal = getCellWithMinPossAndValueFromSolution(this);
             if (cellWithVal) {
                 cell = cellWithVal[0]
                 if (IS_DEVELOPMENT) {
@@ -503,6 +507,13 @@ export class Sudoku {
             }
         );
         return this.getNumberOfCorrectlyFilledCells() - filledBefore;
+    }
+
+    public clearInvalidCells(): void {
+        const invalidCells = this.getFilledCells().filter(cell => !cell.isValid);
+        for (const cell of invalidCells) {
+            this.setValueUseCell({...cell, value: CellValue.EMPTY, isValid: true});
+        }
     }
 }
 

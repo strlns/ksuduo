@@ -1,67 +1,16 @@
 import {Puzzle, Sudoku} from "../../model/Sudoku";
-import {CellData, CellDataWithPossibilites, cellIsEmpty, CellValue} from "../../model/CellData";
-import {getCellWithMinimumPossibilites} from "../../cellPicker/cellPicker";
-import {
-    addPossibleValuesToCellDataArray,
-    getCountOfPossibleValues,
-    PossibilityCountHash,
-    puzzleToSudoku
-} from "./transformations";
-import {Solution, SolverResult, SOLVING_TECHNIQUE} from "./solver";
+import {addPossibleValuesToCellDataArray, puzzleToSudoku} from "./transformations";
+import {getCellWithMinPossAndValueFromSolution, Solution, SolverResult} from "./solver";
 import {SOLVER_FAILURE} from "./solverBacktracking";
 import drawPuzzle from "../../debug/drawPuzzleOnConsole";
-import {BOARD_SIZE} from "../../model/Board";
-
-export type CellWithNewValue = [CellData, CellValue];
-
-export function getCellWithPossibleValueUniqueInRow(board: Sudoku, possibilities?: CellDataWithPossibilites[]): CellWithNewValue | undefined {
-    //we need the index anyway, so there s no point in using for..of
-    for (let rowIndex = 0, length = board.getRows().length; rowIndex < length; rowIndex++) {
-        const row = board.getRows()[rowIndex];
-        const cellsWithP = possibilities ? possibilities.filter(cell => cellIsEmpty(cell) && rowIndex === cell.y) :
-            addPossibleValuesToCellDataArray(row, board, true);
-        const cellWithUniqueValue = getCellWithUniquePossibleValue(cellsWithP);
-        if (cellWithUniqueValue !== undefined) {
-            return cellWithUniqueValue;
-        }
-    }
-}
-
-export function getCellWithPossibleValueUniqueInCol(board: Sudoku): CellWithNewValue | undefined {
-    for (const col of board.getColumns()) {
-        const cellsWithP = addPossibleValuesToCellDataArray(col, board, true);
-        const cellWithUniqueValue = getCellWithUniquePossibleValue(cellsWithP);
-        if (cellWithUniqueValue !== undefined) {
-            return cellWithUniqueValue;
-        }
-    }
-}
-
-export function getCellWithPossibleValueUniqueInBlock(board: Sudoku): CellWithNewValue | undefined {
-    for (const block of board.getBlocks()) {
-        const cellsWithP = addPossibleValuesToCellDataArray(block.cells, board, true);
-        const cellWithUniqueValue = getCellWithUniquePossibleValue(cellsWithP);
-        if (cellWithUniqueValue) {
-            return cellWithUniqueValue;
-        }
-    }
-}
-
-export function getCellWithUniquePossibleValue(cellsWithP: CellDataWithPossibilites[], possibilitiesCount?: PossibilityCountHash): CellWithNewValue | undefined {
-    const possibilities = possibilitiesCount ?? getCountOfPossibleValues(cellsWithP);
-    const entriesOccurringOneTime = Object.entries(possibilities).filter(
-        entry => entry[1] === 1
-    );
-    const valueAsString = entriesOccurringOneTime.length > 0 ? entriesOccurringOneTime[0][0] : undefined;
-    if (valueAsString !== undefined) {
-        const value = +valueAsString as CellValue;
-        const cell = cellsWithP.find(cell => cell.possibleValues.includes(value));
-        if (cell === undefined) {
-            throw new Error();
-        }
-        return [cell, value];
-    }
-}
+import {
+    CellWithNewValue,
+    getCellAndValueByBlock,
+    getCellAndValueByCol,
+    getCellAndValueByRow,
+    SOLVING_TECHNIQUE
+} from "./humanTechniques";
+import {shuffle} from "lodash-es";
 
 /*
   Find a cell to fill using easy techniques that humans also use.
@@ -73,91 +22,49 @@ export function getCellWithUniquePossibleValue(cellsWithP: CellDataWithPossibili
   the possible value can discarded in the whole column.
 
   After that, maybe even add more advanced human-like techniques.
-
   End-goal: None-backtracking solver for use in generator
-
  */
+
 export function getNextCellToFill(
     board: Sudoku,
-    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void
+    allowCheatingGuess = false,
+    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void,
+    preferTechnique = SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW
 ): CellWithNewValue | undefined {
-    return (
-        getEasyToFillCellByRow(board, setUsedTechnique) ||
-        getEasyToFillCellByCol(board, setUsedTechnique) ||
-        getEasyToFillCellByBlock(board, setUsedTechnique) ||
-        getCellToFillByMinimumPossibilities(board, setUsedTechnique)
-    )
-}
-
-function getEasyToFillCellByRow(
-    board: Sudoku,
-    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void
-): CellWithNewValue | undefined {
-    let cellWithVal = getCellWithPossibleValueUniqueInRow(board)
-    if (cellWithVal) {
-        setUsedTechnique && setUsedTechnique(SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW)
-        return cellWithVal;
-    }
-}
-
-function getEasyToFillCellByCol(
-    board: Sudoku,
-    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void
-): CellWithNewValue | undefined {
-    let cellWithVal = getCellWithPossibleValueUniqueInCol(board)
-    if (cellWithVal) {
-        setUsedTechnique && setUsedTechnique(SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_COL)
-        return cellWithVal;
-    }
-}
-
-function getEasyToFillCellByBlock(
-    board: Sudoku,
-    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void
-): CellWithNewValue | undefined {
-    let cellWithVal = getCellWithPossibleValueUniqueInBlock(board)
-    if (cellWithVal) {
-        setUsedTechnique && setUsedTechnique(SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_BLOCK)
-        return cellWithVal;
-    }
-}
-
-export function getCellToFillByMinimumPossibilities(
-    board: Sudoku,
-    setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void
-): CellWithNewValue | undefined {
-    const emptyCells = board.getEmptyCells();
-    if (emptyCells.length < 1) {
-        const invalidCells = board.getFilledCells().filter(cell => !cell.isValid);
-        if (invalidCells.length > 0) {
-            if (IS_DEVELOPMENT) {
-                console.error('reset an invalid cell while looking for cell with min. poss. in a filled board.')
+    const cellsWithP = addPossibleValuesToCellDataArray(board.getFlatCells(), board);
+    const humanTechFns = shuffle([getCellAndValueByRow, getCellAndValueByCol, getCellAndValueByBlock]);
+    if (preferTechnique !== undefined) {
+        switch (preferTechnique) {
+            case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW: {
+                const index = humanTechFns.indexOf(getCellAndValueByRow);
+                [humanTechFns[index], humanTechFns[0]] = [humanTechFns[0], humanTechFns[index]]
+                break;
             }
-            board.setValueUseCell({...invalidCells[0], value: CellValue.EMPTY});
-        } else {
-            //board is solved, what do you expect
-            throw new Error();
+            case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_COL: {
+                const index = humanTechFns.indexOf(getCellAndValueByCol);
+                [humanTechFns[index], humanTechFns[0]] = [humanTechFns[0], humanTechFns[index]]
+                break;
+            }
+            case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_BLOCK: {
+                const index = humanTechFns.indexOf(getCellAndValueByBlock);
+                [humanTechFns[index], humanTechFns[0]] = [humanTechFns[0], humanTechFns[index]]
+                break;
+            }
         }
     }
-    const cellToFill = getCellWithMinimumPossibilites(
-        addPossibleValuesToCellDataArray(
-            emptyCells, board
-        )
-    )[0];
-    setUsedTechnique && setUsedTechnique(SOLVING_TECHNIQUE.MINPOSS_FROM_SOLUTION)
-    return [cellToFill, board.getValueFromSolution(cellToFill.x, cellToFill.y)]
+    for (const fn of humanTechFns) {
+        const cellResult = fn.call(null, board, setUsedTechnique, cellsWithP);
+        if (cellResult) return cellResult;
+    }
+    if (allowCheatingGuess) {
+        return getCellWithMinPossAndValueFromSolution(board, setUsedTechnique, cellsWithP);
+    }
 }
 
 
 export function isSolvableUsingEasyTechniques(board: Sudoku): boolean {
     const clonedBoard = Sudoku.cloneWithoutHistory(board);
     while (fillCellUsingHumanTechniques(clonedBoard)) {
-    }
-    if (IS_DEVELOPMENT) {
-        const numberOfFilledCells = clonedBoard.getNumberOfFilledCells();
-        const numberOfHints = clonedBoard.getNumberOfHints();
-        console.log(`${numberOfFilledCells - numberOfHints} cells filled by solver, 
-        ${numberOfHints} were given. Total filled : ${numberOfFilledCells} / ${BOARD_SIZE}`)
     }
     return clonedBoard.isSolved();
 }
@@ -167,11 +74,29 @@ export function isSolvableUsingEasyTechniques(board: Sudoku): boolean {
  */
 export default function solve(puzzle: Puzzle): SolverResult {
     const board = puzzleToSudoku(puzzle);
+    //if passed puzzle was a Sudoku instance, we don't want to modify it
     const clonedBoard = Sudoku.cloneWithoutHistory(board);
+    let numFilled = 0;
+    let devConsoleSpamPrvt = 0;
+    if (IS_DEVELOPMENT) {
+        console.log("The puzzle")
+        drawPuzzle(board, false);
+    }
     while (fillCellUsingHumanTechniques(clonedBoard)) {
+        const numFilledNew = clonedBoard.getNumberOfFilledCells()
+        if (numFilledNew > numFilled) {
+            numFilled = numFilledNew
+        } else {
+            devConsoleSpamPrvt++
+            if (devConsoleSpamPrvt > 4) {
+                console.log("Stuck at:")
+                drawPuzzle(clonedBoard, false)
+                break;
+            }
+        }
     }
     if (IS_DEVELOPMENT) {
-        drawPuzzle(board, false);
+        console.log("The partial solution")
         drawPuzzle(clonedBoard, false);
     }
     return clonedBoard.isSolved() ?
@@ -179,12 +104,20 @@ export default function solve(puzzle: Puzzle): SolverResult {
         SOLVER_FAILURE.NO_SOLUTION_FOUND;
 }
 
-export function fillCellUsingHumanTechniques(board: Sudoku): boolean {
-    const cellWithVal = getNextCellToFill(board)
+export function fillCellUsingHumanTechniques(board: Sudoku, preferTechnique?: SOLVING_TECHNIQUE): boolean {
+    let technique;
+    const cellWithVal = getNextCellToFill(
+        board,
+        false,
+        tech => {
+            technique = tech
+        },
+        preferTechnique
+    )
     let success = false
     if (cellWithVal) {
-        board.setValue(cellWithVal[0].x, cellWithVal[0].y, cellWithVal[1], false, false);
-        success = true;
+        board.setValue(cellWithVal[0].x, cellWithVal[0].y, cellWithVal[1], false, false)
+        success = true
     }
-    return success;
+    return success
 }

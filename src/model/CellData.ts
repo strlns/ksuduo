@@ -47,3 +47,5 @@ export type CellDataWithPossibilites = CellData & {
 
 export const countFilledCells = (cells: CellData[]): number =>
     cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 1 : 0), 0);
+
+export const isEmptyAndNonInitial = (cell: CellData) => cellIsEmpty(cell) && !cell.isInitial;

@@ -41,9 +41,9 @@ import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import About from "./About";
 import {usePageVisibility} from "react-page-visibility";
 import {getNextCellToFill} from "../../algorithm/solver/solverHumanTechniques";
-import {SOLVING_TECHNIQUE} from "../../algorithm/solver/solver";
 import {CellData} from "../../model/CellData";
 import {restoreGameStateOrInitialize} from "../../persistence/restoreGameStateOrInitialize";
+import {SOLVING_TECHNIQUE} from "../../algorithm/solver/humanTechniques";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -373,7 +373,7 @@ export const Game = (props: GameProps) => {
             let setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
                 usedTechnique = tech
             }
-            let cellWithVal = getNextCellToFill(sudoku, setUsedTechnique)
+            let cellWithVal = getNextCellToFill(sudoku, true, setUsedTechnique)
 
             if (!cellWithVal) {
                 throw new Error();
