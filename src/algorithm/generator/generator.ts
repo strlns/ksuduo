@@ -9,7 +9,6 @@ import {pickRandomArrayIndex} from "../../utility/pickRandom";
 import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "../solver/solver";
 import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Board";
 import {LOGLEVEL_NORMAL} from "../../loglevels";
-import assert from "../../utility/assert";
 import {cloneDeep} from "lodash-es";
 import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../cellPicker/cellPicker";
 import {addPossibleValuesToCellDataArray} from "../solver/transformations";
@@ -167,7 +166,7 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
     if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_NORMAL) {
         console.log(`${getCallsToSolver()} calls to solver algorithm while generating.`)
         resetCallsToSolver();
-        assert(!solverResultIsError(solve(board)));
+        console.assert(!solverResultIsError(solve(board)));
     }
     if (bestBoardSoFar === undefined) {
         // This should never happen if at least 1 cell can be cleared

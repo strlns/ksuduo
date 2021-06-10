@@ -1,7 +1,7 @@
 import {CellIndex} from "./Board";
+import {BlockIndex} from "./BlockData";
 
-export const EMPTY_CELL_VALUE: null = null;
-
+// noinspection JSUnusedGlobalSymbols
 export enum CellValue {
     EMPTY = 0,
     ONE = 1,
@@ -16,10 +16,8 @@ export enum CellValue {
 }
 
 /**
- * never again will I be so stupid to check
- * `if (excludeColumn)` expecting an index or false.
- * I am converted (ha ha). Never use type coercion in if statements
- * (except when checking for object/array existence)
+ * This is used to express that no row or column shall be excluded
+ * in methods that provide a parameter to exclude some row/col.
  */
 export const EXCLUDE_NOTHING = false;
 
@@ -39,12 +37,13 @@ export type CellData = {
     y: CellIndex,
     isInitial: boolean,
     isValid: boolean,
-    blockIndex: number
+    blockIndex: BlockIndex
 }
 export type CellDataWithPossibilites = CellData & {
     possibleValues: CellValue[]
 }
 
+// noinspection JSUnusedGlobalSymbols
 export const countFilledCells = (cells: CellData[]): number =>
     cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 1 : 0), 0);
 

@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 /**
  * not imported in webpack config because of webpack quirks (why no ES6 config? i have no idea)
  * @type {number}

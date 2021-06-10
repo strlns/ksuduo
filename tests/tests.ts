@@ -1,11 +1,18 @@
-import {gnomeGs4HardSudokus} from "../src/examples/validExamples";
-import {puzzleToSudoku} from "../src/algorithm/solver/transformations";
+import testCoordsFlatIndexConversion from "./testCoordsFlatIndexConversion";
+import testValidSudokuIsSolved from "./testValidSudokuIsSolved";
+import testValidBoardsAreNotClassifiedAsInvalid from "./testValidBoardsAreNotClassifiedAsInvalid";
+import testTriviallySolvableBoardsHaveOneSolution from "./testTriviallySolvableBoardsHaveOneSolution";
+import testInvalidBoardsAreRecognized from "./testInvalidBoardsAreRecognized";
+import testHumanSolvingTechniquesDeliverValidPartialSolutions
+    from "./testHumanSolvingTechniquesDeliverValidPartialSolutions";
+import testGeneratorHumanTechniques from "./testGeneratorHumanTechniques";
 
-// testCoordsFlatIndexConversion();
-// testValidSudokuIsSolved();
-// testValidBoardsAreNotClassifiedAsInvalid();
-// testTriviallySolvableBoardsHaveOneSolution(8);
-// testInvalidBoardsAreRecognized();
+testCoordsFlatIndexConversion();
+testValidSudokuIsSolved();
+testValidBoardsAreNotClassifiedAsInvalid();
+testTriviallySolvableBoardsHaveOneSolution(8);
+testInvalidBoardsAreRecognized();
 
-const board = puzzleToSudoku(gnomeGs4HardSudokus[4]);
+testHumanSolvingTechniquesDeliverValidPartialSolutions(4);
 
+testGeneratorHumanTechniques(32, 4);

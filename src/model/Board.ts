@@ -11,6 +11,7 @@ export const BOARD_SIZE = Math.pow(BOARD_WIDTH, 2);
 export const BLOCK_WIDTH = 3;
 export const BLOCK_HEIGHT = 3;
 export const BLOCKS_PER_BAND = BOARD_WIDTH / BLOCK_WIDTH;
+// noinspection JSUnusedGlobalSymbols
 export const BLOCKS_PER_STACK = BOARD_WIDTH / BLOCK_HEIGHT;
 export const BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
 export const NUMBER_OF_BLOCKS = BOARD_SIZE / BLOCK_SIZE;

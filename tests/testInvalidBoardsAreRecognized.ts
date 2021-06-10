@@ -6,8 +6,8 @@ import {
     invalid4Solutions
 } from "../src/examples/invalidExamples";
 import {Puzzle} from "../src/model/Sudoku";
-import assert from "../src/utility/assert";
 import {solveCheckUnique, SOLVER_FAILURE} from "../src/algorithm/solver/solverBacktracking";
+import logSuccess from "../src/debug/consoleSuccess";
 
 export default function testInvalidBoards() {
     console.log("Testing invalid boards with non-unique solutions.");
@@ -20,8 +20,8 @@ export default function testInvalidBoards() {
     ].forEach(
         ([board, boardName]) => {
             const solverResult = solveCheckUnique(board as Puzzle);
-            assert(solverResult === SOLVER_FAILURE.MULTIPLE_SOLUTIONS, 'Invalid board with multiple solutions was not recognized.');
-            console.log(`%c Test passed for ${boardName}`, 'color: #00df00')
+            console.assert(solverResult === SOLVER_FAILURE.MULTIPLE_SOLUTIONS, 'Invalid board with multiple solutions was not recognized.');
+            logSuccess(`Test passed for ${boardName}`)
         }
     );
 }

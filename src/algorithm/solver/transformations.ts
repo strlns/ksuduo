@@ -8,7 +8,6 @@ import {
     coordsToFlatIndex,
     getFlatStartIndexForBlock
 } from "../../model/Board";
-import {fromPairs} from "lodash-es";
 import {Puzzle, Sudoku} from "../../model/Sudoku";
 
 export const puzzleToSudoku = (puzzle: Puzzle, solvePuzzle = true) => {
@@ -39,6 +38,8 @@ export const getBlockValuesForIndexInFlatPuzzle = (flatPuzzle: CellValue[], cell
 export const numberOfFilledCellsInArray = (cells: CellData[]): number => {
     return cells.reduce((prev, curr) => prev + (cellIsEmpty(curr) ? 0 : 1), 0);
 }
+
+// noinspection JSUnusedGlobalSymbols
 export const getValueInFlatPuzzleByCoords = (flatPuzzle: CellValue[], cellX: CellIndex, cellY: CellIndex): CellValue => {
     return flatPuzzle[coordsToFlatIndex(cellX, cellY)];
 }
@@ -50,22 +51,26 @@ export const addPossibleValuesToCellDataArray =
                 possibleValues: (onlyEmpty && !cellIsEmpty(cell)) ? [] : board.getAllowedCellValues(cell, !onlyEmpty)
             })
         );
-export type PossibilityCountHash = {
-    [value in CellValue]: number
-};
 
 /*
  * return an object with the cell values as key and the number of occurrences as a possible value
  * in the given array of cells, for the given board, as value.
  */
-export const getCountOfPossibleValues = (cellsWithP: CellDataWithPossibilites[]): PossibilityCountHash => {
-    const res = fromPairs(NonEmptyCellValues.map(val => [val, 0]));
-    for (const cell of cellsWithP) {
-        for (const value of cell.possibleValues) {
-            res[value] += 1;
+export const getCountOfPossibleValues = (cellsWithP: CellDataWithPossibilites[]): Map<CellValue, number> => {
+    const res = new Map<CellValue, number>();
+    NonEmptyCellValues.forEach(
+        val => res.set(val, 0)
+    )
+    cellsWithP.forEach(
+        cellWithP => {
+            cellWithP.possibleValues.forEach(
+                value => {
+                    res.set(value, (res.get(value) as number) + 1)
+                }
+            )
         }
-    }
-    return res as PossibilityCountHash;
+    )
+    return res;
 }
 export const getBlockIndexForCell = (cell: CellData): number => {
     return getBlockIndexForCoords(cell.x, cell.y);

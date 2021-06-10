@@ -27,9 +27,3 @@ export const ModalBaseStyles = makeStyles(
         }
     })
 );
-
-export const boxWithIconButtonFullWidthHoverable = makeStyles({
-    root: {
-        '& MuiIconButton': {}
-    }
-});

@@ -1,3 +1,7 @@
+// noinspection JSUnusedGlobalSymbols
+
+import {CellData, CellValue} from "../model/CellData";
+
 export const substrCount = (str: string, substr: string): number => {
     let res = -1;
     let slice = str;
@@ -17,3 +21,7 @@ export const rightPad = (str: string, len: number): string => {
     }
     return str.concat(Array(len - str.length).fill(' ').join(''));
 }
+
+export const formatCell = (cell: CellData, newValue?: CellValue): string => rightPad(
+    `(${cell.x}|${cell.y}): ${newValue ?? cell.value}`, 16
+)

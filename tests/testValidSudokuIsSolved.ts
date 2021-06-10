@@ -1,11 +1,11 @@
 import {almostDailyNightmareSudokus} from "../src/examples/validExamples";
 import {Solution, solverResultIsError} from "../src/algorithm/solver/solver";
 import solutionIsValid from "../src/validator/isValidSolution";
-import assert from "../src/utility/assert";
 import solutionRespectsHints from "../src/debug/solutionRespectsHints";
 import drawPuzzle from "../src/debug/drawPuzzleOnConsole";
 import {pickRandomArrayValue} from "../src/utility/pickRandom";
 import {solveCheckUnique} from "../src/algorithm/solver/solverBacktracking";
+import logSuccess from "../src/debug/consoleSuccess";
 
 export default function testValidSudokuIsSolved() {
     console.log('Testing that a sudoku is correctly solved.')
@@ -18,11 +18,13 @@ export default function testValidSudokuIsSolved() {
         throw new Error('Could not solve valid sudoku.');
     } else {
         const solution = solverResult as Solution;
-        assert(solutionRespectsHints(puzzle, solution), 'Solution is invalid, it does not respect the given hints.');
+        if (!solutionRespectsHints(puzzle, solution)) {
+            throw new Error('Solution is invalid, it does not respect the given hints.');
+        }
         if (!solutionIsValid(solution)) {
             drawPuzzle(solution);
             throw new Error('Solution is invalid.');
         }
-        console.log(`%c Test passed.`, 'color: #00df00')
+        logSuccess(`Test passed.`)
     }
 }

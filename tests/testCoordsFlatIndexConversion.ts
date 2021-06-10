@@ -1,6 +1,7 @@
 import {Sudoku} from "../src/model/Sudoku";
-import assert from "../src/utility/assert";
 import {coordsToFlatIndex, flatIndexToCoords} from "../src/model/Board";
+import logSuccess from "../src/debug/consoleSuccess";
+import assert from "./assert";
 
 export default function testCoordsFlatIndexConversion() {
     console.log("Testing that flat index and coordinates are correctly converted using a random board.")
@@ -28,5 +29,5 @@ export default function testCoordsFlatIndexConversion() {
         );
     }
 
-    console.log(`%c Test passed.`, 'color: #00df00')
+    logSuccess(`Test passed.`)
 }

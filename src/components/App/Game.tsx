@@ -44,6 +44,8 @@ import {getNextCellToFill} from "../../algorithm/solver/solverHumanTechniques";
 import {CellData} from "../../model/CellData";
 import {restoreGameStateOrInitialize} from "../../persistence/restoreGameStateOrInitialize";
 import {SOLVING_TECHNIQUE} from "../../algorithm/solver/humanTechniques";
+import {getCellWithMinPossAndValueFromSolution} from "../../algorithm/solver/solver";
+import {addPossibleValuesToCellDataArray} from "../../algorithm/solver/transformations";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -373,8 +375,19 @@ export const Game = (props: GameProps) => {
             let setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
                 usedTechnique = tech
             }
-            let cellWithVal = getNextCellToFill(sudoku, true, setUsedTechnique)
 
+            let cellWithVal = getNextCellToFill(
+                sudoku,
+                false,
+                setUsedTechnique
+            );
+            if (!cellWithVal) {
+                cellWithVal = getCellWithMinPossAndValueFromSolution(
+                    sudoku,
+                    setUsedTechnique,
+                    addPossibleValuesToCellDataArray(sudoku.getEmptyCells(), sudoku)
+                );
+            }
             if (!cellWithVal) {
                 throw new Error();
             }

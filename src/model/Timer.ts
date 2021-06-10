@@ -6,8 +6,8 @@ export class Timer {
     public callback: Function;
 
     constructor(callback?: Function) {
-        this.callback = () => {
-        };
+        this.callback = callback ?? (() => {
+        });
         this.secondsElapsed = 0;
         this.intervalId = undefined;
     }

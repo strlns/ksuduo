@@ -8,7 +8,7 @@ import {rightPad} from "../utility/stringLib";
   Draw a puzzle on the console to debug algorithmic issues without having to
   use the game itself
  */
-export default function drawPuzzle(puzzle: Puzzle, prependFlatRepresantation = true) {
+export default function drawPuzzle(puzzle: Puzzle, isError = false, prependFlatRepresantation = true) {
     const board = puzzleToSudoku(puzzle, false);
     const flatStr = `Flat: ${board.getFlatValues().join('')}`
     const cellValStr = (cell: CellData) => cellIsEmpty(cell) ? '·' : cell.value;
@@ -32,7 +32,7 @@ export default function drawPuzzle(puzzle: Puzzle, prependFlatRepresantation = t
                             : '\n') + curr
                     })
         }\n${hLine}`,
-        'white-space: pre-wrap;font-size:1.25rem');
+        `white-space:pre-wrap;font-size:1.25rem;${isError ? 'color:red;' : ''}`, ...(isError ? [(new Error()).stack] : []));
 }
 
 /*

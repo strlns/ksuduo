@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 /**
  * not very precise because of function nesting and other factors,
  * but good enough for a rough A/B comparison

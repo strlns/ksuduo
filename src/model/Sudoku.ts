@@ -2,7 +2,6 @@ import {CellData, cellIsEmpty, CellValue, EXCLUDE_NOTHING, NonEmptyCellValues,} 
 import {BlockData} from "./BlockData";
 import {shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
-import assert from "../utility/assert";
 import {getCellWithMinPossAndValueFromSolution, Solution, solve, solverResultIsError} from "../algorithm/solver/solver";
 import {
     BOARD_SIZE,
@@ -37,7 +36,7 @@ export class Sudoku {
      * main source of truth.
      * @private
      */
-    private rows: CellData[][] = [];
+    private readonly rows: CellData[][] = [];
 
     /**
      * history stored as array of flat board states (2nd dimension contains Array(81)<CellData>).
@@ -122,9 +121,9 @@ export class Sudoku {
     }
 
     public undo() {
-        assert(this.history.length > 0, 'Cannot undo, history empty.');
+        console.assert(this.history.length > 0, 'Cannot undo, history empty.');
         const values = this.history.pop();
-        // cast needed because TypeScript doesn't understand my custom assert()
+        // cast needed because TypeScript doesn't understand my custom console.assert()
         // (which guarantees the result of pop() cannot be undefined)
         this.initWithFlatCellData(values as CellData[]);
     }
@@ -410,17 +409,18 @@ export class Sudoku {
                 x = 0;
                 y++;
             }
-            assert(x < BOARD_WIDTH && y < BOARD_WIDTH, `${x} is not a valid row index and / or ${y} is not a valid col index`);
+            console.assert(x < BOARD_WIDTH && y < BOARD_WIDTH, `${x} is not a valid row index and / or ${y} is not a valid col index`);
             cell = this.getCell(x as CellIndex, y as CellIndex);
             x++;
         }
-        // assert(cellIsEmpty(cell), 'No empty cell found.');
+        // console.assert(cellIsEmpty(cell), 'No empty cell found.');
         if (!cellIsEmpty(cell)) {
             return this.getCell(0, 0);
         }
         return cell;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     public getInitialFocusCell(): CellData {
         let cell;
         try {
@@ -457,7 +457,7 @@ export class Sudoku {
     }
 
     /**
-     * "hidden" solution should always be present,
+     * solution should be present internally,
      * this is not the same as {@link isSolved}
      */
     public hasSolutionSet(): boolean {
@@ -509,6 +509,7 @@ export class Sudoku {
         return this.getNumberOfCorrectlyFilledCells() - filledBefore;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     public clearInvalidCells(): void {
         const invalidCells = this.getFilledCells().filter(cell => !cell.isValid);
         for (const cell of invalidCells) {

@@ -1,4 +1,3 @@
-import assert from "./assert";
 import intRange from "./numberRange";
 import {pickRandomArrayValue} from "./pickRandom";
 import {BOARD_WIDTH, CellIndex} from "../model/Board";
@@ -17,7 +16,7 @@ export default function* randomCoordinatesGenerator(infinite = false,
                                                     min: number = 0): Generator<[CellIndex, CellIndex]> {
     max = Math.floor(max);
     min = Math.floor(min);
-    assert(max > min);
+    console.assert(max > min);
     const range = intRange(min, max);
 
     function makeCoords(): [CellIndex, CellIndex] {

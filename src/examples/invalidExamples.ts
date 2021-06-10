@@ -1,8 +1,8 @@
+// noinspection JSUnusedGlobalSymbols
+
 /**
- * This puzzle has at least 2 solutions, which SHOULD be detected by
- * {@link hasMultipleSolutionsOrIsUnsolvable}
- *
- * encountered in previous version of my generator
+ * This puzzle has at least 2 solutions.
+ * Encountered in previous version of my generator
  */
 import {puzzleFromString} from "../utility/puzzleFromString";
 
