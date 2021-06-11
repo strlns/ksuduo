@@ -121,11 +121,10 @@ export class Sudoku {
     }
 
     public undo() {
-        console.assert(this.history.length > 0, 'Cannot undo, history empty.');
-        const values = this.history.pop();
-        // cast needed because TypeScript doesn't understand my custom console.assert()
-        // (which guarantees the result of pop() cannot be undefined)
-        this.initWithFlatCellData(values as CellData[]);
+        if (this.history.length > 0) {
+            const values = this.history.pop();
+            this.initWithFlatCellData(values as CellData[]);
+        }
     }
 
     /**
@@ -189,20 +188,16 @@ export class Sudoku {
         this.setSolution([]);
         this.clearHistory();
         this.getFlatCells().forEach(
-            cell => this.setValueUseCell({...cell, value: CellValue.EMPTY, isInitial: false, isValid: true}, false)
+            cell => this.clearCell(cell, false)
         );
     }
 
-    /*
-     Get a random completely filled initial board.
-     Uses naive brute-force approach - discard "impossible" boards and try again.
-     Could be improved for better performance.
-    */
-    public fillWithRandomCompleteSolution() {
+    public static getFullLatinSquare(): Solution {
         let deadEnd = false;
-        while (deadEnd || !this.isFilled()) {
-            this.clearBoard();
-            const blocks = this.getBlocks();
+        const tempBoard = new Sudoku();
+        while (deadEnd || !tempBoard.isFilled()) {
+            tempBoard.clearBoard();
+            const blocks = tempBoard.getBlocks();
             const middleBlock = blocks[Math.floor(blocks.length / 2)];
             deadEnd = false;
             const middleValues = shuffle(NonEmptyCellValues);
@@ -212,11 +207,11 @@ export class Sudoku {
                 cell.isInitial = true;
                 i++;
             }
-            for (const cell of this.getFlatCells()) {
+            for (const cell of tempBoard.getFlatCells()) {
                 if (middleBlock.cells.includes(cell)) {
                     continue;
                 }
-                const val = this.getAllowedCellValue(cell.x, cell.y);
+                const val = tempBoard.getAllowedCellValue(cell.x, cell.y);
                 if (val === CellValue.EMPTY) {
                     deadEnd = true;
                     break;
@@ -225,7 +220,21 @@ export class Sudoku {
                 cell.isInitial = true;
             }
         }
-        this.setSolution(this.getFlatValues());
+        return tempBoard.getFlatValues();
+    }
+
+    /*
+     Get a random completely filled initial board.
+     Uses naive brute-force approach - discard "impossible" boards and try again.
+     Could be improved for better performance.
+
+     After some code changes, this is even more inefficient using a temporary 2nd Sudoku instance,
+     but that shouldn't make much of a difference. (Benefit: more flexibility)
+    */
+    public fillWithRandomCompleteSolution() {
+        const solution = Sudoku.getFullLatinSquare();
+        this.initWithNumbers(solution, false);
+        this.setSolution(solution);
     }
 
     public getCell(x: CellIndex, y: CellIndex) {
@@ -241,19 +250,19 @@ export class Sudoku {
      * @param fixed if the cell was part of the initial puzzle
      * @param useHistory if the operation should be saved to history
      */
-    public setValue(x: CellIndex, y: CellIndex, value: CellValue, fixed = false, useHistory = true) {
+    public setValue(x: CellIndex, y: CellIndex, value: CellValue, fixed = false, useHistory = true): CellData {
         if (useHistory) {
             this.history.push(this.getFlatCells().slice());
         }
-        this.rows[y][x] = {
+        return this.rows[y][x] = {
             ...this.rows[y][x],
             isInitial: fixed,
             value
         };
     }
 
-    public setValueUseCell(cell: CellData, useHistory = true): void {
-        this.setValue(cell.x, cell.y, cell.value, cell.isInitial, useHistory);
+    public setValueUseCell(cell: CellData, useHistory = true): CellData {
+        return this.setValue(cell.x, cell.y, cell.value, cell.isInitial, useHistory)
     }
 
     public getRows(): readonly CellData[][] {
@@ -513,10 +522,15 @@ export class Sudoku {
     public clearInvalidCells(): void {
         const invalidCells = this.getFilledCells().filter(cell => !cell.isValid);
         for (const cell of invalidCells) {
-            this.setValueUseCell({...cell, value: CellValue.EMPTY, isValid: true});
+            this.clearCell(cell, false)
         }
+    }
+
+    public clearCell(cell: CellData, useHistory = true): CellData {
+        const newCell = {...cell, value: CellValue.EMPTY, isInitial: false, isValid: true};
+        return this.setValueUseCell(newCell, useHistory);
+
     }
 }
 
 export type Puzzle = Sudoku | CellValue[] | number[];
-

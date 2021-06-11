@@ -22,7 +22,7 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
                 secondsElapsed: data[3],
                 isPaused: data[4],
                 timerEnabled: data[5] ?? false,
-                currentDifficulty: data[6] ?? DIFFICULTY_LEVEL.EASY,
+                currentDifficulty: data[6] ?? DIFFICULTY_LEVEL.EASY_NEW,
                 solutionShown: data[7] ?? false
             };
         }

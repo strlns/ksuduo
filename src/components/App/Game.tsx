@@ -453,6 +453,8 @@ export const Game = (props: GameProps) => {
     const percentFilled = () => state.sudoku.getNumberOfCorrectlyFilledCells() / BOARD_SIZE * 100
     const difficultyLabel = () => {
         switch (state.currentDifficulty) {
+            case DIFFICULTY_LEVEL.EASY_NEW:
+                return 'Easiest';
             case DIFFICULTY_LEVEL.EASY:
                 return 'Easy';
             case DIFFICULTY_LEVEL.MEDIUM:

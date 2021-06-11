@@ -1,5 +1,5 @@
 import * as React from "react"
-import {useEffect} from "react"
+import {useEffect, useState} from "react"
 import {Box, FormControl, FormHelperText, InputLabel, NativeSelect, ThemeProvider} from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import {DIFFICULTY_LEVEL} from "../../algorithm/generator/generator";
@@ -52,9 +52,13 @@ export default (props: GeneratorConfigurationProps) => {
             label: value
         })
     );
+    const shouldShowRangeSlider = () => props.difficulty !== DIFFICULTY_LEVEL.EASY_NEW;
+    const [isRangeSliderVisible, setRangeSliderVisible] = useState(shouldShowRangeSlider())
 
     useEffect(
         () => {
+            setRangeSliderVisible(shouldShowRangeSlider());
+
             if (props.numberOfClues > MAX_CLUES) {
                 /**
                  * Reason for @ts-ignore.
@@ -93,39 +97,41 @@ export default (props: GeneratorConfigurationProps) => {
     return <Box p={1}>
         <ThemeProvider theme={ksuduoThemeNormal}>
             <FormControl fullWidth={true}>
-                <InputLabel htmlFor="difficulty-select">Difficulty</InputLabel>
+                <InputLabel htmlFor="generator-difficulty">Difficulty</InputLabel>
                 <NativeSelect
                     value={props.difficulty}
                     onChange={props.setDifficulty}
                     inputProps={{
                         name: 'difficulty',
-                        id: 'difficulty-select',
+                        id: 'generator-difficulty',
                     }}
                 >
+                    <option value={DIFFICULTY_LEVEL.EASY_NEW}>Easiest</option>
                     <option value={DIFFICULTY_LEVEL.EASY}>Easy</option>
                     <option value={DIFFICULTY_LEVEL.MEDIUM}>Medium</option>
                     <option value={DIFFICULTY_LEVEL.HARD}>Hard</option>
                 </NativeSelect>
                 <FormHelperText style={{lineHeight: 1, marginBottom: ksuduoThemeNormal.spacing(2)}}>
-                    Difficulty changes range of the slider below, but also generator strategy.
+                    {`${isRangeSliderVisible ? 'Difficulty changes range of the slider below, but also generator strategy.'
+                        : 'Puzzle is guaranteed to be solvable without using advanced techniques.'}`}
                 </FormHelperText>
             </FormControl>
         </ThemeProvider>
-        <InputLabel htmlFor="difficulty-select" style={{fontSize: '.75rem'}}>
-            Number of hints (filled cells)
-        </InputLabel>
-        <DiscreteRangeSlider id={"difficulty-select"}
-                             marks={marks}
-                             defaultValue={DEFAULT_CLUES}
-                             step={1}
-                             valueLabelDisplay={"auto"}
-                             min={MIN_CLUES}
-                             max={MAX_CLUES}
-                             aria-labelledby="num-clues"
-                             onChange={(event, value) => props.setNumberOfClues(value as number)}
-        />
+        {isRangeSliderVisible ?
+            <fieldset aria-label={"Number of hints (filled cells)"}>
+                <InputLabel htmlFor="difficulty-select" style={{fontSize: '.75rem'}}>
+                    Number of hints (filled cells)
+                </InputLabel>
+                <DiscreteRangeSlider id={"difficulty-select"}
+                                     marks={marks}
+                                     defaultValue={DEFAULT_CLUES}
+                                     step={1}
+                                     valueLabelDisplay={"auto"}
+                                     min={MIN_CLUES}
+                                     max={MAX_CLUES}
+                                     onChange={(event, value) => props.setNumberOfClues(value as number)}
+                /></fieldset> : null}
         <ThemeProvider theme={ksuduoThemeSecond}>
-            {/*To do: replace this hideous ad-hoc-solution, maybe with some kind of tooltip*/}
             <Box className={infoCollapseClass} style={{maxHeight: showMinClueInfo() ? '15rem' : '0'}}>
                 <Typography component='small' variant={'subtitle1'}
                             style={{lineHeight: '.75'}}>

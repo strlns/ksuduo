@@ -4,7 +4,7 @@
  */
 
 import {Sudoku} from '../../model/Sudoku';
-import {CellDataWithPossibilites, cellIsEmpty, CellValue} from "../../model/CellData";
+import {CellDataWithPossibilites, cellIsEmpty} from "../../model/CellData";
 import {pickRandomArrayIndex} from "../../utility/pickRandom";
 import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "../solver/solver";
 import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Board";
@@ -13,11 +13,13 @@ import {cloneDeep} from "lodash-es";
 import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../cellPicker/cellPicker";
 import {addPossibleValuesToCellDataArray} from "../solver/transformations";
 import {isTriviallySolvable} from "../transformations";
+import {generateBoardSolvableUsingEasyTechniques} from "./generatorHumanTechniques";
 
 export enum DIFFICULTY_LEVEL {
     EASY,
     MEDIUM,
-    HARD
+    HARD,
+    EASY_NEW
 }
 
 export enum GENERATOR_CODE {
@@ -43,6 +45,10 @@ export default function generateRandomSudoku(numberOfClues: number, difficulty =
 function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY, fewerRetries = false): GeneratorResult {
     if (numberOfClues < MINIMUM_CLUES) {
         numberOfClues = MINIMUM_CLUES;
+    }
+    if (difficulty === DIFFICULTY_LEVEL.EASY_NEW) {
+        /**{@link numberOfClues} is ignored here because the algo is pretty bad atm.*/
+        return [GENERATOR_CODE.OK, generateBoardSolvableUsingEasyTechniques(32, 4)]
     }
     const target = BOARD_SIZE - numberOfClues;
 
@@ -110,7 +116,7 @@ function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EAS
                 }
             }
 
-            board.setValueUseCell({...cell, value: CellValue.EMPTY, isInitial: false}, false);
+            board.clearCell(cell)
 
             if (achievedNumberOfEmptyCells < 4 || isTriviallySolvable(board)) {
                 // At least 4 empty cells are needed to make the board invalid.

@@ -1,14 +1,17 @@
 import {Sudoku} from "../../model/Sudoku";
 import {BOARD_SIZE, MINIMUM_CLUES} from "../../model/Board";
 import {pickRandomArrayIndex, pickRandomArrayValue} from "../../utility/pickRandom";
-import {CellValue} from "../../model/CellData";
+import {cellIsEmpty} from "../../model/CellData";
 import {isTriviallySolvable} from "../transformations";
-import {isCellFillableUsingHumanTechniques} from "../solver/solverHumanTechniques";
-import {solve as solveBacktracking, solverErrorString} from "../solver/solver";
+import {isCellFillableUsingHumanTechniques, isSolvableUsingEasyTechniques} from "../solver/solverHumanTechniques";
+import {solve, solverResultIsError} from "../solver/solver";
 import drawPuzzle from "../../debug/drawPuzzleOnConsole";
 import {shuffle} from "lodash-es";
-import {SOLVER_FAILURE} from "../solver/solverBacktracking";
-import {SOLVING_TECHNIQUE, solvingTechniqueName} from "../solver/humanTechniques";
+import {SOLVING_TECHNIQUE} from "../solver/humanTechniques";
+import randomCoordinatesGenerator from "../../utility/randomCoordsGenerator";
+import {getValueInFlatPuzzleByCoords} from "../solver/transformations";
+import logSuccess from "../../debug/consoleSuccess";
+import {LOGLEVEL_VERBOSE} from "../../loglevels";
 
 export function generateTriviallySolvableBoard(): Sudoku {
     const board = new Sudoku();
@@ -18,7 +21,7 @@ export function generateTriviallySolvableBoard(): Sudoku {
         let k = 0;
         while (isTriviallySolvable(board) && k < BOARD_SIZE) {
             const cellToClear = pickRandomArrayValue(board.getFilledCells());
-            board.setValue(cellToClear.x, cellToClear.y, CellValue.EMPTY, false, false);
+            board.clearCell(cellToClear, false)
             k++
         }
         board.fillSinglePossibilityCells();
@@ -39,21 +42,28 @@ function clearCellFillableByHumanTechniques(
         } else {
             index = pickRandomArrayIndex(candidates);
         }
-        const clearedCell = {...candidates[index], value: CellValue.EMPTY};
-        board.setValueUseCell(clearedCell);
+        const clearedCell = board.clearCell(candidates[index]);
         candidates.splice(index, 1);
-        if (isCellFillableUsingHumanTechniques(clearedCell, board, setUsedTechnique)) {
-            // if (IS_DEVELOPMENT) {
-            //     console.log(`Cleared cell ${clearedCell.x}/${clearedCell.y}`)
-            // }
+        if (
+            //no empty blocks, and fillable using human technique after removal
+            !board.getCellsInBlock(clearedCell).every(cell => cellIsEmpty(cell)) &&
+            isCellFillableUsingHumanTechniques(clearedCell, board, setUsedTechnique)
+        ) {
             return true;
         } else {
-            // if (IS_DEVELOPMENT) console.log("undo")
             board.undo();
         }
     }
     return false;
 }
+
+
+/**
+ * See this paper: https://sites.math.washington.edu/~morrow/mcm/team2280.pdf
+ *
+ * This algo is a piece of trash in comparison, but re-uses some ideas from there
+ */
+const START_WITH_N_CELLS = 48;
 
 export function generateBoardSolvableUsingEasyTechniques(
     numberOfHints: number, maxNumberOfBoardsToTry: number
@@ -62,53 +72,61 @@ export function generateBoardSolvableUsingEasyTechniques(
     const board = new Sudoku();
     let firstRun = true;
     let tries = 0;
-    let lastUsed: SOLVING_TECHNIQUE;
+    let lastUsed: SOLVING_TECHNIQUE | undefined = undefined;
     let bestBoardSoFar = board;
     let minHintsSoFar = BOARD_SIZE;
     const setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
         lastUsed = tech
     };
-    let techs = [];
     while (firstRun || tries < maxNumberOfBoardsToTry) {
         firstRun = false;
-        // if (IS_DEVELOPMENT) {
-        //     board.initWithNumbers('387256419451379268629841357175693824263487591948512736894125673732968145516734982'.split('').map(s => +s), true)
-        techs = [];
-        // }
-        // else {
-        board.fillWithRandomCompleteSolution();
-        // }
+        let seedBoardIsInvalid = true;
+        while (seedBoardIsInvalid) {
+            const solution = Sudoku.getFullLatinSquare();
+            board.clearBoard();
+            const randomCoordsGenerator = randomCoordinatesGenerator();
+            for (let k = 0; k < START_WITH_N_CELLS; k++) {
+                const coords = randomCoordsGenerator.next();
+                if (coords.done) {
+                    if (IS_DEVELOPMENT) console.error('exhausted coords')
+                    /**exhausted coordinates, impossible because {@link START_WITH_N_CELLS} < {@link BOARD_SIZE}*/
+                    break;
+                } else {
+                    const [x, y] = coords.value;
+                    board.setValue(x, y, getValueInFlatPuzzleByCoords(solution, x, y), true, false);
+                }
+            }
+            if (!solverResultIsError(solve(board))) {
+                seedBoardIsInvalid = false;
+            } else if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+                console.error('invalid seed board')
+                drawPuzzle(board, true);
+            }
+        }
+        if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+            logSuccess('accepted seed board, number of filled cells: ' + board.getNumberOfFilledCells())
+        }
         while (board.getNumberOfFilledCells() > numberOfHints) {
             const success = clearCellFillableByHumanTechniques(board, setUsedTechnique);
             if (!success) {
-                if (board.getNumberOfFilledCells() < minHintsSoFar) {
+                const achievedNumberOfHints = board.getNumberOfFilledCells();
+                if (IS_DEVELOPMENT) {
+                    console.log(`achieved ${achievedNumberOfHints} hints in ${tries + 1}st run`)
+                }
+                if (achievedNumberOfHints < minHintsSoFar) {
                     bestBoardSoFar = Sudoku.cloneWithoutHistory(board);
-                    minHintsSoFar = bestBoardSoFar.getNumberOfFilledCells();
+                    minHintsSoFar = achievedNumberOfHints;
                 }
                 break;
-            } else {
-                if (IS_DEVELOPMENT) {
-                    //@ts-ignore
-                    techs.push(`Cell was fillable using ${solvingTechniqueName(lastUsed)}`)
-                }
-                if (solveBacktracking(board) === SOLVER_FAILURE.MULTIPLE_SOLUTIONS) {
-                    if (IS_DEVELOPMENT) {
-                        console.error('At this point, multiple solutions were introduced.')
-                        drawPuzzle(board, true, false)
-                        board.undo();
-                        console.log(`Result before last removal: ${solverErrorString(solveBacktracking(board))}`)
-                        //@ts-ignore
-                        console.log(`Technique to blame: ${lastUsed}`)
-                        break;
-                    }
-                }
             }
         }
-        if (IS_DEVELOPMENT) {
-            console.log(techs)
-        }
-        if (board.getNumberOfFilledCells() === numberOfHints) break;
+        if (bestBoardSoFar.getNumberOfFilledCells() <= numberOfHints) break;
         tries++;
     }
-    return board;
+    if (IS_DEVELOPMENT) {
+        console.assert(!solverResultIsError(solve(bestBoardSoFar)), 'Board is invalid.')
+        console.assert(isSolvableUsingEasyTechniques(bestBoardSoFar), 'Board is not solvable using easy techniques');
+        console.log(clearCellFillableByHumanTechniques(board))
+    }
+    return bestBoardSoFar;
 }

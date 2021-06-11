@@ -28,8 +28,9 @@ export const Clock = (props: ClockProps) => {
         }
     })();
     if (props.isWorking) {
-        return <Box className={classes.root}>
-            <LinearProgress style={{flexGrow: 1}}/>
+        return <Box className={classes.root} flexWrap={'wrap'}>
+            <LinearProgress style={{flexGrow: 1, flexBasis: '100%'}}/>
+            <Typography variant={'subtitle1'}>Generating sudoku from scratch. This may take a while...</Typography>
         </Box>
     } else if (!props.visible) {
         return <Box className={classes.root}>

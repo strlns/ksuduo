@@ -1,15 +1,13 @@
 import intRange from "./numberRange";
-import {pickRandomArrayValue} from "./pickRandom";
 import {BOARD_WIDTH, CellIndex} from "../model/Board";
+import {cartesian} from "./cartesianProduct";
+import {shuffle} from "lodash-es";
 
-// noinspection JSUnusedGlobalSymbols
 /**
  * Generator for random index pair in specified range.
- * Not used anymore, kept here because of utility hoarder syndrome
  * @param max
  * @param min
  * @param infinite
- * @deprecated
  */
 export default function* randomCoordinatesGenerator(infinite = false,
                                                     max: number = BOARD_WIDTH - 1,
@@ -18,27 +16,12 @@ export default function* randomCoordinatesGenerator(infinite = false,
     min = Math.floor(min);
     console.assert(max > min);
     const range = intRange(min, max);
-
-    function makeCoords(): [CellIndex, CellIndex] {
-        return [
-            pickRandomArrayValue(range) as CellIndex,
-            pickRandomArrayValue(range) as CellIndex
-        ];
+    const coords = shuffle(
+        cartesian(range, range)
+    );
+    while (coords.length > 0) {
+        yield coords.pop()
     }
 
-    const usedCoords: string[] = [];
-    const coordsSpaceSize = Math.pow(max - min, 2);
-    while (true) {
-        if (usedCoords.length >= coordsSpaceSize) {
-            if (infinite) {
-                usedCoords.length = 0;
-            } else return;
-        }
-        let coords = makeCoords();
-        while (usedCoords.includes(coords.join())) {
-            coords = makeCoords();
-        }
-        usedCoords.push(coords.join());
-        yield coords;
-    }
+    return;
 }
