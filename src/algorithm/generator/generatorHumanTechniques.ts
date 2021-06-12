@@ -1,12 +1,11 @@
 import {Sudoku} from "../../model/Sudoku";
 import {BOARD_SIZE, MINIMUM_CLUES} from "../../model/Board";
 import {pickRandomArrayIndex, pickRandomArrayValue} from "../../utility/pickRandom";
-import {cellIsEmpty} from "../../model/CellData";
+import {CellData, cellIsEmpty} from "../../model/CellData";
 import {isTriviallySolvable} from "../transformations";
 import {isCellFillableUsingHumanTechniques, isSolvableUsingEasyTechniques} from "../solver/solverHumanTechniques";
 import {solve, solverResultIsError} from "../solver/solver";
 import drawPuzzle from "../../debug/drawPuzzleOnConsole";
-import {shuffle} from "lodash-es";
 import {SOLVING_TECHNIQUE} from "../solver/humanTechniques";
 import randomCoordinatesGenerator from "../../utility/randomCoordsGenerator";
 import {getValueInFlatPuzzleByCoords} from "../solver/transformations";
@@ -29,32 +28,37 @@ export function generateTriviallySolvableBoard(): Sudoku {
     return board;
 }
 
-function clearCellFillableByHumanTechniques(
+/**
+
+ * @param board the board.
+ * @param cellToClear the cell to clear.
+ * @param setUsedTechnique callback to set the "human solving technique" that the cleared cell can be filled with at the current board state
+ * @return success
+ */
+function clearCellIfFillableByHumanTechniques(
     board: Sudoku,
+    cellToClear: CellData,
     setUsedTechnique?: (technique: SOLVING_TECHNIQUE) => void
 ): boolean {
-    const candidates = IS_DEVELOPMENT ? board.getFilledCells() : shuffle(board.getFilledCells());
-    if (candidates.length < 1) return false;
-    let index = 0;
-    while (candidates.length > 0) {
-        if (IS_DEVELOPMENT) {
-            index = candidates.length - 1;
-        } else {
-            index = pickRandomArrayIndex(candidates);
-        }
-        const clearedCell = board.clearCell(candidates[index]);
-        candidates.splice(index, 1);
-        if (
-            //no empty blocks, and fillable using human technique after removal
-            !board.getCellsInBlock(clearedCell).every(cell => cellIsEmpty(cell)) &&
-            isCellFillableUsingHumanTechniques(clearedCell, board, setUsedTechnique)
-        ) {
-            return true;
-        } else {
-            board.undo();
-        }
+    const clearedCell = board.clearCell(cellToClear);
+    console.log(board.getCell(clearedCell.x, clearedCell.y))
+    if (
+        //no empty blocks, and fillable using human technique after removal
+        !board.getCellsInBlock(clearedCell).every(cell => cellIsEmpty(cell)) &&
+        isCellFillableUsingHumanTechniques(clearedCell, board, setUsedTechnique)
+    ) {
+        return true;
+    } else {
+        // if (IS_DEVELOPMENT) {
+        // console.log("UNDO");
+        // console.log(`cell to clear before: x:${cellToClear.x}|y:${cellToClear.y}, val: ${cellToClear.value}`)
+        // }
+        board.undo();
+        // if (IS_DEVELOPMENT) {
+        //     console.log(`cell to clear after: x:${cellToClear.x}|y:${cellToClear.y}, val: ${cellToClear.value}`)
+        // }
+        return false;
     }
-    return false;
 }
 
 
@@ -63,7 +67,7 @@ function clearCellFillableByHumanTechniques(
  *
  * This algo is a piece of trash in comparison, but re-uses some ideas from there
  */
-const START_WITH_N_CELLS = 48;
+const START_WITH_N_CELLS = 40;
 
 export function generateBoardSolvableUsingEasyTechniques(
     numberOfHints: number, maxNumberOfBoardsToTry: number
@@ -73,6 +77,7 @@ export function generateBoardSolvableUsingEasyTechniques(
     let firstRun = true;
     let tries = 0;
     let lastUsed: SOLVING_TECHNIQUE | undefined = undefined;
+    // let lastIndex: number | undefined = undefined;
     let bestBoardSoFar = board;
     let minHintsSoFar = BOARD_SIZE;
     const setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
@@ -103,30 +108,48 @@ export function generateBoardSolvableUsingEasyTechniques(
                 drawPuzzle(board, true);
             }
         }
-        if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
+        if (IS_DEVELOPMENT) {
             logSuccess('accepted seed board, number of filled cells: ' + board.getNumberOfFilledCells())
         }
-        while (board.getNumberOfFilledCells() > numberOfHints) {
-            const success = clearCellFillableByHumanTechniques(board, setUsedTechnique);
-            if (!success) {
-                const achievedNumberOfHints = board.getNumberOfFilledCells();
-                if (IS_DEVELOPMENT) {
-                    console.log(`achieved ${achievedNumberOfHints} hints in ${tries + 1}st run`)
-                }
-                if (achievedNumberOfHints < minHintsSoFar) {
-                    bestBoardSoFar = Sudoku.cloneWithoutHistory(board);
-                    minHintsSoFar = achievedNumberOfHints;
-                }
-                break;
+        const candidates = board.getFilledCells();
+
+        // noinspection JSMismatchedCollectionQueryUpdate
+        /**
+         * Currently we cannot really do anything useful with {@link retryCandidates}.
+         * Read paper more thouroughly, maybe we can achieve fewer hints.
+         *
+         */
+        const retryCandidates: CellData[] = [];
+
+        let achievedHints = board.getNumberOfFilledCells();
+        while (achievedHints > numberOfHints && candidates.length) {
+            const indexOfCellToClearInCandidates = pickRandomArrayIndex(candidates);
+            const cellToClear = candidates[indexOfCellToClearInCandidates];
+            const success = clearCellIfFillableByHumanTechniques(board, cellToClear, setUsedTechnique);
+            candidates.splice(indexOfCellToClearInCandidates, 1);
+            if (success) {
+                achievedHints--;
+            } else {
+                retryCandidates.push(cellToClear);
             }
         }
-        if (bestBoardSoFar.getNumberOfFilledCells() <= numberOfHints) break;
+
+        if (IS_DEVELOPMENT) {
+            console.log(`achieved ${achievedHints} hints in ${tries + 1}st run`)
+        }
+
+        if (board.getNumberOfFilledCells() <= numberOfHints) {
+            bestBoardSoFar = board;
+            break;
+        } else if (achievedHints < minHintsSoFar) {
+            bestBoardSoFar = board;
+            minHintsSoFar = achievedHints;
+        }
         tries++;
     }
     if (IS_DEVELOPMENT) {
         console.assert(!solverResultIsError(solve(bestBoardSoFar)), 'Board is invalid.')
         console.assert(isSolvableUsingEasyTechniques(bestBoardSoFar), 'Board is not solvable using easy techniques');
-        console.log(clearCellFillableByHumanTechniques(board))
     }
-    return bestBoardSoFar;
+    return Sudoku.cloneWithoutHistory(bestBoardSoFar);
 }

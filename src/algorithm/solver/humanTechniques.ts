@@ -168,7 +168,7 @@ export enum SOLVING_TECHNIQUE {
     MINPOSS_FROM_SOLUTION
 }
 
-export const solvingTechniqueName = (val: SOLVING_TECHNIQUE) => {
+export const solvingTechniqueName = (val: SOLVING_TECHNIQUE | undefined) => {
     switch (val) {
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW:
             return 'ROW'
@@ -179,7 +179,7 @@ export const solvingTechniqueName = (val: SOLVING_TECHNIQUE) => {
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_INDIRECT:
             return 'INDIRECT'
         default:
-            return 'INVALID'
+            return 'INVALID/UNDEFINED'
     }
 }
 

@@ -124,7 +124,7 @@ export class Sudoku {
         if (this.history.length > 0) {
             const values = this.history.pop();
             this.initWithFlatCellData(values as CellData[]);
-        }
+        } else throw new Error('History empty.')
     }
 
     /**
