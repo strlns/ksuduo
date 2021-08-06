@@ -7,10 +7,10 @@ import {
     CellValues,
     isEmptyAndNonInitial
 } from "../../model/CellData";
-import {addPossibleValuesToCellDataArray} from "./transformations";
-import {getCellWithUniquePossibleValue} from "../../solver/transformations";
 import {CellIndex} from "../../model/Board";
 import {BlockData, BlockIndex} from "../../model/BlockData";
+import {addPossibleValuesToCellDataArray} from "../transformations";
+import {getCellWithUniquePossibleValue} from "../cellPicker/getCellsWithUniquePossibleValue";
 
 export type CellWithNewValue = [CellData, CellValue];
 

@@ -2,13 +2,12 @@ import {Sudoku} from "../../model/Sudoku";
 import {BOARD_SIZE, MINIMUM_CLUES} from "../../model/Board";
 import {pickRandomArrayIndex, pickRandomArrayValue} from "../../utility/pickRandom";
 import {CellData, cellIsEmpty} from "../../model/CellData";
-import {isTriviallySolvable} from "../transformations";
+import {getValueInFlatPuzzleByCoords, isTriviallySolvable} from "../transformations";
 import {isCellFillableUsingHumanTechniques, isSolvableUsingEasyTechniques} from "../solver/solverHumanTechniques";
 import {solve, solverResultIsError} from "../solver/solver";
 import drawPuzzle from "../../debug/drawPuzzleOnConsole";
 import {SOLVING_TECHNIQUE} from "../solver/humanTechniques";
 import randomCoordinatesGenerator from "../../utility/randomCoordsGenerator";
-import {getValueInFlatPuzzleByCoords} from "../solver/transformations";
 import logSuccess from "../../debug/consoleSuccess";
 import {LOGLEVEL_VERBOSE} from "../../loglevels";
 

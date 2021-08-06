@@ -15,9 +15,8 @@ import {
 import {
     addPossibleValuesToCellDataArray,
     getBlockIndexForCell,
-    getBlockIndexForCoords,
-    numberOfFilledCellsInArray
-} from "../algorithm/solver/transformations";
+    getBlockIndexForCoords, numberOfFilledCellsInArray
+} from "../algorithm/transformations";
 
 /**
  * We rely on the structured clone algorithm to result in this type when serializing a
@@ -534,3 +533,12 @@ export class Sudoku {
 }
 
 export type Puzzle = Sudoku | CellValue[] | number[];
+
+export const puzzleToSudoku = (puzzle: Puzzle, solvePuzzle = true) => {
+    if (puzzle instanceof Sudoku) {
+        return puzzle;
+    }
+    const res = new Sudoku();
+    res.initWithNumbers(puzzle as number[], solvePuzzle);
+    return res;
+}

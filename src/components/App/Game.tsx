@@ -45,7 +45,7 @@ import {CellData} from "../../model/CellData";
 import {restoreGameStateOrInitialize} from "../../persistence/restoreGameStateOrInitialize";
 import {SOLVING_TECHNIQUE} from "../../algorithm/solver/humanTechniques";
 import {getCellWithMinPossAndValueFromSolution} from "../../algorithm/solver/solver";
-import {addPossibleValuesToCellDataArray} from "../../algorithm/solver/transformations";
+import {addPossibleValuesToCellDataArray} from "../../algorithm/transformations";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;

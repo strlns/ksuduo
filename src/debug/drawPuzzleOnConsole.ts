@@ -1,9 +1,9 @@
-import {Puzzle} from "../model/Sudoku";
+import {Puzzle, puzzleToSudoku} from "../model/Sudoku";
 import {CellData, cellIsEmpty} from "../model/CellData";
-import {addPossibleValuesToCellDataArray, puzzleToSudoku} from "../algorithm/solver/transformations";
 import {BLOCK_HEIGHT, BLOCK_WIDTH, BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
 import arrayChunk from "../utility/arrayChunk";
 import {rightPad} from "../utility/stringLib";
+import {addPossibleValuesToCellDataArray} from "../algorithm/transformations";
 /*
   Draw a puzzle on the console to debug algorithmic issues without having to
   use the game itself

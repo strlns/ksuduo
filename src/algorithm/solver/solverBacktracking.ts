@@ -10,7 +10,7 @@ import {Solution} from "./solver";
 import {BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Board";
 import {Puzzle, Sudoku} from "../../model/Sudoku";
 import {LOGLEVEL_VERBOSE} from "../../loglevels";
-import {getBlockValuesForIndexInFlatPuzzle} from "./transformations";
+import {getBlockValuesForIndexInFlatPuzzle} from "../transformations";
 
 export enum SOLVER_FAILURE {
     NO_SOLUTION_FOUND = 0,

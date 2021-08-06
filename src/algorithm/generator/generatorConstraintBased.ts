@@ -1,10 +1,9 @@
 import {CellDataWithPossibilites, cellIsEmpty} from "../../model/CellData";
 import {pickRandomArrayIndex} from "../../utility/pickRandom";
 import {BLOCK_SIZE, BOARD_SIZE, BOARD_WIDTH} from "../../model/Board";
-import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../cellPicker/cellPicker";
+import {getCellWithFewPossibilites, getCellWithMinimumPossibilites} from "../cellPicker/getCellsByNumberOfPossibilities";
 import {Sudoku} from "../../model/Sudoku";
-import {addPossibleValuesToCellDataArray} from "../solver/transformations";
-import {isTriviallySolvable} from "../transformations";
+import {addPossibleValuesToCellDataArray, isTriviallySolvable} from "../transformations";
 import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "../solver/solver";
 import {cloneDeep} from "lodash-es";
 import {LOGLEVEL_NORMAL} from "../../loglevels";

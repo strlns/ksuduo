@@ -1,7 +1,6 @@
 import {Solution} from "../algorithm/solver/solver";
-import {Puzzle} from "../model/Sudoku";
+import {Puzzle, puzzleToSudoku} from "../model/Sudoku";
 import {uniq} from "lodash-es";
-import {puzzleToSudoku} from "../algorithm/solver/transformations";
 
 export default function solutionIsValid(solution: Solution): boolean {
     const sudoku = puzzleToSudoku(solution as Puzzle, false);

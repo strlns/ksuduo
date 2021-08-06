@@ -1,9 +1,9 @@
 import {Puzzle, Sudoku} from "../../model/Sudoku";
 import {CellDataWithPossibilites, CellValue, isEmptyAndNonInitial} from "../../model/CellData";
 import {solveCheckUnique, SOLVER_FAILURE} from "./solverBacktracking";
-import {addPossibleValuesToCellDataArray} from "./transformations";
-import {getCellWithMinimumPossibilites} from "../cellPicker/cellPicker";
+import {getCellWithMinimumPossibilites} from "../cellPicker/getCellsByNumberOfPossibilities";
 import {CellWithNewValue, SOLVING_TECHNIQUE} from "./humanTechniques";
+import {addPossibleValuesToCellDataArray} from "../transformations";
 
 let callsToSolver = 0;
 

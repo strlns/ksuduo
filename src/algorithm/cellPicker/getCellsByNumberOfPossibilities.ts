@@ -1,9 +1,3 @@
-/**
- * Helper functions to select cells from given array of cells or board,
- * according to different criteria.
- *
- * Used by generator and when providing additional hints.
- */
 import {CellDataWithPossibilites} from "../../model/CellData";
 import {pickRandomArrayValue} from "../../utility/pickRandom";
 

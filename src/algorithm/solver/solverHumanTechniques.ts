@@ -1,5 +1,4 @@
-import {Puzzle, Sudoku} from "../../model/Sudoku";
-import {addPossibleValuesToCellDataArray, puzzleToSudoku} from "./transformations";
+import {Puzzle, puzzleToSudoku, Sudoku} from "../../model/Sudoku";
 import {getCellWithMinPossAndValueFromSolution, Solution, SolverResult} from "./solver";
 import {SOLVER_FAILURE} from "./solverBacktracking";
 import drawPuzzle from "../../debug/drawPuzzleOnConsole";
@@ -14,7 +13,8 @@ import {
 } from "./humanTechniques";
 import {cloneDeep, shuffle} from "lodash-es";
 import {CellData, cellIsEmpty} from "../../model/CellData";
-import {getCellsWithUniquePossibleValue} from "../../solver/transformations";
+import {addPossibleValuesToCellDataArray} from "../transformations";
+import {getCellsWithUniquePossibleValue} from "../cellPicker/getCellsWithUniquePossibleValue";
 
 /*
   Find a cell to fill using easy techniques that humans also use.
