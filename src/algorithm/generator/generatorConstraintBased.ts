@@ -117,7 +117,7 @@ export function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LE
 
         if (achievedNumberOfEmptyCells > bestAchievedEmptyCellsSoFar) {
             bestAchievedEmptyCellsSoFar = achievedNumberOfEmptyCells;
-            bestBoardSoFar = cloneDeep(board);
+            bestBoardSoFar = Sudoku.cloneWithoutHistory(board);
             if (IS_DEVELOPMENT) {
                 console.log(`New best board has ${BOARD_SIZE - bestAchievedEmptyCellsSoFar} hints. (${bestBoardSoFar.getNumberOfFilledCells()})`)
             }
