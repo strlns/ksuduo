@@ -51,6 +51,13 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     };
 
     const onKeyUp: React.KeyboardEventHandler = (event: React.KeyboardEvent) => {
+        if (props.cell.value === CellValue.EMPTY) {
+            //@ts-ignore
+            if (ref && ref.current instanceof HTMLInputElement) {
+                //@ts-ignore
+                ref.current.value = '';
+            }
+        }
         if (["Backspace", "Delete"].includes(event.key)) {
             props.setCellValue(CellValue.EMPTY);
         }
@@ -58,6 +65,22 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     const onFocus: React.FocusEventHandler<HTMLInputElement> = () => {
         props.setFocusedCell(props.cell)
     }
+    /*
+      This should not be needed, but it is: fix invalid input being
+      visible on desktop.
+      A dummy property counting the key presses did not fix the issue, I'm not sure
+      if the cause is the use of React.memo on the Board component or something else.
+    */
+    const hackyControlledComponentSync = () => {
+        if (props.cell.value === CellValue.EMPTY) {
+            //@ts-ignore
+            if (ref && ref.current instanceof HTMLInputElement) {
+                //@ts-ignore
+                ref.current.value = '';
+            }
+        }
+    }
+
     return <div className={className}>
         <NumInput inputRef={ref}
                   className="value"
@@ -69,6 +92,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                   }}
                   value={formatValue(props.cell.value)}
                   onKeyPress={onKeyPress}
+                  onInput={hackyControlledComponentSync}
                   onKeyUp={onKeyUp}
                   onFocus={onFocus}
                   disableUnderline={true}
