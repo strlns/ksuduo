@@ -473,10 +473,10 @@ export const Game = (props: GameProps) => {
     const smallTextClass = smallText().root;
 
     return <Container style={{padding: 0}}>
-        <Grid container spacing={3} justify={"center"}
+        <Grid container spacing={3} justifyContent={"center"}
               style={{padding: '2rem 0 0', position: 'relative', zIndex: 3}}
               className={`game${state.isWorking ? ' working' : ''}`}>
-            <Grid item xs={12} md={8} lg={6} justify={"center"} container>
+            <Grid item xs={12} md={8} lg={6} justifyContent={"center"} container>
                 <PaperBox {...paperBoxDefaultLayoutProps} width={'100%'}>
                     <Box p={1}>
                         <LinearProgress value={percentFilled()} variant={'determinate'} style={{marginTop: '12px'}}/>

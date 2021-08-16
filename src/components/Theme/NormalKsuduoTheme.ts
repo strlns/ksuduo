@@ -1,9 +1,9 @@
-import {createMuiTheme} from "@material-ui/core/styles";
+import {createTheme} from "@material-ui/core/styles";
 
 const headingFont = '"Bangers Regular", "DejaVu Sans", Roboto, Helvetica, sans-serif"';
 const bodyFont = '"DejaVu Sans", Roboto, Helvetica, sans-serif;'
 
-export const ksuduoThemeNormal = createMuiTheme({
+export const ksuduoThemeNormal = createTheme({
     /*
      Button component only supports primary|secondary|default|inherit
      for the color property (of which "default" is not supported by createMuiTheme)

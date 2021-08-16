@@ -1,7 +1,7 @@
-import {createMuiTheme} from "@material-ui/core/styles";
+import {createTheme} from "@material-ui/core/styles";
 import {ksuduoThemeNormal} from "./NormalKsuduoTheme";
 
-export const ksuduoThemeSecond = createMuiTheme({
+export const ksuduoThemeSecond = createTheme({
     typography: {
         ...ksuduoThemeNormal.typography
     },
