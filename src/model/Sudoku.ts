@@ -1,6 +1,6 @@
 import {CellData, cellIsEmpty, CellValue, EXCLUDE_NOTHING, NonEmptyCellValues,} from "./CellData";
 import {BlockData} from "./BlockData";
-import {shuffle} from "lodash-es";
+import {cloneDeep, shuffle} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
 import {getCellWithMinPossAndValueFromSolution, Solution, solve, solverResultIsError} from "../algorithm/solver/solver";
 import {
@@ -493,7 +493,12 @@ export class Sudoku {
     public static cloneWithoutHistory(sudoku: Sudoku) {
         return new Sudoku(
             {
+                /*
+                This version is BROKEN and leads to array-reuse bugs in the generator.
+                I'm too stupid to know why!
                 rows: sudoku.rows.map(row => row.slice()),
+                */
+                rows: cloneDeep(sudoku.rows),
                 solution: sudoku.solution.slice(),
                 history: []
             }

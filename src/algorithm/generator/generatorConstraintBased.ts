@@ -8,6 +8,11 @@ import {getCallsToSolver, resetCallsToSolver, solve, solverResultIsError} from "
 import {cloneDeep} from "lodash-es";
 import {LOGLEVEL_NORMAL} from "../../loglevels";
 import {DIFFICULTY_LEVEL, GENERATOR_CODE, GeneratorResult} from "./generator";
+import drawPuzzle from "../../debug/drawPuzzleOnConsole";
+
+function missedCluesGoalMsg(bestAchievedEmptyCellsSoFar: number, numberOfClues: number) {
+    return `Could not generate a valid Sudoku (unique solution) with the desired number of hints. Achieved ${BOARD_SIZE - bestAchievedEmptyCellsSoFar} hints (instead of ${numberOfClues}).`;
+}
 
 export function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LEVEL.EASY, fewerRetries = false): GeneratorResult {
     const target = BOARD_SIZE - numberOfClues;
@@ -45,6 +50,10 @@ export function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LE
         boardIsUneven = false;
         achievedNumberOfEmptyCells = 0;
         undos = 0;
+
+        if (IS_DEVELOPMENT && bestBoardSoFar) {
+            console.log("bestBoardSoFar at begin of outer iteration: ", bestBoardSoFar?.getFlatValuesAsString)
+        }
 
         while (achievedNumberOfEmptyCells < target && undos < MAX_UNDOS) {
             const candidatesWithPossibilites = addPossibleValuesToCellDataArray(candidates, board, false);
@@ -125,10 +134,6 @@ export function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LE
 
         it++;
     }
-    if (bestAchievedEmptyCellsSoFar < target) {
-        const msg = `Could not generate a valid Sudoku (unique solution) with the desired number of hints. Achieved ${BOARD_SIZE - bestAchievedEmptyCellsSoFar} hints (instead of ${numberOfClues}).`;
-        return [GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL, bestBoardSoFar, msg];
-    }
     if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_NORMAL) {
         console.log(`${getCallsToSolver()} calls to solver algorithm while generating.`)
         resetCallsToSolver();
@@ -136,9 +141,17 @@ export function generateSudoku(numberOfClues: number, difficulty = DIFFICULTY_LE
     }
     if (bestBoardSoFar === undefined) {
         // This should never happen if at least 1 cell can be cleared
-        throw new Error()
+        return [GENERATOR_CODE.UNKNOWN_ERROR, new Sudoku(), 'Unknown error while generating sudoku.'];
     }
-    return [GENERATOR_CODE.OK, bestBoardSoFar];
+    
+    if (bestAchievedEmptyCellsSoFar < target) {
+        drawPuzzle(bestBoardSoFar, true, false);
+        console.error("bestBoardSoFar:", bestBoardSoFar.getFlatValuesAsString());
+        return [GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL, bestBoardSoFar, missedCluesGoalMsg(bestAchievedEmptyCellsSoFar, numberOfClues)];
+    }
+    else {
+        return [GENERATOR_CODE.OK, bestBoardSoFar];
+    }
 }
 
 function getIndexOfCellToClear(
