@@ -51,13 +51,6 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     };
 
     const onKeyUp: React.KeyboardEventHandler = (event: React.KeyboardEvent) => {
-        if (props.cell.value === CellValue.EMPTY) {
-            //@ts-ignore
-            if (ref && ref.current instanceof HTMLInputElement) {
-                //@ts-ignore
-                ref.current.value = '';
-            }
-        }
         if (["Backspace", "Delete"].includes(event.key)) {
             props.setCellValue(CellValue.EMPTY);
         }
@@ -72,12 +65,17 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
       if the cause is the use of React.memo on the Board component or something else.
     */
     const hackyControlledComponentSync = () => {
-        if (props.cell.value === CellValue.EMPTY) {
-            //@ts-ignore
-            if (ref && ref.current instanceof HTMLInputElement) {
+        //@ts-ignore
+        if (ref && ref.current instanceof HTMLInputElement) {
+            if (props.cell.value === CellValue.EMPTY) {
                 //@ts-ignore
                 ref.current.value = '';
             }
+            else {
+                //@ts-ignore
+                ref.current.value = String(props.cell.value)
+            }
+
         }
     }
 
