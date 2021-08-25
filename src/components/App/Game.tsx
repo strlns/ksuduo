@@ -1,6 +1,6 @@
 import {ThemeProvider} from "@material-ui/styles";
 import * as React from "react";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {Board, OptionalCell} from "../Board/Board";
 import '../../css/app.css';
 import generateRandomSudoku, {
@@ -36,16 +36,19 @@ import {BOARD_SIZE, DEFAULT_CLUES} from "../../model/Board";
 import {WinnerMessage} from "../Message/WinnerMessage";
 import {formatTime} from "../../utility/formatTime";
 import {Timer} from "../../model/Timer";
-import {makeStyles} from "@material-ui/core/styles";
+import {alpha, makeStyles} from "@material-ui/core/styles";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 import About from "./About";
 import {usePageVisibility} from "react-page-visibility";
 import {getNextCellToFill} from "../../algorithm/solver/solverHumanTechniques";
-import {CellData} from "../../model/CellData";
+import {CellData, CellValue} from "../../model/CellData";
 import {restoreGameStateOrInitialize} from "../../persistence/restoreGameStateOrInitialize";
-import {SOLVING_TECHNIQUE} from "../../algorithm/solver/humanTechniques";
+import {hintExplanation, SOLVING_TECHNIQUE} from "../../algorithm/solver/humanTechniques";
 import {getCellWithMinPossAndValueFromSolution} from "../../algorithm/solver/solver";
 import {addPossibleValuesToCellDataArray} from "../../algorithm/transformations";
+import { pickRandomArrayValue } from "../../utility/pickRandom";
+import { GameMessage, GameMessageBox, GAME_MSG_BOX_SPACE, GAME_MSG_BOX_WIDTH } from "../Message/GameMessageBox";
+import { hashCode } from "../../utility/stringHash";
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -65,7 +68,7 @@ let timer = new Timer();
 
 export interface GameState {
     sudoku: Sudoku,
-    msg: string,
+    generatorMessage: string,
     numberOfClues: number,
     difficulty: DIFFICULTY_LEVEL,
     currentDifficulty: DIFFICULTY_LEVEL,
@@ -77,7 +80,8 @@ export interface GameState {
     solutionShown: boolean,
     isPaused: boolean, //paused by user
     secondsElapsed: number,
-    timerEnabled: boolean
+    timerEnabled: boolean,
+    gameMessages: GameMessage[]
 }
 
 // only used to detect initial render for timer.
@@ -89,7 +93,6 @@ interface GameProps {
  * Better decompose logic in next project, maybe using redux.
  * Done: Board.tsx doesn't re-render every 1000ms.
  */
-
 const {
     board: initialBoard,
     secondsElapsed: initialSeconds,
@@ -108,13 +111,14 @@ export const Game = (props: GameProps) => {
         highlightedCell: undefined as OptionalCell,
         secondaryHighlight: [],
         isWorking: false,
-        msg: '',
+        generatorMessage: '',
         forceFocus: undefined as OptionalCell,
         initialBoardIsSolved: initialBoard.isSolved(),
         solutionShown: initialSolutionShown,
         secondsElapsed: initialSeconds,
         isPaused: initialIsPaused,
         timerEnabled: initialTimerEnabled,
+        gameMessages: []
     } as GameState);
 
     const resetStateCommons = {
@@ -122,14 +126,10 @@ export const Game = (props: GameProps) => {
         highlightedCell: undefined,
         isWorking: false,
         isPaused: false,
-        msg: '',
+        generatorMessage: '',
         secondsElapsed: 0,
         initialBoardIsSolved: false,
-        /*
-         this line causes a re-render of Board.tsx every 1000ms.
-         @todo place it somewhere else.
-         forceFocus: state.sudoku.getInitialFocusCell()
-        */
+        gameMessages: []
     };
 
     const [supportsInputModeAttribute, setSupportsInputModeAttribute] = useState(false);
@@ -139,7 +139,7 @@ export const Game = (props: GameProps) => {
     const pageIsVisible = usePageVisibility();
 
     interface StateFromGen {
-        msg?: string,
+        generatorMessage?: string,
         sudoku?: Sudoku
     }
 
@@ -150,7 +150,7 @@ export const Game = (props: GameProps) => {
             case GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL:
                 return {
                     sudoku: board,
-                    ...(result[0] !== GENERATOR_CODE.OK ? {msg: result[2]} : {})
+                    ...(result[0] !== GENERATOR_CODE.OK ? {generatorMessage: result[2]} : {})
                 }
             case GENERATOR_CODE.UNKNOWN_ERROR:
             default:
@@ -158,7 +158,7 @@ export const Game = (props: GameProps) => {
                     console.error(result);
                 }
                 return {
-                    msg: result[2]
+                    generatorMessage: result[2]
                 }
         }
     };
@@ -169,7 +169,7 @@ export const Game = (props: GameProps) => {
         }
         if (useWebWorker) {
             if (state.isWorking) return;
-            setState(prevState => ({...prevState, isWorking: true, msg: ''}));
+            setState(prevState => ({...prevState, isWorking: true, generatorMessage: ''}));
             sudokuWorker.postMessage({
                 source: MSGEVT_SOURCE,
                 data: [WORKER_ACTIONS.GENERATE, state.numberOfClues, state.difficulty]
@@ -214,13 +214,47 @@ export const Game = (props: GameProps) => {
     }
 
     const updateNumberOfClues = (numberOfClues: number): void => {
-        setState(prevState => {
-            return ({
+        setState(prevState => ({
                 ...prevState,
                 numberOfClues
-            });
-        })
+            })
+        );
     };
+    //set up a ref to access the gameMessages array inside a setTimeout call
+    const currentMessagesRef = useRef(state.gameMessages);
+    //update the ref each time the render function is called
+    currentMessagesRef.current = state.gameMessages;
+
+    const addGameMessage = (message: GameMessage): void => {
+        message.dismissable = message.dismissable === undefined ? true : message.dismissable;
+        message.key = hashCode(`${Date.now()} ${message.text}`);
+        const newMessages = state.gameMessages.slice();
+        newMessages.unshift(message);
+        setState(prevState => ({
+                ...prevState,
+                gameMessages: newMessages
+            })
+        );
+        const removeMessage = () => {
+            const messages = currentMessagesRef.current;
+            const index = messages.indexOf(message);
+            const newMessages = messages.slice();
+            if (index !== -1) {
+                newMessages.splice(index, 1);
+            }
+            setState(prevState => ({
+                    ...prevState,
+                    gameMessages: newMessages
+                })
+            );
+        };
+        if (message.duration > 0) {
+            window.setTimeout(removeMessage, message.duration);
+        }
+        if (message.dismissable) {
+            message.dismiss = removeMessage;
+        }
+    }
 
     const resetSudoku = () => {
         const sudoku = cloneDeep(state.sudoku);
@@ -366,15 +400,56 @@ export const Game = (props: GameProps) => {
         setState(prevState => ({...prevState, difficulty: +event.target.value as DIFFICULTY_LEVEL}))
     }
 
-    let hintTimeout: number;
+    const hintTimeoutRef: {current: undefined|number} = useRef(undefined);
 
-    const giveHint = () => {
+    /**
+     * Fix a wrongly filled cell and tell the user about it.
+     * @param cell 
+     */
+    const fixError = (cell: CellData): void => {
+        addGameMessage({
+            text: `You've made a mistake. Cell at ${cell.x + 1}/${cell.y + 1} was cleared for you. Hit 'Add Hint' again to get another hint.`,
+            duration: 6000
+        });
+        // cell.value = CellValue.EMPTY;
+        // use this method to provide the history.
+        state.sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
+        
+        setState(prevState => ({
+            ...prevState,
+            highlightedCell: state.sudoku.getCell(cell.x, cell.y)
+        }));
+
+        if (hintTimeoutRef.current !== undefined) {
+            clearTimeout(hintTimeoutRef.current)
+        }
+
+        hintTimeoutRef.current = window.setTimeout(() => {
+            setState(prevState => ({
+                    ...prevState,
+                    highlightedCell: undefined
+                })
+            )
+        }, 5000);
+    };
+
+    /**
+     * Give the user a hint and highlight how the given cell value could be deduced.
+     */
+    const giveHint = (): void => {
         if (!(state.isWorking || state.sudoku.isSolved())) {
-            const sudoku = cloneDeep(state.sudoku)
-            let usedTechnique: SOLVING_TECHNIQUE
+            const sudoku = cloneDeep(state.sudoku);
+
+            const wronglyFilledCells = state.sudoku.getWronglyFilledCells();
+            if (wronglyFilledCells.length > 0) {
+                fixError(pickRandomArrayValue(wronglyFilledCells));
+                return;
+            }
+
+            let usedTechnique: SOLVING_TECHNIQUE = SOLVING_TECHNIQUE.NONE;
             let setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
                 usedTechnique = tech
-            }
+            };
 
             let cellWithVal = getNextCellToFill(
                 sudoku,
@@ -408,12 +483,17 @@ export const Game = (props: GameProps) => {
                     forceFocus: hintCellData,
                     solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1,
                 }));
+
+                addGameMessage({
+                    text: hintExplanation(hintCellData, usedTechnique),
+                    duration: 6000
+                });
             }
-            if (hintTimeout !== undefined) {
-                clearTimeout(hintTimeout)
+            if (hintTimeoutRef.current !== undefined) {
+                clearTimeout(hintTimeoutRef.current)
             }
 
-            hintTimeout = window.setTimeout(() => {
+            hintTimeoutRef.current = window.setTimeout(() => {
                 setState(prevState => ({
                         ...prevState,
                         highlightedCell: undefined,
@@ -473,6 +553,19 @@ export const Game = (props: GameProps) => {
     const smallTextClass = smallText().root;
 
     return <Container style={{padding: 0}}>
+        {state.gameMessages.length > 0 ?
+            <Box position='fixed' bottom={0} left={0} right={0} zIndex={99}
+                display='flex'
+                style={{
+                    maxHeight: '20rem',
+                    padding: GAME_MSG_BOX_SPACE,
+                    overflow: 'auto',
+                    background: `linear-gradient(to bottom, ${alpha(ksuduoThemeNormal.palette.background.paper, 0.75)}, ${alpha(ksuduoThemeNormal.palette.background.paper, 0.75)})`,
+                    borderBottom: `1px solid ${ksuduoThemeNormal.palette.text.primary}`
+                    }}>
+                {state.gameMessages.map(message => <GameMessageBox message={message} key={message.key}/>)}
+            </Box>
+        : null}
         <Grid container spacing={3} justifyContent={"center"}
               style={{padding: '2rem 0 0', position: 'relative', zIndex: 3}}
               className={`game${state.isWorking ? ' working' : ''}`}>
@@ -569,11 +662,11 @@ export const Game = (props: GameProps) => {
                 <Grid item xs={12}>
                     <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
                         <GenerateButton onClick={generateSudoku} isWorking={state.isWorking}/>
-                        {state.msg.length > 0 ?
+                        {state.generatorMessage.length > 0 ?
                             <Box display={'flex'} alignItems={'center'}>
                                 <InfoOutlined style={{margin: '0 .75rem'}}/>
                                 <Typography className={smallTextClass}>
-                                    {state.msg}
+                                    {state.generatorMessage}
                                 </Typography>
                             </Box>
                             : null}

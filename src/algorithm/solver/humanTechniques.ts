@@ -165,7 +165,8 @@ export enum SOLVING_TECHNIQUE {
     HUMAN_UNIQPOSS_COL,
     HUMAN_UNIQPOSS_BLOCK,
     HUMAN_UNIQPOSS_INDIRECT,
-    MINPOSS_FROM_SOLUTION
+    MINPOSS_FROM_SOLUTION,
+    NONE
 }
 
 export const solvingTechniqueName = (val: SOLVING_TECHNIQUE | undefined) => {
@@ -178,8 +179,27 @@ export const solvingTechniqueName = (val: SOLVING_TECHNIQUE | undefined) => {
             return 'BLOCK'
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_INDIRECT:
             return 'INDIRECT'
+        case SOLVING_TECHNIQUE.MINPOSS_FROM_SOLUTION:
+            return 'SOLUTION'
         default:
             return 'INVALID/UNDEFINED'
+    }
+}
+
+export const hintExplanation = (cell: CellData, technique: SOLVING_TECHNIQUE) => {
+    switch (technique) {
+        case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW:
+            return `Filled a ${cell.value} at the only allowed place in row ${cell.y + 1}.`
+        case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_COL:
+            return `Filled a ${cell.value} at the only allowed place in row ${cell.x + 1}.`
+        case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_BLOCK:
+            return `Filled a ${cell.value} at the only allowed place in block ${cell.blockIndex + 1}.`
+        case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_INDIRECT:
+            return `Filled a ${cell.value} using indirect row/col scanning at (${cell.x + 1}|${cell.y + 1}).`
+        case SOLVING_TECHNIQUE.MINPOSS_FROM_SOLUTION:
+            return `Value ${cell.value} at (${cell.x + 1}|${cell.y + 1}) was filled in from solution.`
+        default:
+            return `Unknown solving technique.`
     }
 }
 

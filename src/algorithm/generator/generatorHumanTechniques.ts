@@ -48,14 +48,7 @@ function clearCellIfFillableByHumanTechniques(
     ) {
         return true;
     } else {
-        // if (IS_DEVELOPMENT) {
-        // console.log("UNDO");
-        // console.log(`cell to clear before: x:${cellToClear.x}|y:${cellToClear.y}, val: ${cellToClear.value}`)
-        // }
         board.undo();
-        // if (IS_DEVELOPMENT) {
-        //     console.log(`cell to clear after: x:${cellToClear.x}|y:${cellToClear.y}, val: ${cellToClear.value}`)
-        // }
         return false;
     }
 }
@@ -88,6 +81,7 @@ export function generateBoardSolvableUsingEasyTechniques(
         while (seedBoardIsInvalid) {
             const solution = Sudoku.getFullLatinSquare();
             board.clearBoard();
+            board.setSolution(solution);
             const randomCoordsGenerator = randomCoordinatesGenerator();
             for (let k = 0; k < START_WITH_N_CELLS; k++) {
                 const coords = randomCoordsGenerator.next();

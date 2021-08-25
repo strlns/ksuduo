@@ -37,7 +37,7 @@ export const Clock = (props: ClockProps) => {
             <TimerRounded/>
         </Box>
     } else if (props.solutionShown) {
-        return <Box className={classes.root} style={{justifyContent: 'center'}}>
+        return <Box className={classes.root} justifyContent={'center'}>
             <Done style={{marginInlineEnd: ksuduoThemeNormal.spacing(1)}}/>
             <Typography>Solution shown</Typography>
         </Box>

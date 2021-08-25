@@ -353,6 +353,12 @@ export class Sudoku {
         return this.getFlatCells().filter(cell => cellIsEmpty(cell));
     }
 
+    public getWronglyFilledCells(): CellData[] {
+        return this.getFlatCells().filter(
+            cell => !cellIsEmpty(cell) && this.getValueFromSolution(cell.x, cell.y) !== cell.value
+        )
+    }
+
     public getAllowedCellValue(x: CellIndex, y: CellIndex): CellValue {
         const allowedValues = this.getAllowedCellValuesByCoords(x, y);
         if (allowedValues.length === 0) {

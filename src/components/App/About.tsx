@@ -1,7 +1,7 @@
 import * as React from "react"
 import {Box, IconButton, Modal} from "@material-ui/core";
 import {Button} from "../Controls/Button";
-import {CheckCircleRounded, CloseRounded, HelpOutlineRounded} from "@material-ui/icons";
+import {CheckCircleRounded, CloseRounded, GitHub, HelpOutlineRounded} from "@material-ui/icons";
 import {ModalBaseStyles} from "../Message/ModalBaseStyles";
 
 export default () => {
@@ -21,29 +21,40 @@ export default () => {
                         <CloseRounded/>
                     </IconButton>
                 </Box>
+                <a style={{display: 'flex', alignItems: 'center'}}
+                href="https://github.com/strlns/ksuduo" target="_blank">
+                    <GitHub style={{color: 'black', marginRight: '.75em'}}/>
+                    View code
+                </a>
                 <h3>How to play?</h3>
                 <p>
                     See <a href="https://en.wikipedia.org/wiki/Sudoku" target="_blank">Wikipedia on Sudoku</a>
                 </p>
-                <h3>How does the generator work? Why is it slow?</h3>
+                <h3>How does the generator work? Why is it so slow?</h3>
                 <p>
-                    It starts with a randomly generated, completely filled board.
-                    Then cells are cleared one at a time, after each removal, the board is solved and checked for
-                    multiple solutions.
-                    A sudoku with more than one solution is not a sudoku.
-                    If no cell can be removed without rendering the board invalid,
-                    the fully completed "seed" board is discarded.
-                    Rinse, repeat until the desired number of cells is cleared.
-                    The process is not optimized for good performance.
+                    This generator does not use templates or pre-generated sudokus.
+                    Everything is generated from scratch (on your computer).
+                    Also, the algorithm is not optimized for good performance.
                     This is a learning project.
                 </p>
-                <h3>Difficulty levels</h3>
                 <p>
-                    Different kinds of cells are preferred while deleting at the 3 difficulty levels - in easy mode, the
-                    cells that are
-                    cleared tend to be the ones that are easier to fill. In hard mode, cells with greater numbers of
-                    possible values are
-                    preferred.
+                    It starts with a randomly generated, completely filled board (latin square / solution).
+                    Then cells are cleared one at a time.
+                    After each removal, the resulting board must solved.
+                    If more than one solution is found, the board is invalid and not a sudoku.
+                    In this case, the cell cannot be cleared.
+                </p>
+                <p>
+                    When no more cells can be removed, but the desired number of cells has not yet been cleared,
+                    the fully filled "seed" board is discarded.
+                </p>
+                <p>
+                    To provide the <strong>difficult levels</strong>, different kinds of cells are preferred by the generator.<br/>
+                    At the level <em>"Easiest"</em>, it is guaranteed that every cell in the resulting board can be filled using simple "solving techniques".
+                    <br/>
+                    You can see a step-by-step solution by repeatedly clicking the button "Add Hint".
+                    In the other three modes from <em>"Easy"</em> to <em>"Hard"</em>, the generator prefers cells with varying numbers of possible values (at the corresponding stage of the removal process).
+                    For example, at the level <em>"Easy"</em>, the cleared cell is always one of the cells with the least number of possible remaining values.
                 </p>
                 <Box onClick={() => setExplanationModalOpen(false)}>
                     <IconButton style={{margin: 'auto', display: 'block'}} title="Close">
