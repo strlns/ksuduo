@@ -186,7 +186,7 @@ export const solvingTechniqueName = (val: SOLVING_TECHNIQUE | undefined) => {
     }
 }
 
-export const hintExplanation = (cell: CellData, technique: SOLVING_TECHNIQUE) => {
+export const hintExplanation = (technique: SOLVING_TECHNIQUE, cell: CellData): string => {
     switch (technique) {
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW:
             return `Filled a ${cell.value} at the only allowed place in row ${cell.y + 1}.`
@@ -199,7 +199,7 @@ export const hintExplanation = (cell: CellData, technique: SOLVING_TECHNIQUE) =>
         case SOLVING_TECHNIQUE.MINPOSS_FROM_SOLUTION:
             return `Value ${cell.value} at (${cell.x + 1}|${cell.y + 1}) was filled in from solution.`
         default:
-            return `Unknown solving technique.`
+            return 'Unknown technique.'
     }
 }
 

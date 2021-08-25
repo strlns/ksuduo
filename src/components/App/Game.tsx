@@ -407,18 +407,20 @@ export const Game = (props: GameProps) => {
      * @param cell 
      */
     const fixError = (cell: CellData): void => {
+        const sudoku = cloneDeep(state.sudoku);
+        
+        sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
+        
+        setState(prevState => ({
+            ...prevState,
+            sudoku,
+            highlightedCell: sudoku.getCell(cell.x, cell.y)
+        }));
+
         addGameMessage({
             text: `You've made a mistake. Cell at ${cell.x + 1}/${cell.y + 1} was cleared for you. Hit 'Add Hint' again to get another hint.`,
             duration: 6000
         });
-        // cell.value = CellValue.EMPTY;
-        // use this method to provide the history.
-        state.sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
-        
-        setState(prevState => ({
-            ...prevState,
-            highlightedCell: state.sudoku.getCell(cell.x, cell.y)
-        }));
 
         if (hintTimeoutRef.current !== undefined) {
             clearTimeout(hintTimeoutRef.current)
@@ -463,13 +465,10 @@ export const Game = (props: GameProps) => {
                     addPossibleValuesToCellDataArray(sudoku.getEmptyCells(), sudoku)
                 );
             }
-            if (!cellWithVal) {
-                throw new Error();
-            }
 
-            const hintCellData = {...cellWithVal[0], value: cellWithVal[1], isInitial: true}
 
             if (cellWithVal) {
+                const hintCellData = {...cellWithVal[0], value: cellWithVal[1], isInitial: true}
                 sudoku.setValueUseCell(hintCellData)
                 setState(prevState => ({
                     ...prevState,
@@ -480,15 +479,20 @@ export const Game = (props: GameProps) => {
                         hintCellData,
                         sudoku
                     ),
-                    forceFocus: hintCellData,
                     solutionShown: prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1,
                 }));
-
                 addGameMessage({
-                    text: hintExplanation(hintCellData, usedTechnique),
+                    text: hintExplanation(usedTechnique, hintCellData),
                     duration: 6000
                 });
             }
+            else {
+                addGameMessage({
+                    text: 'Error giving hint.',
+                    duration: 6000
+                });
+            }
+
             if (hintTimeoutRef.current !== undefined) {
                 clearTimeout(hintTimeoutRef.current)
             }
@@ -497,8 +501,7 @@ export const Game = (props: GameProps) => {
                 setState(prevState => ({
                         ...prevState,
                         highlightedCell: undefined,
-                        secondaryHighlight: [],
-                        forceFocus: undefined
+                        secondaryHighlight: []
                     })
                 )
             }, 5000);
