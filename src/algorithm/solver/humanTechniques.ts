@@ -191,7 +191,7 @@ export const hintExplanation = (technique: SOLVING_TECHNIQUE, cell: CellData): s
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW:
             return `Filled a ${cell.value} at the only allowed place in row ${cell.y + 1}.`
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_COL:
-            return `Filled a ${cell.value} at the only allowed place in row ${cell.x + 1}.`
+            return `Filled a ${cell.value} at the only allowed place in column ${cell.x + 1}.`
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_BLOCK:
             return `Filled a ${cell.value} at the only allowed place in block ${cell.blockIndex + 1}.`
         case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_INDIRECT:
