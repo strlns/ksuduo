@@ -73,10 +73,10 @@ export default (props: GeneratorConfigurationProps) => {
                  * So we need just need to ignore the TS compiler here.
                  */
                 //@ts-ignore
-                props.setNumberOfClues({}, MAX_CLUES);
+                props.setNumberOfClues(MAX_CLUES);
             } else if (props.numberOfClues < MIN_CLUES) {
                 //@ts-ignore
-                props.setNumberOfClues({}, MIN_CLUES);
+                props.setNumberOfClues(MIN_CLUES);
             }
         }, [
             props.difficulty
