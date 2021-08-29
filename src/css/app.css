@@ -10,12 +10,7 @@
 body {
     min-height: 100%;
     position: relative;
-    margin: 0;
-    padding: 0;
-}
-
-main {
-    background: linear-gradient(38deg, #16246740, #162467) no-repeat 0/100%;
+    background: linear-gradient(38deg, #16246740, #162467) no-repeat fixed;
 }
 
 fieldset {
