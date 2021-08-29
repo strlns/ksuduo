@@ -10,10 +10,9 @@ import clsx from 'clsx';
 export const WinnerMessage = React.forwardRef((props: React.PropsWithChildren<BoxProps>, ref) => {
     const winnerClasses = makeStyles((theme: Theme) => ({
         root: {
-            color: theme.palette.secondary.dark,
             fontSize: '2rem',
             fontWeight: 'bold',
-            backgroundColor: theme.palette.secondary.light,
+            backgroundColor: '#B6FFF1',
         }
     }));
     return <Box className={clsx(winnerClasses().root, ModalBaseStyles().root)}>

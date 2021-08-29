@@ -163,7 +163,7 @@ export const Game = (props: GameProps) => {
         }
     };
 
-    const generateSudoku = () => {
+    const generateSudokuThen = (callback: () => void) => {
         if (IS_DEVELOPMENT) {
             console.log(useWebWorker ? 'Using web worker, test succeeded.' : 'Falling back to synchronous puzzle generation.')
         }
@@ -188,6 +188,7 @@ export const Game = (props: GameProps) => {
                         ...stateFromGenerator(result)
                     })
                 );
+                callback();
                 timer.start();
             }
             sudokuWorker.addEventListener('message', listener);
@@ -211,6 +212,10 @@ export const Game = (props: GameProps) => {
                 }, 25)
             });
         }
+    }
+
+    const generateSudoku = () => {
+        generateSudokuThen(() => {});
     }
 
     const updateNumberOfClues = (numberOfClues: number): void => {
@@ -664,7 +669,7 @@ export const Game = (props: GameProps) => {
                 </Grid>
                 <Grid item xs={12}>
                     <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
-                        <GenerateButton onClick={generateSudoku} isWorking={state.isWorking}/>
+                        <GenerateButton onClick={generateSudoku} isWorking={state.isWorking} text='Generate sudoku'/>
                         {state.generatorMessage.length > 0 ?
                             <Box display={'flex'} alignItems={'center'}>
                                 <InfoOutlined style={{margin: '0 .75rem'}}/>
@@ -689,31 +694,29 @@ export const Game = (props: GameProps) => {
                 </Grid>
             </Grid>
         </Grid>
-        <ThemeProvider theme={ksuduoThemeSecond}>
-            <Modal
-                open={winnerModalOpen}
-                onClose={() => setWinnerModalOpen(false)}>
-                <WinnerMessage>
-                    <Box display={"flex"} justifyContent={"center"}>
-                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
-                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
-                        <Icon children={<ThumbUp/>} fontSize={"large"}/>
-                    </Box>
-                    <Typography component={'h3'} variant={'h3'}>
-                        Congratulations!
-                    </Typography>
-                    <Typography style={{margin: '1em 0'}}>
-                        You successfully completed the Sudoku
-                        {state.timerEnabled ? ` in ${formatTime(state.secondsElapsed)}.` : ''}
-                    </Typography>
+        <Modal
+            open={winnerModalOpen}
+            onClose={() => setWinnerModalOpen(false)}>
+            <WinnerMessage>
+                <Box display={"flex"} justifyContent={"center"}>
+                    <Icon children={<ThumbUp/>} fontSize={"large"}/>
+                </Box>
+                <Typography component={'h3'} variant={'h3'}>
+                    Good job!
+                </Typography>
+                <Typography style={{margin: '1em 0'}}>
+                    You successfully completed the sudoku in {formatTime(state.secondsElapsed)}
+                </Typography>
 
-                    <Box onClick={() => setWinnerModalOpen(false)}>
-                        <IconButton style={{margin: 'auto', display: 'block'}} title="OK">
-                            <CheckCircleRounded color={'secondary'}/>
-                        </IconButton>
-                    </Box>
-                </WinnerMessage>
-            </Modal>
-        </ThemeProvider>
+                <Box display='flex' flexDirection='column'>
+                    <Button style={{marginBottom: '.75rem'}} title="Close this message" onClick={() => setWinnerModalOpen(false)} endIcon={<CheckCircleRounded />}>
+                        Close this message
+                    </Button>
+
+                    <GenerateButton onClick={() => generateSudokuThen(() => setWinnerModalOpen(false))} 
+                    isWorking={state.isWorking} text='Generate another sudoku with the same settings'/>
+                </Box>
+            </WinnerMessage>
+        </Modal>
     </Container>
 }

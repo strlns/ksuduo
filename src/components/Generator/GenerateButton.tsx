@@ -6,7 +6,8 @@ import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
 
 interface GenerateButtonProps {
     isWorking: boolean,
-    onClick?: React.MouseEventHandler<HTMLButtonElement>
+    onClick?: React.MouseEventHandler<HTMLButtonElement>,
+    text: string
 }
 
 const buttonStyles = makeStyles({
@@ -48,12 +49,14 @@ export const GenerateButton =
             variant="contained"
             color={props.isWorking ? 'secondary' : 'primary'}
             onClick={props.onClick ?? void (0)}
-            endIcon={<FlareRounded/>}>
+            endIcon={<FlareRounded/>}
+            title={props.text}
+            >
             <div className={innerClass.root}>
                 {props.isWorking ? <CircularProgress
                     className={loaderClass.root}
                     color={'inherit'} size={'1em'}/> : null}
-                Generate Sudoku
+                {props.text}
             </div>
         </Button>
     }
