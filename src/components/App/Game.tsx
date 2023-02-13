@@ -253,7 +253,9 @@ export const Game = (props: GameProps) => {
   };
 
   const generateSudoku = () => {
-    generateSudokuThen(() => {});
+    generateSudokuThen(() => {
+      timer.start();
+    });
   };
 
   const updateNumberOfClues = (numberOfClues: number): void => {
