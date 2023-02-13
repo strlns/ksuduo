@@ -203,6 +203,7 @@ export const Game = (props: GameProps) => {
     }
     if (useWebWorker) {
       if (state.isWorking) return;
+      timer.clearInterval();
       setState((prevState) => ({
         ...prevState,
         isWorking: true,
@@ -225,7 +226,6 @@ export const Game = (props: GameProps) => {
           ...stateFromGenerator(result),
         }));
         callback();
-        timer.start();
       };
       sudokuWorker.addEventListener("message", listener);
     } else {
