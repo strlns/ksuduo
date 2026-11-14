@@ -15,8 +15,9 @@ migration checkpoint has deliberately not been pushed or deployed yet.
   interim design. Later: revise the design, especially buttons and dropdown, to
   give it more personality. Do not overinterpret earlier comments about a specific
   MUI feel. Design is lower priority than generator bugs after handover.
-- Next: discuss and fix generator bugs with the user, retaining failing fixtures.
-  See KNOWN_ISSUES.md and the captured multiple-solution board.
+- Next: discuss and improve the generator with the user, retaining failing fixtures.
+  The test-only generator rollback and the shared trivial-solvability false positive
+  were fixed after the migration, in a separate commit. Read KNOWN_ISSUES.md first.
 - No push or deployment until the user explicitly requests it. The user wants to
   continue reviewing and iterating from a phone before deciding to push.
 - The user plans to connect GitHub later. The repository is strlns/ksuduo, default
