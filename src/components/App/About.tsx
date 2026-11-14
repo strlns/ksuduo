@@ -26,6 +26,10 @@ export default () => {
                     <GitHub style={{color: 'inherit', marginRight: '.75em'}}/>
                     View code
                 </a>
+                <p>
+                    I started Ksuduo in 2021 as my first project to learn React and TypeScript.
+                    In 2026, I picked it up again, using AI-assisted coding to start improving it further.
+                </p>
                 <h3>How to play?</h3>
                 <p>
                     See <a href="https://en.wikipedia.org/wiki/Sudoku" target="_blank">Wikipedia on Sudoku</a>
