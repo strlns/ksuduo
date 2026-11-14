@@ -19,8 +19,13 @@ export function generateTriviallySolvableBoard(): Sudoku {
         let k = 0;
         while (isTriviallySolvable(board) && k < BOARD_SIZE) {
             const cellToClear = pickRandomArrayValue(board.getFilledCells());
-            board.clearCell(cellToClear, false)
-            k++
+            board.clearCell(cellToClear, false);
+            k++;
+            if (!isTriviallySolvable(board)) {
+                // The predicate before removal cannot guarantee the resulting board.
+                board.setValueUseCell(cellToClear, false);
+                break;
+            }
         }
         board.fillSinglePossibilityCells();
     }
