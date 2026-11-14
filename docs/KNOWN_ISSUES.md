@@ -1,5 +1,23 @@
 # Algorithm follow-up
 
+## Scope of the evidence
+
+Two separate defects were fixed after the migration:
+
+- The ambiguous board observed in the original random diagnostic came from a
+  test-only generator helper. That helper is not used by the game.
+- The shared trivial-solvability predicate accepted a constructed ambiguous 6/7
+  rectangle. This demonstrated a faulty uniqueness shortcut, not a reproduced
+  ambiguous final board from the gameplay generator.
+
+No ambiguous final gameplay board was reproduced in these checks. That is not a
+claim that gameplay was unaffected: Easy/Medium/Hard skip the uniqueness solver
+when the predicate returns true, and neither the worker nor the UI performs a
+final uniqueness rejection before presenting the result. A false positive could
+therefore reach a player; there was no independent final guard guaranteeing safety.
+The development-only console assertion is diagnostic, not a rejection guard.
+Easiest uses a separate generation path.
+
 The migration deliberately leaves the Sudoku algorithms intact. The original random
 console runner is available with `npm run test:legacy`; it can expose existing
 algorithm bugs and is intentionally separate from deterministic CI checks.

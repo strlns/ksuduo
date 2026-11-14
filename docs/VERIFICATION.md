@@ -34,3 +34,10 @@ After the migration checkpoint, deterministic regressions reproduced an ambiguou
 four-cell rectangle accepted by the gameplay shortcut, plus the test-only generator's
 missing rollback. Both were corrected separately. The original `test:legacy` runner
 subsequently passed, including its random generation and human-techniques checks.
+
+The predicate regression uses a constructed ambiguous board; it does not reproduce
+an ambiguous final gameplay result. The earlier randomized failure came from the
+test-only helper. No ambiguous final gameplay board was observed in these checks,
+but Easy/Medium/Hard relied on the faulty shortcut without a final uniqueness
+rejection, so absence of a reproduced gameplay failure does not establish safety.
+See KNOWN_ISSUES.md for the distinction and affected paths.
