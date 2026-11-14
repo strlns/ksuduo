@@ -1,3 +1,5 @@
+import {logStyled} from './logStyled';
+
 export default function logSuccess(msg: string) {
-    console.log(`%c ${msg}`, 'color: #00df00')
+    logStyled(`%c ${msg}`, ['color: #00df00']);
 }

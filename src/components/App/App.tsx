@@ -1,30 +1,23 @@
-import * as React from "react";
-import {Game} from "./Game";
-import {ThemeProvider} from "@material-ui/styles";
-import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
-import {GitHub} from "@material-ui/icons";
-import {Box, Container, IconButton, Link, Typography} from "@material-ui/core";
+import * as React from 'react';
+import {Game} from './Game';
+import {ThemeProvider} from '@mui/material/styles';
+import {ksuduoThemeNormal} from '../Theme/NormalKsuduoTheme';
+import {GitHub} from '@mui/icons-material';
+import {Box, Container, Link, Typography} from '@mui/material';
 
-export const App = () => {
-    return <React.StrictMode>
+export const App = () => (
+    <React.StrictMode>
         <ThemeProvider theme={ksuduoThemeNormal}>
-            <Container style={{position: 'relative', paddingBottom: '3rem'}}>
+            <Container sx={{position: 'relative', pb: 3}}>
                 <Game/>
-                <Box position="absolute" bottom={0} left={0}>
-                    <Link style={{display: 'flex', alignItems: 'center'}} href="https://github.com/strlns/ksuduo"
-                          title="Source code" className={'link-inherit'}>
-                        <IconButton>
-                            <GitHub/>
-                        </IconButton>
-                        <Typography variant={"subtitle1"}
-                                    style={{
-                                        color: 'black', userSelect: 'none', pointerEvents: 'none'
-                                    }}>
-                            View on GitHub
-                        </Typography>
+                <Box sx={{display: 'flex', justifyContent: 'center', mt: 3}}>
+                    <Link sx={{display: 'inline-flex', alignItems: 'center', gap: 1, color: 'text.secondary', textDecoration: 'none'}}
+                        href="https://github.com/strlns/ksuduo" title="Source code" className="link-inherit">
+                        <GitHub fontSize="small"/>
+                        <Typography variant="subtitle1">View on GitHub</Typography>
                     </Link>
                 </Box>
             </Container>
         </ThemeProvider>
     </React.StrictMode>
-}
+);

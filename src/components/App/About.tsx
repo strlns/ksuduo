@@ -1,12 +1,12 @@
 import * as React from "react"
-import {Box, IconButton, Modal} from "@material-ui/core";
+import {Box, IconButton, Modal} from "@mui/material";
 import {Button} from "../Controls/Button";
-import {CheckCircleRounded, CloseRounded, GitHub, HelpOutlineRounded} from "@material-ui/icons";
-import {ModalBaseStyles} from "../Message/ModalBaseStyles";
+import {CheckCircleRounded, CloseRounded, GitHub, HelpOutlineRounded} from "@mui/icons-material";
+import {modalBaseSx} from "../Message/ModalBaseStyles";
 
 export default () => {
     const [isExplanationModalOpen, setExplanationModalOpen] = React.useState(false);
-    return <Box display={'flex'} justifyContent={'space-between'} alignItems={'center'}>
+    return <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
         <Button fullWidth={true} variant="text" size="small"
                 endIcon={<HelpOutlineRounded/>}
                 onClick={() => setExplanationModalOpen(true)}>
@@ -14,8 +14,8 @@ export default () => {
         </Button>
 
         <Modal open={isExplanationModalOpen}>
-            <Box className={ModalBaseStyles().root}>
-                <Box display='flex' justifyContent={'space-between'} alignItems={'center'}>
+            <Box sx={modalBaseSx}>
+                <Box sx={{display: "flex", justifyContent: 'space-between', alignItems: 'center'}}>
                     <h1>Ksuduo</h1>
                     <IconButton edge='end' title="Close" onClick={() => setExplanationModalOpen(false)}>
                         <CloseRounded/>
@@ -23,7 +23,7 @@ export default () => {
                 </Box>
                 <a style={{display: 'flex', alignItems: 'center'}}
                 href="https://github.com/strlns/ksuduo" target="_blank">
-                    <GitHub style={{color: 'black', marginRight: '.75em'}}/>
+                    <GitHub style={{color: 'inherit', marginRight: '.75em'}}/>
                     View code
                 </a>
                 <h3>How to play?</h3>

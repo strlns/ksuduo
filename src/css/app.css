@@ -3,14 +3,17 @@
 }
 
 :root {
-    font-family: "DejaVu Sans", Roboto, Helvetica, sans-serif;
+    font-family: "IBM Plex Sans", sans-serif;
     height: 100%;
+    color-scheme: dark;
 }
 
 body {
     min-height: 100%;
+    margin: 0;
     position: relative;
-    background: linear-gradient(38deg, #16246740, #162467) no-repeat center top fixed;
+    color: #e4f0f3;
+    background: linear-gradient(#04121b55, #04121b88), url('../assets/midnight-cyan.png') center / cover fixed, #061722;
 }
 
 fieldset {
@@ -77,7 +80,7 @@ input::-webkit-inner-spin-button {
 .block {
     display: table;
     table-layout: fixed;
-    border: 3px solid black;
+    border: 2px solid #081923;
 }
 
 .block .row {
@@ -85,11 +88,12 @@ input::-webkit-inner-spin-button {
 }
 
 .cell {
-    color: #162467;
+    color: #e4f0f3;
     display: table-cell;
     vertical-align: middle;
     text-align: center;
-    border: 2px solid grey;
+    border: 1px solid #57727d;
+    background-color: #153441;
     position: relative;
     transition: background .5s ease, box-shadow .25s ease;
     width: 1.75rem;
@@ -133,18 +137,18 @@ input::-webkit-inner-spin-button {
 }
 
 .cell.fixed {
-    background-color: #cfcfcf;
+    background-color: #31505b;
 }
 
 .cell.fixed .value {
-    color: black;
+    color: #f4fbfd;
     font-weight: bold;
     pointer-events: none;
     cursor: none;
 }
 
 .cell.invalid {
-    color: red;
+    color: #ff9a9a;
     font-weight: bold;
 }
 
@@ -155,30 +159,31 @@ input::-webkit-inner-spin-button {
 .cell.invalid.fixed {
     font-style: italic;
     cursor: not-allowed;
-    background-color: #f0bf9f;
-    box-shadow: inset 0 0 0 4px #ff2f2f;
+    background-color: #623d3a;
+    box-shadow: inset 0 0 0 3px #ff8989;
 }
 
 .cell:focus-within {
     /*border-color: #3f51b5;*/
-    box-shadow: inset 0 0 0 4px #3f51b5;
+    box-shadow: inset 0 0 0 3px #62d7e5;
 }
 
 .cell.fixed:focus-within {
-    box-shadow: inset 0 0 0 4px #3f51b5;
+    box-shadow: inset 0 0 0 3px #62d7e5;
 }
 
 .cell.invalid:focus-within {
-    box-shadow: inset 0 0 0 4px #30236d;
+    box-shadow: inset 0 0 0 3px #f7b1cf;
 }
 
 .cell.hint {
-    background-color: #4df14d;
-    box-shadow: inset 0 0 0 4px #127617;
+    color: #09281e;
+    background-color: #83dbb1;
+    box-shadow: inset 0 0 0 3px #399c74;
 }
 
 .cell.hint-origin {
-    background-color: #dcee7c;
+    background-color: #445343;
 }
 
 .pulse {
@@ -196,3 +201,25 @@ input::-webkit-inner-spin-button {
         fill: #1a3c2e;
     }
 }
+.small-text { font-size: .75em; }
+
+.clock {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    min-height: 3rem;
+}
+
+a { color: #62d7e5; }
+
+.board.MuiPaper-root {
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.cell input {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+}
+
+.clock { font-variant-numeric: tabular-nums; }

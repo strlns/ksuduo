@@ -1,7 +1,8 @@
 import * as React from "react"
 import {ForwardedRef, SetStateAction} from "react"
 import {CellData, CellValue} from "../../model/CellData";
-import {Input, withStyles} from "@material-ui/core";
+import {Input} from "@mui/material";
+import {styled} from "@mui/material/styles";
 
 interface CellProps {
     cell: CellData,
@@ -14,15 +15,11 @@ interface CellProps {
     supportsInputMode: boolean
 }
 
-const NumInput = withStyles({
-    root: {
-        fontSize: 'inherit',
-        display: 'flex' //full width, default is inline-flex
-    },
-    input: {
-        textAlign: 'center'
-    }
-})(Input);
+const NumInput = styled(Input)({
+    fontSize: 'inherit',
+    display: 'flex',
+    '& input': {textAlign: 'center', padding: 0},
+});
 
 export const formatValue = (value: CellValue) => value === null ||
 isNaN(value) ||
@@ -84,10 +81,11 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                   className="value"
                   type={props.supportsInputMode ? 'text' : 'number'}
             //iOS, some versions show normal keypad.
-                  inputProps={{
+                  slotProps={{input: {
+                      'aria-label': `Row ${props.cell.y + 1}, column ${props.cell.x + 1}`,
                       inputMode: 'numeric',
                       pattern: '[0-9]'
-                  }}
+                  }}}
                   value={formatValue(props.cell.value)}
                   onKeyPress={onKeyPress}
                   onInput={hackyControlledComponentSync}

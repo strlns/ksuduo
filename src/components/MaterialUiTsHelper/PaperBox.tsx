@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {FunctionComponent} from 'react'
-import {Box, BoxProps, Paper, PaperProps} from '@material-ui/core'
+import {Box, BoxProps, Paper, PaperProps} from '@mui/material'
 
 export type PaperBoxProps = BoxProps & PaperProps;
 
@@ -12,9 +12,9 @@ export const PaperBox: FunctionComponent<PaperBoxProps> = (props) => (
     <Box {...props} component={Paper}/>
 )
 
-export const paperBoxDefaultLayoutProps = {
-    p: [2],
+export const paperBoxDefaultLayoutSx = {
+    p: 2,
     maxWidth: "100%",
-    display: "flex",
-    flexDirection: "column"
+    display: "flex" as const,
+    flexDirection: "column" as const
 };

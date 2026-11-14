@@ -1,62 +1,27 @@
-import {Button, CircularProgress} from "@material-ui/core";
-import * as React from "react";
-import {FlareRounded} from "@material-ui/icons";
-import {makeStyles} from "@material-ui/core/styles";
-import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
+import {Button, CircularProgress} from '@mui/material';
+import * as React from 'react';
+import {FlareRounded} from '@mui/icons-material';
 
 interface GenerateButtonProps {
-    isWorking: boolean,
-    onClick?: React.MouseEventHandler<HTMLButtonElement>,
-    text: string
+    isWorking: boolean;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    text: string;
 }
 
-const buttonStyles = makeStyles({
-    root: {
-        width: '100%',
-        transition: 'background .5s linear',
-        marginBottom: ksuduoThemeNormal.spacing(2)
-    }
-});
-
-const innerStyles = makeStyles(theme => ({
-    root: {
-        position: 'relative',
-        padding: '0 1.5em',
-        [theme.breakpoints.up('sm')]: {
-            marginLeft: '-1.5em',
-            paddingLeft: '1.5em',
-        },
-    }
-}));
-
-
-const loaderStyles = makeStyles(theme => ({
-    root: {
-        position: 'absolute',
-        left: 0,
-        [theme.breakpoints.up('sm')]: {
-            left: '-1.25em',
-        },
-        top: 'calc(50% - .5em)'
-    }
-}));
-
-export const GenerateButton =
-    (props: GenerateButtonProps) => {
-        const [btnClass, innerClass, loaderClass] = [buttonStyles(), innerStyles(), loaderStyles()];
-        return <Button
-            className={btnClass.root + `${props.isWorking ? ' working' : ''}`}
-            variant="contained"
-            color={props.isWorking ? 'secondary' : 'primary'}
-            onClick={props.onClick ?? void (0)}
-            endIcon={<FlareRounded/>}
-            title={props.text}
-            >
-            <div className={innerClass.root}>
-                {props.isWorking ? <CircularProgress
-                    className={loaderClass.root}
-                    color={'inherit'} size={'1em'}/> : null}
-                {props.text}
-            </div>
-        </Button>
-    }
+export const GenerateButton = ({isWorking, onClick, text}: GenerateButtonProps) => (
+    <Button
+        className={isWorking ? 'working' : undefined}
+        variant="contained"
+        color={isWorking ? 'secondary' : 'primary'}
+        onClick={onClick}
+        aria-busy={isWorking}
+        sx={{width: '100%', mb: 2, transition: 'background .5s linear'}}
+        // A fixed icon slot keeps the label centered and avoids a layout shift.
+        endIcon={<span style={{display: 'inline-flex', width: '1em', height: '1em', alignItems: 'center', justifyContent: 'center'}}>
+            {isWorking ? <CircularProgress color="inherit" size="1em" aria-label="Generating sudoku"/> : <FlareRounded fontSize="inherit"/>}
+        </span>}
+        title={text}
+    >
+        {text}
+    </Button>
+);

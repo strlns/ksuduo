@@ -5,9 +5,9 @@ export class Timer {
   protected intervalId: IntervalId;
   public callback: Function;
 
-  constructor(callback?: Function) {
+  constructor(callback?: Function, ms?: number) {
     this.callback = callback ?? (() => {});
-    this.secondsElapsed = 0;
+    this.secondsElapsed = ms ? ms / 1000 : 0;
     this.intervalId = undefined;
   }
 
@@ -29,8 +29,8 @@ export class Timer {
     this.callback.call(null);
 
     this.intervalId = window.setInterval(() => {
-      this.callback && this.callback.call(null);
       this.secondsElapsed++;
+      this.callback.call(null);
     }, 1000);
   }
 
@@ -40,5 +40,12 @@ export class Timer {
 
   public resume(): void {
     this.start(this.secondsElapsed);
+  }
+
+  get ms(): number {
+    return this.secondsElapsed * 1000;
+  }
+  set ms(ms: number) {
+    this.secondsElapsed = ms / 1000;
   }
 }

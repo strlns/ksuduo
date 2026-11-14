@@ -5,10 +5,11 @@
  */
 
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
+import '@fontsource/ibm-plex-mono/latin-500.css';
+import {createRoot} from 'react-dom/client';
 import {App} from './components/App/App';
 
-ReactDOM.render(
-    <App/>,
-    document.getElementById('app')
-)
+createRoot(document.getElementById('app')!).render(<App/>);

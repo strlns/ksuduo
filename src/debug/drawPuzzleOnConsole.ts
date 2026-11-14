@@ -1,3 +1,4 @@
+import {logStyled} from "./logStyled";
 import {Puzzle, puzzleToSudoku} from "../model/Sudoku";
 import {CellData, cellIsEmpty} from "../model/CellData";
 import {BLOCK_HEIGHT, BLOCK_WIDTH, BOARD_SIZE, BOARD_WIDTH} from "../model/Board";
@@ -18,7 +19,7 @@ export default function drawPuzzle(puzzle: Puzzle, isError = false, prependFlatR
         return `${cellValStr(cell)}`
     }
     const hLine = `${'―'.repeat(BOARD_WIDTH * 3 - 2)}\n`;
-    console.log(`%c${prependFlatRepresantation ? flatStr + '\n' : ''}${
+    logStyled(`%c${prependFlatRepresantation ? flatStr + '\n' : ''}${
             hLine}${
             board.getRows().map(
                 row => {
@@ -32,7 +33,7 @@ export default function drawPuzzle(puzzle: Puzzle, isError = false, prependFlatR
                             : '\n') + curr
                     })
         }\n${hLine}`,
-        `white-space:pre-wrap;font-size:1.25rem;${isError ? 'color:red;' : ''}`, ...(isError ? [(new Error()).stack] : []));
+        [`white-space:pre-wrap;font-size:1.25rem;${isError ? 'color:red;' : ''}`], ...(isError ? [(new Error()).stack] : []));
 }
 
 /*
@@ -76,5 +77,5 @@ export function drawPuzzleWithPossibilities(puzzle: Puzzle) {
         }
     ).join('\n')
 
-    console.log(boardString, ...styles)
+    logStyled(boardString, styles)
 }

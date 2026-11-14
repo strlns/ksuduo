@@ -4,8 +4,8 @@ import {Sudoku} from "../../model/Sudoku";
 import {Block} from "../Cell/Block";
 import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
-import {IconButton} from "@material-ui/core";
-import {PauseCircleFilledTwoTone} from "@material-ui/icons";
+import {IconButton} from "@mui/material";
+import {PauseCircleFilledTwoTone} from "@mui/icons-material";
 import {BOARD_WIDTH, CellIndex} from "../../model/Board";
 
 interface BoardProps {

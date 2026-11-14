@@ -1,29 +1,20 @@
-import {makeStyles} from "@material-ui/core/styles";
-import {Theme} from "@material-ui/core";
+import type {SxProps, Theme} from '@mui/material/styles';
 
-export const ModalBaseStyles = makeStyles(
-    (theme: Theme) => ({
-        root: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            padding: '1rem',
-            width: '100%',
-            maxWidth: '92vw',
-            maxHeight: '80vh',
-            [theme.breakpoints.up('md')]: {
-                maxWidth: '75vw',
-                maxHeight: '50vh',
-                padding: '3rem'
-            },
-            overflow: 'auto',
-            backgroundColor: theme.palette.background.default,
-            transform: 'translateX(-50%) translateY(-50%)',
-            filter: 'drop-shadow(2px 4px 6px black)',
-            zIndex: 9999,
-            '& h3': {
-                textAlign: 'left'
-            }
-        }
-    })
-);
+export const modalBaseSx = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    p: {xs: 2, md: 6},
+    width: '100%',
+    maxWidth: {xs: '92vw', md: '75vw'},
+    maxHeight: {xs: '80vh', md: '50vh'},
+    overflow: 'auto',
+    bgcolor: 'background.paper',
+    color: 'text.primary',
+    border: '1px solid',
+    borderColor: 'divider',
+    borderRadius: 2,
+    transform: 'translate(-50%, -50%)',
+    boxShadow: 24,
+    '& h3': {textAlign: 'left'},
+} satisfies SxProps<Theme>;

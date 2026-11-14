@@ -1,29 +1,30 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "downlevelIteration": true,
-    "jsx": "react",
-    //babel in production, so no "es2015.collection","es2015.iterable" in "lib"
+    "target": "ES2022",
     "lib": [
-      "es6",
-      "dom"
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
     ],
-    "outDir": "./dist/",
-    "module": "es6",
-    "moduleResolution": "node",
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "sourceMap": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "noEmit": true,
     "strict": true,
-    "target": "es5",
-    "typeRoots": [
-      "node_modules/@types",
-      "node_modules"
-    ],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
     "types": [
+      "vite/client",
       "node",
       "react",
       "react-dom"
     ]
-  }
+  },
+  "include": [
+    "src",
+    "tests",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }

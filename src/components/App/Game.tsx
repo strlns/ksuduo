@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@material-ui/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Board, OptionalCell } from "../Board/Board";
@@ -16,7 +16,7 @@ import {
   InfoOutlined,
   ThumbUp,
   UndoRounded,
-} from "@material-ui/icons";
+} from "@mui/icons-material";
 import {
   Box,
   Container,
@@ -27,22 +27,22 @@ import {
   Modal,
   Switch,
   Typography,
-} from "@material-ui/core";
+} from "@mui/material";
 import { Button, Button45Mt } from "../Controls/Button";
 import GeneratorConfiguration from "../Generator/GeneratorConfiguration";
 import { Sudoku } from "../../model/Sudoku";
 import {
   PaperBox,
-  paperBoxDefaultLayoutProps,
+  paperBoxDefaultLayoutSx,
 } from "../MaterialUiTsHelper/PaperBox";
 import { cloneDeep } from "lodash-es";
 
-import SudokuWorker from "worker-loader!../../worker/sudoku.worker";
+import SudokuWorker from "../../worker/sudoku.worker?worker";
 import {
   GeneratorResultFromWorker,
   MSGEVT_SOURCE,
   WORKER_ACTIONS,
-} from "../../worker/sudoku.worker";
+} from "../../worker/protocol";
 import testWorker from "../../worker/testWorkerActuallyWorks";
 import { GameStateSerializable, persist } from "../../persistence/localStorage";
 import { ksuduoThemeSecond } from "../Theme/SecondKsuduoTheme";
@@ -53,10 +53,10 @@ import { BOARD_SIZE, DEFAULT_CLUES } from "../../model/Board";
 import { WinnerMessage } from "../Message/WinnerMessage";
 import { formatTime } from "../../utility/formatTime";
 import { Timer } from "../../model/Timer";
-import { alpha, makeStyles } from "@material-ui/core/styles";
+import { alpha } from "@mui/material/styles";
 import { ksuduoThemeNormal } from "../Theme/NormalKsuduoTheme";
 import About from "./About";
-import { usePageVisibility } from "react-page-visibility";
+import { usePageVisibility } from "../../utility/usePageVisibility";
 import { getNextCellToFill } from "../../algorithm/solver/solverHumanTechniques";
 import { CellData, CellValue } from "../../model/CellData";
 import { restoreGameStateOrInitialize } from "../../persistence/restoreGameStateOrInitialize";
@@ -86,7 +86,7 @@ if (window.Worker) {
 }
 
 const checkWebWorkerSupport = async (): Promise<boolean> => {
-  return await testWorker();
+  return Boolean(sudokuWorker) && await testWorker();
 };
 
 let timer = new Timer();
@@ -226,6 +226,7 @@ export const Game = (props: GameProps) => {
           ...stateFromGenerator(result),
         }));
         callback();
+        timer.start();
       };
       sudokuWorker.addEventListener("message", listener);
     } else {
@@ -246,6 +247,7 @@ export const Game = (props: GameProps) => {
             currentDifficulty: state.difficulty,
             ...stateFromGenerator(result),
           }));
+          callback();
           timer.start();
         }, 25);
       });
@@ -253,9 +255,7 @@ export const Game = (props: GameProps) => {
   };
 
   const generateSudoku = () => {
-    generateSudokuThen(() => {
-      timer.start();
-    });
+    generateSudokuThen(() => {});
   };
 
   const updateNumberOfClues = (numberOfClues: number): void => {
@@ -378,38 +378,38 @@ export const Game = (props: GameProps) => {
 
   const togglePaused = useCallback(() => {
     setState((prevState) => ({ ...prevState, isPaused: !prevState.isPaused }));
-    if (!state.isPaused) {
-      timer.resume();
-    } else {
-      timer.pause();
-    }
-  }, [state.isPaused]);
+  }, []);
 
   /**
    * Duties on initial render.
    */
   useEffect(() => {
+    let active = true;
     setSupportsInputModeAttribute(isInputModeAttributeSupported());
     /**
      * jump through some hoops, because presence of window.Worker alone doesn't guarantee that
      * the Worker actually works (CORS, Blockers...). Verify with a test message that the Web Worker works.
      */
     checkWebWorkerSupport().then((value) => {
+      if (!active) return;
       useWebWorker = value;
       if (state.sudoku.isEmpty()) {
         generateSudoku();
       }
     });
-    if (!state.isPaused) {
-      timer.start(state.secondsElapsed);
-    }
-    timer.secondsElapsed = state.secondsElapsed;
     timer.callback = () =>
       setState((prevState) => ({
         ...prevState,
         secondsElapsed: timer.secondsElapsed,
       }));
-  }, [props]);
+    if (!state.isPaused) {
+      timer.start(state.secondsElapsed);
+    }
+    return () => {
+      active = false;
+      timer.clearInterval();
+    };
+  }, []);
 
   useEffect(() => {
     if (state.isPaused) {
@@ -599,24 +599,12 @@ export const Game = (props: GameProps) => {
     }
   };
 
-  const smallText = makeStyles({
-    root: {
-      fontSize: ".75em",
-    },
-  });
-
-  const smallTextClass = smallText().root;
+  const smallTextClass = "small-text";
 
   return (
     <Container style={{ padding: 0 }}>
       {state.gameMessages.length > 0 ? (
         <Box
-          position="fixed"
-          bottom={0}
-          left={0}
-          right={0}
-          zIndex={99}
-          display="flex"
           style={{
             maxHeight: "20rem",
             padding: GAME_MSG_BOX_SPACE,
@@ -626,7 +614,7 @@ export const Game = (props: GameProps) => {
               0.75
             )}, ${alpha(ksuduoThemeNormal.palette.background.paper, 0.75)})`,
             borderBottom: `1px solid ${ksuduoThemeNormal.palette.text.primary}`,
-          }}
+          }} sx={{position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 99, display: "flex"}}
         >
           {state.gameMessages.map((message) => (
             <GameMessageBox message={message} key={message.key} />
@@ -636,13 +624,12 @@ export const Game = (props: GameProps) => {
       <Grid
         container
         spacing={3}
-        justifyContent={"center"}
         style={{ padding: "2rem 0 0", position: "relative", zIndex: 3 }}
-        className={`game${state.isWorking ? " working" : ""}`}
+        className={`game${state.isWorking ? " working" : ""}`} sx={{justifyContent: "center"}}
       >
-        <Grid item xs={12} md={8} lg={6} justifyContent={"center"} container>
-          <PaperBox {...paperBoxDefaultLayoutProps} width={"100%"}>
-            <Box p={1}>
+        <Grid size={{xs: 12, md: 8, lg: 6}} container sx={{justifyContent: "center"}}>
+          <PaperBox sx={{...paperBoxDefaultLayoutSx, width: "100%"}}>
+            <Box sx={{p: 1}}>
               <LinearProgress
                 value={percentFilled()}
                 variant={"determinate"}
@@ -670,7 +657,7 @@ export const Game = (props: GameProps) => {
               togglePaused={togglePaused}
               supportsInputMode={supportsInputModeAttribute}
             />
-            <Box p={1} display={"flex"} justifyContent={"space-between"}>
+            <Box sx={{p: 1, display: "flex", justifyContent: "space-between"}}>
               <Typography component={"small"} className={smallTextClass}>
                 Difficulty: {difficultyLabel()}
               </Typography>
@@ -681,16 +668,12 @@ export const Game = (props: GameProps) => {
           </PaperBox>
         </Grid>
         <Grid
-          item
-          xs
-          container
-          alignItems={"stretch"}
-          alignContent={"flex-start"}
+          size="grow"
+          container sx={{alignItems: "stretch", alignContent: "flex-start"}}
         >
-          <Grid item xs={12}>
+          <Grid size={12}>
             <PaperBox
-              {...paperBoxDefaultLayoutProps}
-              className={smallTextClass}
+              className={smallTextClass} sx={{...paperBoxDefaultLayoutSx}}
             >
               <Clock
                 secondsElapsed={state.secondsElapsed}
@@ -701,7 +684,7 @@ export const Game = (props: GameProps) => {
                 solved={state.sudoku.isSolved()}
                 visible={state.timerEnabled}
               />
-              <Box justifyContent={"center"} display={"flex"}>
+              <Box sx={{justifyContent: "center", display: "flex"}}>
                 <label
                   style={{
                     cursor: "pointer",
@@ -728,13 +711,8 @@ export const Game = (props: GameProps) => {
               </Box>
             </PaperBox>
           </Grid>
-          <Grid item xs={12}>
-            <PaperBox
-              {...paperBoxDefaultLayoutProps}
-              marginTop={[1, 2, 3]}
-              flexDirection={"row"}
-              justifyContent={"space-between"}
-              flexWrap={"wrap"}
+          <Grid size={12}>
+            <PaperBox sx={{...paperBoxDefaultLayoutSx, marginTop: [1, 2, 3], flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap"}}
             >
               <ThemeProvider theme={ksuduoThemeSecond}>
                 <Button
@@ -764,8 +742,8 @@ export const Game = (props: GameProps) => {
               </ThemeProvider>
             </PaperBox>
           </Grid>
-          <Grid item xs={12}>
-            <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
+          <Grid size={12}>
+            <PaperBox sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <Button
                 endIcon={<HighlightRounded />}
                 disabled={
@@ -778,15 +756,15 @@ export const Game = (props: GameProps) => {
               </Button>
             </PaperBox>
           </Grid>
-          <Grid item xs={12}>
-            <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
+          <Grid size={12}>
+            <PaperBox sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <GenerateButton
                 onClick={generateSudoku}
                 isWorking={state.isWorking}
                 text="Generate sudoku"
               />
               {state.generatorMessage.length > 0 ? (
-                <Box display={"flex"} alignItems={"center"}>
+                <Box sx={{display: "flex", alignItems: "center"}}>
                   <InfoOutlined style={{ margin: "0 .75rem" }} />
                   <Typography className={smallTextClass}>
                     {state.generatorMessage}
@@ -803,8 +781,8 @@ export const Game = (props: GameProps) => {
               />
             </PaperBox>
           </Grid>
-          <Grid item xs={12}>
-            <PaperBox {...paperBoxDefaultLayoutProps} mt={[1, 2]}>
+          <Grid size={12}>
+            <PaperBox sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <About />
             </PaperBox>
           </Grid>
@@ -812,7 +790,7 @@ export const Game = (props: GameProps) => {
       </Grid>
       <Modal open={winnerModalOpen} onClose={() => setWinnerModalOpen(false)}>
         <WinnerMessage>
-          <Box display={"flex"} justifyContent={"center"}>
+          <Box sx={{display: "flex", justifyContent: "center"}}>
             <Icon children={<ThumbUp />} fontSize={"large"} />
           </Box>
           <Typography component={"h3"} variant={"h3"}>
@@ -823,7 +801,7 @@ export const Game = (props: GameProps) => {
             {formatTime(state.secondsElapsed)}
           </Typography>
 
-          <Box display="flex" flexDirection="column">
+          <Box sx={{display: "flex", flexDirection: "column"}}>
             <Button
               style={{ marginBottom: ".75rem" }}
               title="Close this message"

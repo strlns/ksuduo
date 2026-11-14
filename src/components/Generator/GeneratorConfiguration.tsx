@@ -1,14 +1,13 @@
 import * as React from "react"
 import {useEffect, useState} from "react"
-import {Box, FormControl, FormHelperText, InputLabel, NativeSelect, ThemeProvider} from "@material-ui/core";
-import Typography from "@material-ui/core/Typography";
+import {Box, FormControl, FormHelperText, InputLabel, NativeSelect, ThemeProvider} from "@mui/material";
+import Typography from "@mui/material/Typography";
 import {DIFFICULTY_LEVEL} from "../../algorithm/generator/generator";
 import {BOARD_SIZE, DEFAULT_CLUES, MINIMUM_CLUES} from "../../model/Board";
 import intRange from "../../utility/numberRange";
 import {ksuduoThemeSecond} from "../Theme/SecondKsuduoTheme";
 import {DiscreteRangeSlider} from "../Controls/DiscreteRangeSlider";
 import {ksuduoThemeNormal} from "../Theme/NormalKsuduoTheme";
-import {makeStyles} from "@material-ui/core/styles";
 
 interface GeneratorConfigurationProps {
     numberOfClues: number,
@@ -18,13 +17,6 @@ interface GeneratorConfigurationProps {
     numberOfFilledCellsInCurrentPuzzle: number,
     difficultyOfCurrentPuzzle: DIFFICULTY_LEVEL
 }
-
-const infoCollapseStyle = makeStyles({
-    root: {
-        overflow: 'hidden',
-        transition: 'max-height .75s ease-out'
-    }
-});
 
 const MIN_CLUES = MINIMUM_CLUES + 4;
 
@@ -92,11 +84,9 @@ export default (props: GeneratorConfigurationProps) => {
             )
     }
 
-    const infoCollapseClass = infoCollapseStyle().root;
-
-    return <Box p={1}>
+    return <Box sx={{p: 1}}>
         <ThemeProvider theme={ksuduoThemeNormal}>
-            <FormControl fullWidth={true}>
+            <FormControl fullWidth={true} variant="standard">
                 <InputLabel htmlFor="generator-difficulty">Difficulty</InputLabel>
                 <NativeSelect
                     value={props.difficulty}
@@ -132,7 +122,7 @@ export default (props: GeneratorConfigurationProps) => {
                                      onChange={(event, value) => props.setNumberOfClues(value as number)}
                 /></fieldset> : null}
         <ThemeProvider theme={ksuduoThemeSecond}>
-            <Box className={infoCollapseClass} style={{maxHeight: showMinClueInfo() ? '15rem' : '0'}}>
+            <Box sx={{overflow: "hidden", transition: "max-height .75s ease-out", maxHeight: showMinClueInfo() ? "15rem" : "0"}}>
                 <Typography component='small' variant={'subtitle1'}
                             style={{lineHeight: '.75'}}>
                     Generating sudokus with a few hints and/or high difficulty can take some time.
