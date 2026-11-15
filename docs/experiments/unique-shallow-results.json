@@ -1,0 +1,258 @@
+[
+  {
+    "seed": 33,
+    "name": "baseline",
+    "ms": 5775.025928999999,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 33,
+    "name": "candidate",
+    "ms": 7737.652368,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 34,
+    "name": "baseline",
+    "ms": 2848.610404000001,
+    "grade": 1,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 34,
+    "name": "candidate",
+    "ms": 4630.977723,
+    "grade": 1,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 35,
+    "name": "baseline",
+    "ms": 2865.8200099999995,
+    "grade": 3,
+    "clues": 27,
+    "unique": true
+  },
+  {
+    "seed": 35,
+    "name": "candidate",
+    "ms": 2687.902653000001,
+    "grade": 3,
+    "clues": 27,
+    "unique": true
+  },
+  {
+    "seed": 36,
+    "name": "baseline",
+    "ms": 3207.450117999997,
+    "grade": 1,
+    "clues": 25,
+    "unique": true
+  },
+  {
+    "seed": 36,
+    "name": "candidate",
+    "ms": 5637.320854999998,
+    "grade": 1,
+    "clues": 25,
+    "unique": true
+  },
+  {
+    "seed": 37,
+    "name": "baseline",
+    "ms": 2636.494998000002,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 37,
+    "name": "candidate",
+    "ms": 4750.817841000004,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 38,
+    "name": "baseline",
+    "ms": 2714.663732000001,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 38,
+    "name": "candidate",
+    "ms": 4462.508044000002,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 39,
+    "name": "baseline",
+    "ms": 1649.314413,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 39,
+    "name": "candidate",
+    "ms": 1682.3808819999977,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 40,
+    "name": "baseline",
+    "ms": 2377.259579999998,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 40,
+    "name": "candidate",
+    "ms": 2475.221682999996,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 41,
+    "name": "baseline",
+    "ms": 1759.6837300000043,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 41,
+    "name": "candidate",
+    "ms": 1887.471927999999,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 42,
+    "name": "baseline",
+    "ms": 2625.9179820000063,
+    "grade": 3,
+    "clues": 26,
+    "unique": true
+  },
+  {
+    "seed": 42,
+    "name": "candidate",
+    "ms": 2627.6793499999912,
+    "grade": 3,
+    "clues": 26,
+    "unique": true
+  },
+  {
+    "seed": 43,
+    "name": "baseline",
+    "ms": 2618.5064129999955,
+    "grade": 2,
+    "clues": 25,
+    "unique": true
+  },
+  {
+    "seed": 43,
+    "name": "candidate",
+    "ms": 4757.165745999999,
+    "grade": 2,
+    "clues": 25,
+    "unique": true
+  },
+  {
+    "seed": 44,
+    "name": "baseline",
+    "ms": 2827.928475000008,
+    "grade": 1,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 44,
+    "name": "candidate",
+    "ms": 4803.244221000001,
+    "grade": 1,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 45,
+    "name": "baseline",
+    "ms": 2689.120458000005,
+    "grade": 1,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 45,
+    "name": "candidate",
+    "ms": 3298.5649790000025,
+    "grade": 3,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 46,
+    "name": "baseline",
+    "ms": 2939.9885839999915,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 46,
+    "name": "candidate",
+    "ms": 3494.135435999997,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 47,
+    "name": "baseline",
+    "ms": 2312.6275500000047,
+    "grade": 3,
+    "clues": 27,
+    "unique": true
+  },
+  {
+    "seed": 47,
+    "name": "candidate",
+    "ms": 2420.1637880000053,
+    "grade": 3,
+    "clues": 27,
+    "unique": true
+  },
+  {
+    "seed": 48,
+    "name": "baseline",
+    "ms": 2718.745809999993,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  },
+  {
+    "seed": 48,
+    "name": "candidate",
+    "ms": 4170.976372000005,
+    "grade": 2,
+    "clues": 24,
+    "unique": true
+  }
+]

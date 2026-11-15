@@ -866,7 +866,7 @@ export const Game = (props: GameProps) => {
             <li><strong>Medium:</strong> also locked candidates — pointing and claiming between a box and a line.</li>
             <li><strong>Hard:</strong> also naked pairs — two cells reserve the same two candidates in a unit.</li>
           </ul>
-          <p>The generator tries up to three puzzles to match your requested grade. For Medium and Hard, a bounded extra pass can remove more clues and then restore those that preserve the need for the requested technique. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
+          <p>The generator first tries up to three puzzles to match your requested grade. If Hard is still missed, it can explore up to four additional minimal unique puzzles and restore clues until the permitted techniques solve them. For Medium and Hard, a bounded extra pass can remove more clues and then restore those that preserve the need for the requested technique. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
           <p>If the search returns an easier puzzle, the game tells you; you can generate again. It may retain extra clues to stay within the technique limit. Fewer clues do not necessarily mean a harder puzzle.</p>
           {state.generatorMessage && <p><strong>This puzzle:</strong> {state.generatorMessage}</p>}
         </DialogContent>
