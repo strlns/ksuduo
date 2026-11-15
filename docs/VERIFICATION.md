@@ -42,3 +42,10 @@ exist, including restored notes. Cancelling leaves values and notes unchanged.
 At 390×844, expanding a hint moved the board from y≈120 to y≈286; the explanation
 ended at y≈229, leaving both unobscured. Confirmation dialogs default focus to
 Cancel. The completion dialog closes before a next-puzzle confirmation opens.
+
+Animation polish: successful generation increments a presentation key for one
+non-interactive ripple; hints and timer renders do not restart it. The completion
+message contains six one-shot bubbles behind its content. Browser checks at
+390×844 verified both effects, normal input/click handling, no page errors and
+`prefers-reduced-motion: reduce` hiding the effects. No loops, timers or external
+animation assets are used.
