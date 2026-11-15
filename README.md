@@ -46,6 +46,11 @@ The labels always reserve their space, so toggling them does not move the board.
 Reset clears all annotations. Undo reverses number entries and annotations added by elimination hints;
 manual notes and annotation buttons do not create undo steps. Manual edits made after a hint are preserved.
 The annotation undo history lasts for the current session, while the notes themselves survive reloads.
+Undo followed by Add Hint replays the same solving steps and explanations, including
+candidate eliminations, until a new number entry, reset, reveal or generation discards
+that path. The Hints count includes original clues and cells currently filled by Add
+Hint; candidate eliminations and manual entries do not increase it. Hint attribution
+survives saving, reload and undo. The replay path lasts for the current session.
 Undo clears the selected cell and input focus; click a cell to select it again. An older saved puzzle outside the supported
 techniques can still receive a clearly labelled value from its saved solution.
 
@@ -155,9 +160,11 @@ Mono are self-hosted through Fontsource; their packages include the font license
 
 The footer sound button cycles **Off → Music + FX → FX only → Music only → Off**. Sound starts
 only when you enable it and defaults to Off on each visit. The music is a slow,
-original D-minor ambient progression with soft synth tones and sparse upper notes;
+original D-minor ambient progression with soft synth tones, long dark stereo reverb,
+sparse upper notes and very soft filtered harmonic sweeps;
 hints and completed generation use quiet watery tones with a filtered echo.
-Other interactions use a much softer, short filtered glide. Music only disables all
+Effects have a gently brighter, softened top end and a quiet filtered tape delay
+with slow, randomized drift. Other interactions use a much softer, short filtered glide. Music only disables all
 interaction and activation effects. Audio pauses when
 the tab is hidden. Everything is synthesized locally with Web Audio: no external
 music, tracking, downloads or cached audio files.

@@ -71,6 +71,7 @@ import { getCellWithMinPossAndValueFromSolution } from "../../algorithm/solver/s
 import { pickRandomArrayValue } from "../../utility/pickRandom";
 import type {GameMessage} from "../Message/GameMessageBox";
 import { hashCode } from "../../utility/stringHash";
+import {HintHistory, type HintChoice} from '../../gameplay/HintHistory';
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -261,6 +262,11 @@ export const Game = (props: GameProps) => {
   };
 
   const generateSudoku = () => {
+    hintHistory.current.clear();
+    logicRef.current = undefined;
+    setLogicStep(undefined);
+    setHintCandidates(undefined);
+    notesHistoryRef.current?.clear();
     generateSudokuThen(() => {});
   };
 
@@ -282,6 +288,7 @@ export const Game = (props: GameProps) => {
   };
 
   const resetSudoku = () => {
+    hintHistory.current.clear();
     notesHistoryRef.current?.clear();
     setLogicStep(undefined);
     setHintCandidates(undefined);
@@ -302,6 +309,7 @@ export const Game = (props: GameProps) => {
   };
 
   const showSolution = () => {
+    hintHistory.current.clear();
     const sudoku = cloneDeep(state.sudoku);
     sudoku.showSolution();
     setState((prevState) => ({
@@ -459,6 +467,7 @@ export const Game = (props: GameProps) => {
   };
 
   const logicRef = useRef<{signature: string; candidates: Candidates} | undefined>(undefined);
+  const hintHistory = useRef(new HintHistory());
   const [logicStep, setLogicStep] = useState<LogicStep | undefined>(undefined);
   const [hintCandidates, setHintCandidates] = useState<Record<string, number[]> | undefined>(undefined);
   const currentSignature = state.sudoku.getFlatValues().join('');
@@ -504,10 +513,12 @@ export const Game = (props: GameProps) => {
    * Fix a wrongly filled cell and tell the user about it.
    * @param cell
    */
-  const fixError = (cell: CellData): void => {
+  const fixError = (cell: CellData, choice: HintChoice, candidates: Candidates): void => {
     const sudoku = cloneDeep(state.sudoku);
 
+    const before = hintHistory.current.begin(sudoku, candidates, choice);
     sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
+    hintHistory.current.commit(before, sudoku);
 
     setState((prevState) => ({
       ...prevState,
@@ -543,75 +554,50 @@ export const Game = (props: GameProps) => {
       setHintActivationKey(key => key + 1);
       const sudoku = cloneDeep(state.sudoku);
 
-      const wronglyFilledCells = state.sudoku.getWronglyFilledCells();
-      if (wronglyFilledCells.length > 0) {
-        fixError(pickRandomArrayValue(wronglyFilledCells));
-        return;
-      }
-
       const signature = sudoku.getFlatValues().join('');
       const candidates = logicRef.current?.signature === signature ? logicRef.current.candidates : candidatesFor(sudoku);
-      const step = nextHintStep(sudoku, candidates);
-      if (step) {
-        if (hintTimeoutRef.current !== undefined) clearTimeout(hintTimeoutRef.current);
-        applyLogicStep(sudoku, candidates, step, true);
-        checkCompletedUnits(sudoku);
-        logicRef.current = {signature: sudoku.getFlatValues().join(''), candidates};
-        setLogicStep(step);
-        setHintCandidates(step.placement ? undefined : Object.fromEntries(
-          [...step.sources, ...step.targets].map(cell => [`${cell.x},${cell.y}`, candidates.get(cell.y * 9 + cell.x) ?? []])
-        ));
-        setState(prev => ({...prev, sudoku,
-          highlightedCell: sudoku.getCell(step.targets[0].x, step.targets[0].y),
-          forceFocus: sudoku.getCell(step.targets[0].x, step.targets[0].y),
-          secondaryHighlight: [...step.sources, ...step.targets].map(c => sudoku.getCell(c.x, c.y)),
-          solutionShown: sudoku.isSolved(),
-        }));
+      let choice = hintHistory.current.replay(sudoku);
+      if (!choice) {
+        const wronglyFilledCells = sudoku.getWronglyFilledCells();
+        if (wronglyFilledCells.length) choice = {kind: 'correction', cell: pickRandomArrayValue(wronglyFilledCells)};
+        else {
+          let step = nextHintStep(sudoku, candidates);
+          if (!step) {
+            const fallback = getCellWithMinPossAndValueFromSolution(sudoku);
+            if (fallback) step = {
+              technique: 'Saved solution', placement: true, value: fallback[1], sources: [], targets: [fallback[0]],
+              explanation: `Value ${fallback[1]} at r${fallback[0].y + 1}c${fallback[0].x + 1} was filled in from the saved solution.`,
+            };
+          }
+          if (step) choice = {kind: 'step', step};
+        }
+      }
+      if (!choice) {
+        addGameMessage({text: 'Error giving hint.', duration: 6000});
         return;
       }
-      setLogicStep(undefined);
-      setHintCandidates(undefined);
-      const cellWithVal = getCellWithMinPossAndValueFromSolution(sudoku);
-
-      if (cellWithVal) {
-        const hintCellData = {
-          ...cellWithVal[0],
-          value: cellWithVal[1],
-          isInitial: true,
-        };
-        sudoku.setValueUseCell(hintCellData);
-        checkCompletedUnits(sudoku);
-        setState((prevState) => ({
-          ...prevState,
-          sudoku,
-          highlightedCell: sudoku.getCell(hintCellData.x, hintCellData.y),
-          forceFocus: sudoku.getCell(hintCellData.x, hintCellData.y),
-          secondaryHighlight: [],
-          solutionShown:
-            prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1,
-        }));
-        addGameMessage({
-          text: `Value ${hintCellData.value} at (${hintCellData.x + 1}|${hintCellData.y + 1}) was filled in from solution.`,
-          duration: 6000,
-        });
-      } else {
-        addGameMessage({
-          text: "Error giving hint.",
-          duration: 6000,
-        });
+      if (choice.kind === 'correction') {
+        fixError(choice.cell, choice, candidates);
+        return;
       }
-
-      if (hintTimeoutRef.current !== undefined) {
-        clearTimeout(hintTimeoutRef.current);
-      }
-
-      hintTimeoutRef.current = window.setTimeout(() => {
-        setState((prevState) => ({
-          ...prevState,
-          highlightedCell: undefined,
-          secondaryHighlight: [],
-        }));
-      }, 5000);
+      const {step} = choice;
+      if (hintTimeoutRef.current !== undefined) clearTimeout(hintTimeoutRef.current);
+      const before = hintHistory.current.begin(sudoku, candidates, choice);
+      applyLogicStep(sudoku, candidates, step, true);
+      if (step.placement) sudoku.getCell(step.targets[0].x, step.targets[0].y).isHint = true;
+      hintHistory.current.commit(before, sudoku);
+      checkCompletedUnits(sudoku);
+      logicRef.current = {signature: sudoku.getFlatValues().join(''), candidates};
+      setLogicStep(step);
+      setHintCandidates(step.placement ? undefined : Object.fromEntries(
+        [...step.sources, ...step.targets].map(cell => [`${cell.x},${cell.y}`, candidates.get(cell.y * 9 + cell.x) ?? []])
+      ));
+      setState(prev => ({...prev, sudoku,
+        highlightedCell: sudoku.getCell(step.targets[0].x, step.targets[0].y),
+        forceFocus: sudoku.getCell(step.targets[0].x, step.targets[0].y),
+        secondaryHighlight: [...step.sources, ...step.targets].map(c => sudoku.getCell(c.x, c.y)),
+        solutionShown: sudoku.isSolved(),
+      }));
     }
   };
 
@@ -619,9 +605,11 @@ export const Game = (props: GameProps) => {
     setSelectionResetKey(key => key + 1);
     setLogicStep(undefined);
     setHintCandidates(undefined);
-    logicRef.current = undefined;
     const sudoku = cloneDeep(state.sudoku);
-    if (!notesHistoryRef.current?.undo() && !sudoku.isHistoryEmpty()) sudoku.undo();
+    const notesUndone = notesHistoryRef.current?.undo() ?? false;
+    const candidates = hintHistory.current.undo(state.sudoku, notesUndone);
+    if (!notesUndone && !sudoku.isHistoryEmpty()) sudoku.undo();
+    logicRef.current = candidates ? {signature: sudoku.getFlatValues().join(''), candidates} : undefined;
     setState((prevState) => ({
       ...prevState,
       sudoku,
@@ -717,7 +705,13 @@ export const Game = (props: GameProps) => {
                 logicStep={logicStep}
               solutionIsFromApp={state.solutionShown}
               sudoku={state.sudoku}
-              cellCallback={() => {checkCompletedUnits(); updateCallback();}}
+              cellCallback={() => {
+                hintHistory.current.clear();
+                logicRef.current = undefined;
+                setLogicStep(undefined);
+                setHintCandidates(undefined);
+                checkCompletedUnits(); updateCallback();
+              }}
               highlightedCell={state.highlightedCell}
               secondaryHighlight={state.secondaryHighlight}
               forceFocus={state.forceFocus}

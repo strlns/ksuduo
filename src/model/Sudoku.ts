@@ -137,7 +137,7 @@ export class Sudoku {
     }
 
     public getNumberOfHints(): number {
-        return this.getFilledCells().filter(cell => cell.isInitial).length
+        return this.getFilledCells().filter(cell => cell.isInitial || cell.isHint).length
     }
 
     public getNumberOfCorrectlyFilledCells(): number {
@@ -220,15 +220,18 @@ export class Sudoku {
         if (useHistory) {
             this.history.push(this.getFlatCells().slice());
         }
+        const {isHint: _isHint, ...previous} = this.rows[y][x];
         return this.rows[y][x] = {
-            ...this.rows[y][x],
+            ...previous,
             isInitial: fixed,
             value
         };
     }
 
     public setValueUseCell(cell: CellData, useHistory = true): CellData {
-        return this.setValue(cell.x, cell.y, cell.value, cell.isInitial, useHistory)
+        const updated = this.setValue(cell.x, cell.y, cell.value, cell.isInitial, useHistory);
+        if (cell.value && cell.isHint) updated.isHint = true;
+        return updated;
     }
 
     public getRows(): readonly CellData[][] {

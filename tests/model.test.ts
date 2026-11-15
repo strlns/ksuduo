@@ -77,3 +77,25 @@ describe('class-based game state contracts', () => {
         expect(board.getWronglyFilledCells().map(cell => [cell.x, cell.y])).toEqual([[2, 0]]);
     });
 });
+
+it('counts filled hints with givens, excluding manual entries, undoing and resetting correctly', () => {
+    const board = makeBoard();
+    board.setValue(2, 0, 4);
+    board.getCell(2, 0).isHint = true;
+    expect(board.getNumberOfHints()).toBe(31);
+    expect(board.getCell(2, 0).isInitial).toBe(false);
+    board.setValue(3, 0, 6);
+    expect(board.getNumberOfHints()).toBe(31);
+    board.setValue(2, 0, 4);
+    expect(board.getNumberOfHints()).toBe(30);
+    board.undo();
+    expect(board.getNumberOfHints()).toBe(31);
+    board.undo();
+    board.undo();
+    expect(board.getNumberOfHints()).toBe(30);
+    board.setValue(2, 0, 4);
+    board.getCell(2, 0).isHint = true;
+    board.reset();
+    expect(board.getFlatValues()).toEqual(puzzle);
+    expect(board.getNumberOfHints()).toBe(30);
+});

@@ -64,3 +64,19 @@ it('re-rates older saves from givens instead of trusting the requested grade', (
  values.set(LOCALSTORAGE_KEY, JSON.stringify([board.getFlatCells(),board.history,solution,0,false,false,DIFFICULTY_LEVEL.EXTRA_HARD,false]));
  expect(restoreGameStateOrInitialize().achievedRating).toBe(0);
 });
+
+it('preserves hint attribution through save, reload and undo without changing original clues', () => {
+ const board=makeBoard();
+ board.setValue(2,0,4); board.getCell(2,0).isHint=true;
+ board.setValue(3,0,6);
+ persist({board,secondsElapsed:0,isPaused:false,timerEnabled:false,currentDifficulty:DIFFICULTY_LEVEL.EASY,solutionShown:false});
+ const restored=restoreGameStateOrInitialize().board;
+ expect(restored.getNumberOfHints()).toBe(31);
+ expect(restored.getCell(2,0).isInitial).toBe(false);
+ restored.undo();
+ expect(restored.getCell(2,0).isHint).toBe(true);
+ restored.undo();
+ expect(restored.getNumberOfHints()).toBe(30);
+ restored.reset();
+ expect(restored.getFlatValues()).toEqual(puzzle);
+});

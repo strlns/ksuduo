@@ -416,3 +416,48 @@ it('labels the achieved board rating even when a harder grade was requested', as
  expect(screen.getByText('Difficulty: Easiest')).toBeTruthy();
  expect(JSON.parse(localStorage.getItem('ksuduoState')!)[8]).toBe(0);
 });
+
+it('replays several undone hints with the same placements and explanations, counting filled hints', async () => {
+    await startGame();
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+        const path: {values: number[]; explanation: string}[] = [];
+        for (let i=0; i<3; i++) {
+            fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+            path.push({values: values(), explanation: document.getElementById('step-explanation')!.textContent!});
+            expect(screen.getByText(`Hints: ${31+i}`)).toBeTruthy();
+        }
+        for (let i=0; i<3; i++) fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
+        expect(values()).toEqual(puzzle);
+        expect(screen.getByText('Hints: 30')).toBeTruthy();
+        random.mockReturnValue(.9999);
+        for (let i=0; i<3; i++) {
+            fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+            expect(values()).toEqual(path[i].values);
+            expect(document.getElementById('step-explanation')!.textContent).toBe(path[i].explanation);
+            expect(screen.getByText(`Hints: ${31+i}`)).toBeTruthy();
+        }
+        fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
+        await confirmIfNeeded();
+        expect(screen.getByText('Hints: 30')).toBeTruthy();
+        expect(values()).toEqual(puzzle);
+    } finally {random.mockRestore();}
+});
+
+it('discards hint replay when the player makes a new move, even if that move is then undone', async () => {
+    await startGame();
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+        fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+        const explanation = document.getElementById('step-explanation')!.textContent;
+        fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
+        const cell = screen.getByRole('textbox', {name: 'Row 1, column 3'});
+        fireEvent.keyDown(cell, {key:'4'});
+        expect(values()[2]).toBe(4);
+        expect(screen.getByText('Hints: 30')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
+        random.mockReturnValue(.9999);
+        fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+        expect(document.getElementById('step-explanation')!.textContent).not.toBe(explanation);
+    } finally {random.mockRestore();}
+});

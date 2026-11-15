@@ -36,6 +36,8 @@ export type CellData = {
     x: CellIndex,
     y: CellIndex,
     isInitial: boolean,
+    /** Filled by Add Hint, separate from the original puzzle clues. */
+    isHint?: boolean,
     isValid: boolean,
     blockIndex: BlockIndex
 }
