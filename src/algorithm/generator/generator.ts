@@ -15,6 +15,7 @@ export enum DIFFICULTY_LEVEL {
   MEDIUM,
   HARD,
   EASY_NEW,
+  EXTRA_HARD,
 }
 
 export enum GENERATOR_CODE {
@@ -35,9 +36,9 @@ export default function generateRandomSudoku(
 ): GeneratorResult {
   try {
     if (!Number.isFinite(numberOfClues)) throw new Error("Invalid clue count.");
-    if (![DIFFICULTY_LEVEL.EASY_NEW, DIFFICULTY_LEVEL.EASY, DIFFICULTY_LEVEL.MEDIUM, DIFFICULTY_LEVEL.HARD].includes(difficulty)) throw new Error("Invalid difficulty.");
+    if (![DIFFICULTY_LEVEL.EASY_NEW, DIFFICULTY_LEVEL.EASY, DIFFICULTY_LEVEL.MEDIUM, DIFFICULTY_LEVEL.HARD, DIFFICULTY_LEVEL.EXTRA_HARD].includes(difficulty)) throw new Error("Invalid difficulty.");
     const level = difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 0 :
-      difficulty === DIFFICULTY_LEVEL.EASY ? 1 : difficulty === DIFFICULTY_LEVEL.MEDIUM ? 2 : 3;
+      difficulty === DIFFICULTY_LEVEL.EASY ? 1 : difficulty === DIFFICULTY_LEVEL.MEDIUM ? 2 : difficulty === DIFFICULTY_LEVEL.HARD ? 3 : 4;
     const target = Math.max(MINIMUM_CLUES, Math.min(81, Math.floor(numberOfClues)));
     const board = generateLogical(target, level, fewerRetries ? 1 : 3);
     const actual = board.getNumberOfHints();

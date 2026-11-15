@@ -87,7 +87,7 @@ export function generateLogical(clues: number, level: LogicLevel, attempts = 3):
     const result = bestRating < level && level >= 2
         ? refineDifficulty(best!, clues, level, attempts > 1 ? 3000 : 750)
         : best!;
-    if (level !== 3 || rateLogical(result) === level) return result;
+    if (level < 3 || rateLogical(result) === level) return result;
     const deadline = performance.now() + (attempts > 1 ? 4000 : 750);
     // Preserve the original search result; explore at most four new paths.
     for (let i = 0; i < (attempts > 1 ? 4 : 1) && performance.now() < deadline; i++) {
