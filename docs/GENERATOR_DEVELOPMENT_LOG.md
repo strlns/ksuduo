@@ -10,7 +10,7 @@
   too; there is no separate restart-until-lucky implementation.
 - `generatorLogical.ts` tries removing each clue once, rolling back unless a full
   logical solve succeeds. Up to three attempts prefer the requested grade, then
-  fewer clues. Randomness uses a seed-controllable Fisher–Yates shuffle.
+  fewer clues. A bounded lower-tier-stall refinement can then improve easier Medium/Hard results (see the 2026-11-15 experiment). Randomness uses a seed-controllable Fisher–Yates shuffle.
 - `logical.ts` is the single candidate/technique engine for generation, grading,
   hints and partial-solution diagnostics. Grading is deterministic; hints choose
   freely among unit-only-place explanations before cell-only singles.
@@ -135,3 +135,42 @@ had a defined logical rating at or below the requested level.
   between bounded operations, retain an iteration cap, and keep synchronous
   fallback conservative. A deadline checked between operations is not a hard
   interruption guarantee. No device benchmark or adaptive policy was added here.
+
+## 2026-11-15: preserve the lower-tier stall during difficulty refinement
+
+After the unchanged best-of-three search, Medium/Hard results below the requested
+rating get one bounded refinement pass. It removes more clues while retaining a
+complete solve at the ceiling. When the lower tier can no longer solve, it keeps
+that intermediate and attempts to restore clues up to the original goal. Cells
+already deducible by the lower tier are tried first; every restoration must leave
+the lower tier stalled. This uses the technique engine to protect the advanced
+elimination frontier instead of random clue exchanges. It does not add techniques.
+If no advanced intermediate is found, the original best puzzle is returned.
+Baseline requested-grade hits therefore remain intact. A successful refinement can
+return fewer clues than the goal if restoring more would make the puzzle easier.
+
+The extra pass has at most 81 removal/81 restoration probes and checks elapsed time
+between operations: 3 seconds for worker generation, 750 ms for the synchronous
+one-attempt fallback. This limits *additional* work, not total generation time or
+an individual logical solve. Final uniqueness and achieved-rating checks remain.
+
+Fixed LCG seeds 17–32 (separate from the previous experiment), Hard, three attempts:
+
+| Clue goal | Baseline Hard | Refined Hard | Baseline median / max | Refined median / max |
+| --- | ---: | ---: | ---: | ---: |
+| 24 | 5/16 | 5/16 | 2.83 / 4.90 s | 3.33 / 6.12 s |
+| 28 | 1/16 | 2/16 | 1.99 / 2.86 s | 2.66 / 3.98 s |
+
+All 64 outputs passed independent uniqueness and logical ceiling checks. Retained
+counts were 24–27 for the 24-clue goal and exactly 28 for the 28-clue goal. Seed 18
+at 28 clues is the added Hard hit and is retained as a deterministic regression.
+This is a modest, narrow improvement, not evidence of reliable Hard hit rates.
+Timing includes concurrent local verification and is descriptive only; this run
+is **not** an equal-time comparison against additional restarts. Medium hit rates,
+phone timings and larger/equal-time corpora remain unmeasured. Do not infer that
+this search beats more restarts for a fixed runtime budget.
+
+Raw observations: [frontier-search.json](experiments/2026-11-15-frontier-search.json).
+Reproduce with Node 26:
+`node --import tsx --import ./tests/legacy-globals.mjs docs/experiments/2026-11-15-frontier-search.ts`.
+The archived baseline module is a measurement control, never imported by the app.

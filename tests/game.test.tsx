@@ -244,7 +244,8 @@ it('keeps a hint slot mounted before, during and after step explanations', async
  fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
  expect(screen.getByLabelText('Solving explanation')).toBe(slot);
  expect(slot.classList.contains('logic-step-empty')).toBe(false);
- expect(slot.querySelector('.explainer-summary')!.textContent).toBe(slot.querySelector('.explainer-text')!.textContent);
+ expect(slot.querySelector('.explainer-text')!.textContent).toContain(slot.querySelector('.explainer-summary')!.textContent);
+ expect(slot.querySelector('.explainer-text')!.textContent!.length).toBeGreaterThan(slot.querySelector('.explainer-summary')!.textContent!.length + 80);
  expect(screen.queryByRole('button',{name:'Hide explanation'})).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'Undo'}));
  expect(screen.getByLabelText('Solving explanation')).toBe(slot);
@@ -304,4 +305,32 @@ it('expands and collapses the explanation without replacing the board or hint sl
  expect(document.querySelector('.board')).toBe(board);
  fireEvent.click(screen.getByRole('button',{name:'Collapse'}));
  expect(screen.getByRole('button',{name:'Explain'}).getAttribute('aria-expanded')).toBe('false');
+});
+
+it('plays one completion sweep when an entry completes a correct unit, and stays silent on reveal', async () => {
+    await startGame();
+    const sweep = vi.fn();
+    document.addEventListener('ksuduo-completion-sweep', sweep);
+    try {
+        for (const [column, value] of [[3,4],[4,6],[6,8],[7,9],[8,1],[9,2]]) {
+            fireEvent.input(screen.getByRole('textbox', {name: `Row 1, column ${column}`}), {target:{value:String(value)}});
+        }
+        expect(sweep).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByRole('button', {name:'Show Solution'}));
+        expect(sweep).toHaveBeenCalledTimes(1);
+    } finally { document.removeEventListener('ksuduo-completion-sweep', sweep); }
+});
+
+it('shows settings directly on desktop', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = query => ({
+        matches: query.includes('min-width:900px'), media: query, onchange: null,
+        addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true,
+    });
+    try {
+        await startGame();
+        expect(screen.getByLabelText('Difficulty')).toBeTruthy();
+        expect(screen.queryByRole('button', {name:'Puzzle settings'})).toBeNull();
+        expect(screen.queryByRole('dialog')).toBeNull();
+    } finally { window.matchMedia = original; }
 });

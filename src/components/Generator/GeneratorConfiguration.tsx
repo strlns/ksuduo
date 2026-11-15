@@ -114,7 +114,7 @@ export default (props: GeneratorConfigurationProps) => {
                 </InputLabel>
                 <DiscreteRangeSlider id={"difficulty-select"}
                                      marks={marks}
-                                     defaultValue={DEFAULT_CLUES}
+                                     value={props.numberOfClues}
                                      step={1}
                                      valueLabelDisplay={"auto"}
                                      min={MIN_CLUES}

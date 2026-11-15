@@ -3,8 +3,9 @@
 - Generation may retain more clues or return an easier grade than requested;
   achieved results are reported. The grade measures this app's techniques, not
   universal human difficulty.
-- Generation has a bounded removal/attempt count but no cancellation or wall-clock
-  deadline. Synchronous fallback can block the main thread.
+- Generation has a bounded removal/attempt count but no cancellation or overall
+  wall-clock deadline. Difficulty refinement limits additional work with a deadline
+  checked between logical solves. Synchronous fallback can block the main thread.
 - Explicit backtracking search limits fail safely, but their failure code does not
   distinguish exhaustion from no solution. Default solving remains exhaustive.
 - Older saved puzzles can exceed the current technique library; hints then reveal

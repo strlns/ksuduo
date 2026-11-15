@@ -1,11 +1,11 @@
-import {playAquaticCue} from '../../audio/AquaticAudio';
+import {playAquaticCue, playCompletionSweep} from '../../audio/AquaticAudio';
 import {AudioControl} from './AudioControl';
 import type {AnnotationRequest, AnnotationScope} from '../Board/annotations';
-import {Menu, MenuItem, Tooltip} from '@mui/material';
+import {Menu, MenuItem, Tooltip, useMediaQuery} from '@mui/material';
 import {MoreHorizRounded} from '@mui/icons-material';
 import {Dialog, DialogTitle, DialogContent, DialogActions} from "@mui/material";
 import {MessageQueue} from "../Message/MessageQueue";
-import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep} from "../../algorithm/solver/logical";
+import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep, techniqueExplanation} from "../../algorithm/solver/logical";
 import { ThemeProvider } from "@mui/material/styles";
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import {
   HighlightOffRounded,
   HighlightRounded,
   InfoOutlined,
+  ExpandMoreRounded,
   ThumbUp,
   UndoRounded,
 } from "@mui/icons-material";
@@ -155,6 +156,7 @@ export const Game = (props: GameProps) => {
   const [supportsInputModeAttribute, setSupportsInputModeAttribute] =
     useState(false);
 
+  const desktopSettings = useMediaQuery("(min-width:900px)");
   const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
 
   const pageIsVisible = usePageVisibility();
@@ -346,6 +348,21 @@ export const Game = (props: GameProps) => {
     }
   }, [pageIsVisible]);
 
+  const previousValues = useRef(state.sudoku.getFlatValues());
+  const checkCompletedUnits = (board = state.sudoku) => {
+    const before = previousValues.current;
+    const after = board.getFlatValues();
+    const units = [...board.getRows(), ...board.getColumns(), ...board.getBlocks().map(block => block.cells)];
+    const solution = board.getSolution();
+    const newlyCompleted = units.some(unit =>
+      unit.every(c => c.value && c.value === solution[c.y * 9 + c.x]) &&
+      unit.some(c => before[c.y * 9 + c.x] !== solution[c.y * 9 + c.x]));
+    if (!state.solutionShown && newlyCompleted) playCompletionSweep();
+    previousValues.current = after;
+  };
+  // New puzzles, reset, undo and reveal establish a baseline without celebrating.
+  useEffect(() => {previousValues.current = state.sudoku.getFlatValues();}, [state.sudoku]);
+
   const updateCallback = useCallback(() => {
     setState((prevState) => ({ ...prevState, isWorking: false }));
     if (!state.sudoku.isEmpty()) {
@@ -512,6 +529,7 @@ export const Game = (props: GameProps) => {
       if (step) {
         if (hintTimeoutRef.current !== undefined) clearTimeout(hintTimeoutRef.current);
         applyLogicStep(sudoku, candidates, step, true);
+        checkCompletedUnits(sudoku);
         logicRef.current = {signature: sudoku.getFlatValues().join(''), candidates};
         setLogicStep(step);
         setHintCandidates(step.placement ? undefined : Object.fromEntries(
@@ -536,6 +554,7 @@ export const Game = (props: GameProps) => {
           isInitial: true,
         };
         sudoku.setValueUseCell(hintCellData);
+        checkCompletedUnits(sudoku);
         setState((prevState) => ({
           ...prevState,
           sudoku,
@@ -602,6 +621,15 @@ export const Game = (props: GameProps) => {
     }
   };
 
+  const settingsConfiguration = (<GeneratorConfiguration
+                numberOfClues={state.numberOfClues}
+                setNumberOfClues={updateNumberOfClues}
+                difficulty={state.difficulty}
+                difficultyOfCurrentPuzzle={state.currentDifficulty}
+                setDifficulty={selectDifficulty}
+                numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
+              />);
+
   const smallTextClass = "small-text";
 
   return (
@@ -621,7 +649,7 @@ export const Game = (props: GameProps) => {
             <Tooltip title="Hint details and annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip>
           </div>
         </header>
-        <p id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">{logicStep?.explanation ?? 'Add Hint explains one solving step at a time.'}</p>
+        <p id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">{logicStep ? `${logicStep.explanation} ${techniqueExplanation(logicStep)}` : 'Add Hint explains one solving step at a time.'}</p>
         <small className="explainer-status">{logicStep ? (logicStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : 'Follow the highlighted cells and candidates.'}</small>
       </section>
       </div>
@@ -663,7 +691,7 @@ export const Game = (props: GameProps) => {
                 logicStep={logicStep}
               solutionIsFromApp={state.solutionShown}
               sudoku={state.sudoku}
-              cellCallback={updateCallback}
+              cellCallback={() => {checkCompletedUnits(); updateCallback();}}
               highlightedCell={state.highlightedCell}
               secondaryHighlight={state.secondaryHighlight}
               forceFocus={state.forceFocus}
@@ -755,21 +783,17 @@ export const Game = (props: GameProps) => {
                 >
                   Add Hint
                 </Button45Mt>
-              </ThemeProvider>
-            </PaperBox>
-          </Grid>
-          <Grid size={12}>
-            <PaperBox className="solution-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <Button
                 endIcon={<HighlightRounded />}
                 disabled={
                   state.sudoku.isSolved() || !state.sudoku.hasSolutionSet()
                 }
                 onClick={showSolution}
-                variant="contained"
+                variant="outlined"
               >
                 Show Solution
               </Button>
+              </ThemeProvider>
             </PaperBox>
           </Grid>
           <Grid size={12}>
@@ -782,7 +806,12 @@ export const Game = (props: GameProps) => {
               <Button className="generation-info" size="small" startIcon={<InfoOutlined/>} onClick={() => setGenerationInfoOpen(true)} aria-label="About puzzle generation">
                 {state.generatorMessage || "How puzzles are generated"}
               </Button>
-              <Button size="small" onClick={() => setSettingsOpen(true)}>Puzzle settings</Button>
+              {desktopSettings ? <section className="inline-settings" aria-label="Puzzle settings">
+                <Typography component="h2" variant="subtitle2">Puzzle settings</Typography>
+                {settingsConfiguration}
+              </section> : <Button className="settings-trigger" variant="outlined" endIcon={<ExpandMoreRounded/>} aria-label="Puzzle settings" aria-haspopup="dialog" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(true)}>
+                {['Easy', 'Medium', 'Hard', 'Easiest'][state.difficulty]} · {state.numberOfClues} hints goal
+              </Button>}
 
             </PaperBox>
           </Grid>
@@ -812,6 +841,7 @@ export const Game = (props: GameProps) => {
       <Dialog open={hintDetailsOpen} onClose={() => setHintDetailsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="hint-details-title">
         <DialogTitle id="hint-details-title">{logicStep?.technique ?? 'Solving hints'}</DialogTitle>
         <DialogContent>
+          <p>{logicStep && techniqueExplanation(logicStep)}</p>
           <p>{logicStep?.explanation ?? 'Press Add Hint for the next logical step.'}</p>
           <p>{logicStep?.placement ? 'The blue cell with a gold border is the digit just filled.' : 'This step removes impossible candidates without filling a digit. The remaining notes are kept on the board. Press Add Hint to continue from these deductions.'}</p>
           <p>Mint outlines and highlighted digits show the source pattern. Warm dashed outlines and crossed-out digits show what was eliminated. Row and column labels run top to bottom and left to right: r2c6 means row 2, column 6.</p>
@@ -821,16 +851,9 @@ export const Game = (props: GameProps) => {
           <Button onClick={() => setHintDetailsOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="puzzle-settings-title">
+      <Dialog open={settingsOpen && !desktopSettings} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="puzzle-settings-title">
         <DialogTitle id="puzzle-settings-title">Puzzle settings</DialogTitle>
-        <DialogContent>              <GeneratorConfiguration
-                numberOfClues={state.numberOfClues}
-                setNumberOfClues={updateNumberOfClues}
-                difficulty={state.difficulty}
-                difficultyOfCurrentPuzzle={state.currentDifficulty}
-                setDifficulty={selectDifficulty}
-                numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
-              /></DialogContent>
+        <DialogContent>              {settingsConfiguration}</DialogContent>
         <DialogActions><Button onClick={() => setSettingsOpen(false)}>Done</Button></DialogActions>
       </Dialog>
       <Dialog open={generationInfoOpen} onClose={() => setGenerationInfoOpen(false)} fullWidth maxWidth="sm" aria-labelledby="generation-info-title">
@@ -843,7 +866,7 @@ export const Game = (props: GameProps) => {
             <li><strong>Medium:</strong> also locked candidates — pointing and claiming between a box and a line.</li>
             <li><strong>Hard:</strong> also naked pairs — two cells reserve the same two candidates in a unit.</li>
           </ul>
-          <p>The generator tries up to three puzzles to match your requested grade. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
+          <p>The generator tries up to three puzzles to match your requested grade. For Medium and Hard, a bounded extra pass can remove more clues and then restore those that preserve the need for the requested technique. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
           <p>If the search returns an easier puzzle, the game tells you; you can generate again. It may retain extra clues to stay within the technique limit. Fewer clues do not necessarily mean a harder puzzle.</p>
           {state.generatorMessage && <p><strong>This puzzle:</strong> {state.generatorMessage}</p>}
         </DialogContent>

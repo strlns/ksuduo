@@ -1,3 +1,5 @@
+export const COMPLETION_SWEEP = 'ksuduo-completion-sweep';
+export const playCompletionSweep = () => document.dispatchEvent(new Event(COMPLETION_SWEEP));
 export const AQUATIC_CUE = 'ksuduo-aquatic-cue';
 export const playAquaticCue = () => document.dispatchEvent(new Event(AQUATIC_CUE));
 
@@ -85,6 +87,13 @@ export class AquaticAudio {
             // A short, softly filtered downward glide well below the aquatic cue.
             this.tone(67, .24, .006, .025, 0, true);
         }
+    }
+    completionSweep() {
+        if (!this.effects || this.context.state !== 'running') return;
+        // One rising, overlapping pentatonic shimmer, even for several units at once.
+        this.lastFx = this.context.currentTime;
+        [62, 69, 74, 76, 81, 86].forEach((note, i) =>
+            this.tone(note, 1.5 - i * .1, .022 - i * .002, .12, i * .085, true));
     }
     setHidden(hidden: boolean) {
         if (hidden) void this.context.suspend().catch(() => {});

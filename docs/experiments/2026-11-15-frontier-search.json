@@ -1,0 +1,578 @@
+[
+  {
+    "seed": 17,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2796.6104769999997,
+    "grade": 2,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 17,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3133.5523759999996,
+    "grade": 2,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 17,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2179.9699410000003,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 17,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2760.4946089999994,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 18,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2043.05105,
+    "grade": 3,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 18,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 1729.465936999999,
+    "grade": 3,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 18,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1779.7802850000007,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 18,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2317.373348000001,
+    "grade": 3,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 19,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2719.971862999999,
+    "grade": 2,
+    "retained": 27,
+    "unique": true
+  },
+  {
+    "seed": 19,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3295.0530709999985,
+    "grade": 2,
+    "retained": 27,
+    "unique": true
+  },
+  {
+    "seed": 19,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1970.6061289999998,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 19,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2909.358623,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 20,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2047.791500000003,
+    "grade": 3,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 20,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 2200.4610420000026,
+    "grade": 3,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 20,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2195.820107000007,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 20,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2888.372482999999,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 21,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2662.2734100000016,
+    "grade": 3,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 21,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 2686.7879029999967,
+    "grade": 3,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 21,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1938.6756800000003,
+    "grade": 3,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 21,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 1908.2924090000015,
+    "grade": 3,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 22,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2579.0843470000036,
+    "grade": 1,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 22,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 2922.179320999996,
+    "grade": 1,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 22,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1750.9252410000045,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 22,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2205.6652390000017,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 23,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 3682.3984530000016,
+    "grade": 1,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 23,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 4845.978058999994,
+    "grade": 1,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 23,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2804.451736999996,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 23,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 3553.075008,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 24,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 4900.198371999999,
+    "grade": 1,
+    "retained": 26,
+    "unique": true
+  },
+  {
+    "seed": 24,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 6118.873137999995,
+    "grade": 1,
+    "retained": 26,
+    "unique": true
+  },
+  {
+    "seed": 24,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2824.2799360000063,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 24,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2597.2798470000125,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 25,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 3680.817544999998,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 25,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 4948.288405999992,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 25,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2114.5466439999873,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 25,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2608.6176479999995,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 26,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 4510.2599219999975,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 26,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 5790.262252,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 26,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2858.9656019999966,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 26,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 3983.5074529999983,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 27,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2855.746247999996,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 27,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3268.7020010000124,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 27,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2004.6383610000048,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 27,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2615.0038789999962,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 28,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 3863.302276000002,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 28,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3369.095410000009,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 28,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1725.7832019999914,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 28,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2481.6453949999996,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 29,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2655.644465999998,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 29,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3455.7652839999937,
+    "grade": 2,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 29,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1746.6640849999967,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 29,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2694.762302999996,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 30,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 2459.963367999997,
+    "grade": 2,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 30,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 2985.0359159999934,
+    "grade": 2,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 30,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 2361.5765290000127,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 30,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 3048.212498000008,
+    "grade": 2,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 31,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 3024.284436999995,
+    "grade": 3,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 31,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3615.8283970000048,
+    "grade": 3,
+    "retained": 25,
+    "unique": true
+  },
+  {
+    "seed": 31,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1947.391146000009,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 31,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2993.0075110000034,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 32,
+    "clues": 24,
+    "name": "baseline",
+    "ms": 3312.665959999984,
+    "grade": 3,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 32,
+    "clues": 24,
+    "name": "frontier",
+    "ms": 3459.781813999987,
+    "grade": 3,
+    "retained": 24,
+    "unique": true
+  },
+  {
+    "seed": 32,
+    "clues": 28,
+    "name": "baseline",
+    "ms": 1911.4979220000096,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  },
+  {
+    "seed": 32,
+    "clues": 28,
+    "name": "frontier",
+    "ms": 2407.21169299999,
+    "grade": 1,
+    "retained": 28,
+    "unique": true
+  }
+]

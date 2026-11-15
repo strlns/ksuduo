@@ -111,3 +111,14 @@ export function nextHintStep(board: Sudoku, candidates: Candidates): LogicStep |
     const steps = unitSingleSteps(board, candidates);
     return steps.length ? steps[Math.floor(Math.random() * steps.length)] : nextLogicStep(board, candidates);
 }
+
+/** Two short teaching sentences, alongside the concrete deduction. */
+export function techniqueExplanation(step: LogicStep): string {
+    switch (step.technique) {
+        case 'Naked single': return 'A naked single leaves just one possible digit in a cell after its row, column and block are checked. The highlighted cell can therefore take the remaining candidate.';
+        case 'Hidden single': return 'A hidden single is the only place for a digit in one row, column or block, even if that cell has other candidates. The highlighted unit rules out every other position for this digit.';
+        case 'Locked candidates': return 'When all positions for a digit in a block lie on one line, that digit is reserved on their intersection; the same reasoning works from a line into a block. The highlighted source cells therefore exclude the crossed-out digit from the rest of the intersecting unit.';
+        case 'Naked pair': return 'Two cells with the same two candidates reserve both digits between them, whichever order they take. Other cells in their shared unit cannot use either digit, so the marked candidate is removed.';
+        default: return '';
+    }
+}

@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import {Button, Tooltip} from '@mui/material';
 import {GraphicEqRounded, VolumeOffRounded, WavesRounded} from '@mui/icons-material';
-import {AquaticAudio, AQUATIC_CUE} from '../../audio/AquaticAudio';
+import {AquaticAudio, AQUATIC_CUE, COMPLETION_SWEEP} from '../../audio/AquaticAudio';
 
 const labels = ['Off', 'Music + FX', 'FX only', 'Music only'];
 export function AudioControl() {
@@ -17,12 +17,15 @@ export function AudioControl() {
         const input = (event: Event) => {
             if ((event.target as Element).matches('.cell input')) engine.current?.effect();
         };
+        const completion = () => engine.current?.completionSweep();
+        document.addEventListener(COMPLETION_SWEEP, completion);
         const aquatic = () => engine.current?.effect(true);
         document.addEventListener(AQUATIC_CUE, aquatic);
         document.addEventListener('visibilitychange', visibility);
         document.addEventListener('click', click);
         document.addEventListener('input', input);
         return () => {
+            document.removeEventListener(COMPLETION_SWEEP, completion);
             document.removeEventListener(AQUATIC_CUE, aquatic);
             document.removeEventListener('visibilitychange', visibility);
             document.removeEventListener('click', click);

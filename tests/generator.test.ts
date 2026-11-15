@@ -63,3 +63,16 @@ it.each([
     expect(result[1]).toBeInstanceOf(Sudoku);
     expect(solveCheckUnique(result[1]!)).toEqual(result[1]!.getSolution());
 });
+
+it('uses the lower-tier stall to retain a Hard puzzle at 28 clues (seed 18)', async () => {
+    const {rateLogical, solveLogically} = await import('../src/algorithm/solver/logical');
+    // Remove machine speed from this bounded search regression.
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    let seed = 18;
+    vi.spyOn(Math, 'random').mockImplementation(() => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32));
+    const board = generateLogical(28, 3);
+    expect(board.getNumberOfHints()).toBe(28);
+    expect(rateLogical(board)).toBe(3);
+    expect(solveLogically(board, 2)).toBe(false);
+    expect(solveCheckUnique(board)).toEqual(board.getSolution());
+}, 30000);
