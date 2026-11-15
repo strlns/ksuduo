@@ -29,9 +29,9 @@ vi.mock('../src/algorithm/generator/generator', async importOriginal => ({
 
 beforeEach(() => {localStorage.clear(); mode.requests.length = 0; mode.synchronousCalls = 0; mode.probeWorks = true;});
 afterEach(() => cleanup());
-const confirmIfNeeded = () => {
+const confirmIfNeeded = async () => {
  const button=screen.queryByRole('button',{name:/^Confirm /});
- if(button)fireEvent.click(button);
+ if(button) {fireEvent.click(button); await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());}
 };
 const values = () => {
     const flat = Array<number>(81);
@@ -73,12 +73,12 @@ describe('gameplay migration baseline', () => {
         fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
         await waitFor(() => expect(values()).toEqual(puzzle));
         fireEvent.click(screen.getByRole('button', {name: /Show Solution/i}));
- confirmIfNeeded();
+ await confirmIfNeeded();
         await waitFor(() => expect(screen.getByText('Solution shown')).toBeTruthy());
         expect(values().filter(Boolean)).toHaveLength(81);
         expect(screen.queryByText('Good job!')).toBeNull();
         fireEvent.click(screen.getByRole('button', {name: /^Reset$/i}));
- confirmIfNeeded();
+ await confirmIfNeeded();
         await waitFor(() => expect(values()).toEqual(puzzle));
     });
     it('keeps native difficulty options, slider ranges and the timer toggle', async () => {
@@ -164,7 +164,7 @@ it('clears all notes across cells and persists the cleared state without editing
     expect(second.getAttribute('aria-description')).toBeNull();
     expect(first.getAttribute('aria-description')).toContain('Notes:');
     fireEvent.click(screen.getByRole('button', {name: 'Clear all notes'}));
- confirmIfNeeded();
+ await confirmIfNeeded();
     expect(first.getAttribute('aria-description')).toBeNull();
     expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes).toEqual({});
     expect(values()).toEqual(puzzle);
@@ -282,7 +282,7 @@ it('manual notes are not undo steps, number undo retains them and reset clears t
  fireEvent.click(screen.getByRole('button', {name: 'Undo'}));
  expect(input.getAttribute('aria-description')).toBe('Notes: 1, 2, 4');
  fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
- confirmIfNeeded();
+ await confirmIfNeeded();
  expect(document.querySelectorAll('.cell-notes')).toHaveLength(0);
  expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes).toEqual({});
  expect(screen.getByRole('button', {name: 'Undo'}).hasAttribute('disabled')).toBe(true);
@@ -325,7 +325,7 @@ it('plays one completion sweep when an entry completes a correct unit, and stays
         }
         expect(sweep).toHaveBeenCalledTimes(1);
         fireEvent.click(screen.getByRole('button', {name:'Show Solution'}));
- confirmIfNeeded();
+ await confirmIfNeeded();
         expect(sweep).toHaveBeenCalledTimes(1);
     } finally { document.removeEventListener('ksuduo-completion-sweep', sweep); }
 });

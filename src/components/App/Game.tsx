@@ -929,9 +929,10 @@ export const Game = (props: GameProps) => {
             </Button>
 
             <GenerateButton
-              onClick={() =>
-                confirmAction("Generate puzzle", "Replace the completed puzzle and its notes?", () => generateSudokuThen(() => setWinnerModalOpen(false)))
-              }
+              onClick={() => {
+                setWinnerModalOpen(false);
+                confirmAction("Generate puzzle", "Replace the completed puzzle and its notes?", () => generateSudokuThen(() => {}));
+              }}
               isWorking={state.isWorking}
               text="Generate another sudoku with the same settings"
             />

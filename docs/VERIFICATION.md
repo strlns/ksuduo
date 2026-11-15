@@ -39,3 +39,6 @@ notes survive toggling. Note hint cells retains solver eliminations. Bulk annota
 is available by the pencil toggle and play actions. Reset, reveal, generation and
 bulk note replacement/clearing require confirmation when entries/history or notes
 exist, including restored notes. Cancelling leaves values and notes unchanged.
+At 390×844, expanding a hint moved the board from y≈120 to y≈286; the explanation
+ended at y≈229, leaving both unobscured. Confirmation dialogs default focus to
+Cancel. The completion dialog closes before a next-puzzle confirmation opens.
