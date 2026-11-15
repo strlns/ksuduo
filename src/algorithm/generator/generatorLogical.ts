@@ -4,7 +4,7 @@ import {shuffle} from '../../utility/shuffle';
 import {generateFullSolution} from './generateFullSolution';
 import {LogicLevel, solveLogically, rateLogical, solveLogical} from '../solver/logical';
 
-/** Bounded removal: every accepted puzzle has a complete logical solving path. */
+/** Ordinary digging preserves the logical ceiling; exploratory digging preserves uniqueness. */
 function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false): Sudoku {
     const board = new Sudoku();
     const values = generateFullSolution();
@@ -84,7 +84,7 @@ export function generateLogical(clues: number, level: LogicLevel, attempts = 3):
         }
         if (rating === level && board.getNumberOfHints() <= clues) break;
     }
-    let result = bestRating < level && level >= 2
+    const result = bestRating < level && level >= 2
         ? refineDifficulty(best!, clues, level, attempts > 1 ? 3000 : 750)
         : best!;
     if (level !== 3 || rateLogical(result) === level) return result;
