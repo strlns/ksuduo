@@ -1,4 +1,5 @@
 import {Sudoku} from '../../model/Sudoku';
+import {solveCheckUnique} from '../solver/solverBacktracking';
 import {shuffle} from '../../utility/shuffle';
 import {generateFullSolution} from './generateFullSolution';
 import {LogicLevel, solveLogically, rateLogical, solveLogical} from '../solver/logical';
@@ -12,7 +13,21 @@ function generateAttempt(clues: number, level: LogicLevel): Sudoku {
     for (const cell of shuffle(board.getFlatCells())) {
         if (board.getNumberOfHints() <= clues) break;
         board.clearCell(cell, false);
-        if (!solveLogically(board, level)) board.setValueUseCell(cell, false);
+        if (level === 3 ? !Array.isArray(solveCheckUnique(board)) : !solveLogically(board, level)) board.setValueUseCell(cell, false);
+    }
+    if (level === 3 && !solveLogically(board, level)) {
+        // A unique puzzle beyond our ceiling can still lead to a useful sibling:
+        // restore different clues, rather than reject that removal permanently.
+        for (const cell of shuffle(board.getEmptyCells())) {
+            board.setValue(cell.x, cell.y, values[cell.y * 9 + cell.x], true, false);
+            if (solveLogically(board, level)) break;
+        }
+        // Remove redundant repair clues without exceeding the ceiling again.
+        for (const cell of shuffle(board.getFlatCells().filter(c => c.value))) {
+            if (board.getNumberOfHints() <= clues) break;
+            board.clearCell(cell, false);
+            if (!solveLogically(board, level)) board.setValueUseCell(cell, false);
+        }
     }
     return Sudoku.cloneWithoutHistory(board);
 }
