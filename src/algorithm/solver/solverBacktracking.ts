@@ -53,6 +53,7 @@ function check(flatPuzzle: CellValue[], candidate: CellValue, index: number) {
 
 const solveWithBacktrackingCheckUnique = (flatPuzzle: CellValue[], maxIterations: number): Solution | SOLVER_FAILURE => {
     let iteration = 0;
+    let exhausted = false;
     const puzzle = flatPuzzle.slice(); //recursive inner function works in-place. outer function preserves argument.
     /*
       because we continue backtracking in search of a 2nd solution,
@@ -66,11 +67,9 @@ const solveWithBacktrackingCheckUnique = (flatPuzzle: CellValue[], maxIterations
      * NOT a pure function, this mutates the argument `puzzle` and works in-place.
      */
     function recursiveSolveWithCount(puzzle: CellValue[], index: number, solutionCount: number = 0): number {
-        if (maxIterations !== 0 && iteration > maxIterations) {
-            if (IS_DEVELOPMENT) {
-                console.error("Maximum iterations reached, no solution found.");
-                return solutionCount;
-            }
+        if (exhausted || (maxIterations !== 0 && ++iteration > maxIterations)) {
+            exhausted = true;
+            return solutionCount;
         }
         if (index >= BOARD_SIZE) {
             solution = puzzle.slice();
@@ -96,6 +95,7 @@ const solveWithBacktrackingCheckUnique = (flatPuzzle: CellValue[], maxIterations
     }
 
     const solutionCount = recursiveSolveWithCount(puzzle, 0);
+    if (exhausted) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
     if (solutionCount === 1 && solution !== undefined) {
         return solution as Solution;
     } else if (solutionCount > 1) {
@@ -105,12 +105,20 @@ const solveWithBacktrackingCheckUnique = (flatPuzzle: CellValue[], maxIterations
 
 }
 
-export function solveCheckUnique(puzzle: Puzzle, maxIterations: number = 1 << 20): Solution | SOLVER_FAILURE {
+export function solveCheckUnique(puzzle: Puzzle, maxIterations: number = 0): Solution | SOLVER_FAILURE {
     const flatPuzzle = puzzle instanceof Sudoku ? puzzle.getFlatValues() : puzzle as CellValue[];
     if (flatPuzzle.length !== BOARD_SIZE) {
         throw new Error('Puzzle has invalid size.');
     }
 
+    for (let i = 0; i < flatPuzzle.length; i++) {
+        const value = flatPuzzle[i];
+        if (!Number.isInteger(value) || value < 0 || value > 9) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
+        if (value) {
+            const copy = flatPuzzle.slice(); copy[i] = CellValue.EMPTY;
+            if (!check(copy, value, i)) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
+        }
+    }
     const hints = flatPuzzle.filter(cellValue => cellValue !== CellValue.EMPTY).length;
 
     if (hints < MINIMUM_CLUES) {

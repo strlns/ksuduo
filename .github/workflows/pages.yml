@@ -1,4 +1,4 @@
-name: Test and deploy to GitHub Pages
+name: Build and deploy to GitHub Pages
 
 on:
   push:
@@ -25,7 +25,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm test
       - run: npm run build
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'

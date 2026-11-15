@@ -223,3 +223,118 @@ a { color: #62d7e5; }
 }
 
 .clock { font-variant-numeric: tabular-nums; }
+
+.cell { position: relative; }
+.cell-notes { position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); font: 0.5rem "IBM Plex Mono", monospace; line-height: 1; pointer-events: none; text-align: center; color: #bce4e9; }
+.board-panel { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.notes-toolbar { width: 100%; margin: .5rem auto 0; max-width: 24rem; }
+.notes-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .15rem; }
+.notes-toolbar .MuiButton-root { width: auto; min-width: 0; padding: .4rem .45rem; font-size: .7rem; line-height: 1.3; text-transform: none; }
+.notes-selection { font: .7rem "IBM Plex Mono", monospace; margin-right: auto; padding: .25rem; }
+.note-digits { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: .2rem; margin-top: .35rem; }
+.note-digits .MuiButton-root { min-height: 2.5rem; padding: .35rem 0; font: 1rem "IBM Plex Mono", monospace; border: 1px solid #47737e; }
+.notes-toolbar > small { display: block; margin-top: .25rem; font-size: .75rem; }
+.notes-toolbar [aria-pressed="true"] { background: #236572; }
+.logic-step { padding: .75rem; border: 1px solid #69b6c2; border-radius: .5rem; margin: .75rem 0; }
+
+.cell.logic-source { outline: 2px solid #76ddd5; outline-offset: -3px; }
+.cell.logic-target { outline: 2px dashed #ffbd87; outline-offset: -3px; }
+.candidate-removed { color: #ffbd87; text-decoration: line-through; text-decoration-thickness: 2px; font-weight: bold; }
+
+.message-queue { position: fixed; z-index: 1301; right: max(.75rem, env(safe-area-inset-right)); bottom: max(.75rem, env(safe-area-inset-bottom)); width: min(24rem, calc(100vw - 1.5rem)); max-height: 35vh; overflow-y: auto; overflow-x: hidden; }
+.message-queue > small { display: block; text-align: right; padding: .2rem .5rem; background: #102b35; }
+.cell.selected-cell { box-shadow: inset 0 0 0 2px #fff0a8; }
+@media (max-width: 599px) {
+    body { min-height: 100dvh; }
+    #app > .MuiContainer-root { padding: .4rem .65rem; }
+    .game.MuiGrid-root { padding-top: 0 !important; gap: .4rem; }
+    .board-column.MuiGrid-root { width: 100%; }
+    .board-card.MuiPaper-root { padding: .4rem; }
+    .board-card > .MuiBox-root { padding: .2rem .35rem; }
+    .board-card .MuiLinearProgress-root { margin-top: 0 !important; }
+    .board .block { width: 100%; }
+    .board .cell { width: auto; height: auto; aspect-ratio: 1; }
+    .game-controls.MuiGrid-root { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; width: 100%; }
+    .game-controls > .MuiGrid-root { width: 100%; min-width: 0; }
+    .game-controls > .MuiGrid-root:has(.timer-card), .game-controls > .MuiGrid-root:has(.generation-card) { grid-column: 1 / -1; }
+    .game-controls .MuiPaper-root { padding: .35rem; margin-top: 0; }
+    .timer-card { flex-direction: row !important; align-items: center; justify-content: space-between; }
+    .timer-card .clock { min-height: 1.8rem; gap: .35rem; }
+    .timer-card label { flex-direction: row !important; font-size: .65rem; }
+    .play-actions { gap: .2rem; }
+    .play-actions .MuiButton-root { flex: 1; width: auto; min-width: 0; margin-top: 0; }
+    .game-controls .MuiButton-root { font-size: .65rem; padding: .3rem; }
+    .game-controls .MuiButton-endIcon { margin-left: .15rem; }
+    .generation-card { display: grid; grid-template-columns: 1fr auto; gap: .2rem .5rem; }
+    .generation-card > .MuiButton-contained { grid-column: 1 / -1; margin-bottom: 0; }
+    .generation-info.MuiButton-root { text-align: left; justify-content: flex-start; font-size: .6rem; }
+    .game-controls > .MuiGrid-root:has(.about-card) { grid-column: 1 / -1; }
+    .about-card.MuiPaper-root { padding: 0; background: transparent; box-shadow: none; }
+    .logic-step { padding: .4rem; margin: .25rem 0; font-size: .75rem; }
+    .logic-step p { margin: .25rem 0; }
+    .logic-step p + p { display: none; }
+    #app > .MuiContainer-root > .MuiBox-root { margin-top: .25rem; }
+    #app > .MuiContainer-root > .MuiBox-root .MuiTypography-root { font-size: .65rem; }
+}
+@media (max-width: 599px) {
+    .board-card .small-text { font-size: .65rem; }
+    .notes-actions { flex-wrap: nowrap; gap: .1rem; }
+    .notes-toolbar .MuiButton-root { padding: .35rem .25rem; font-size: .6rem; letter-spacing: 0; white-space: nowrap; }
+    .notes-selection { margin-right: auto; padding: .1rem; font-size: .6rem; }
+    .game-controls .MuiButton-root { letter-spacing: 0; white-space: nowrap; }
+    .play-actions .MuiButton-endIcon { display: none; }
+    .generation-card.MuiPaper-root { display: grid; }
+    .generation-info.MuiButton-root { white-space: normal; }
+    .logic-step .MuiButton-root { padding: .1rem; font-size: .6rem; }
+}
+@media (max-width: 599px) {
+    #app > .MuiContainer-root { padding-bottom: .25rem; }
+    #app > .MuiContainer-root > .MuiBox-root { display: none; } /* Source link remains in About. */
+    .logic-step { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .4rem; }
+    .logic-step strong { flex-basis: 100%; }
+    .logic-step p { flex: 1; }
+    .logic-step .MuiButton-root { width: auto; min-width: 0; }
+}
+@media (max-width: 599px) and (max-height: 700px) {
+    .timer-card .clock { min-height: 1.2rem; }
+}
+
+@media (max-width: 599px) {
+    /* Size the square by available width, never by the viewport's height. */
+    .board {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        aspect-ratio: 1;
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+    }
+    .board .block { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); min-width: 0; min-height: 0; }
+    .block .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 0; }
+    .board .cell { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: auto; }
+    .board .cell .value { height: 100%; width: 100%; }
+    .board .cell input { height: 100%; min-height: 0; font-size: clamp(1rem, 5vw, 1.4rem); }
+    .game-controls > .MuiGrid-root:has(.about-card) { display: flex; justify-content: center; padding-top: 2rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    .about-card.MuiPaper-root { width: auto; }
+    .about-card .MuiButton-root { width: auto; padding-inline: 1rem; }
+}
+/* Candidate patterns use both shape and contrasting fills, not color alone. */
+.cell.logic-source { background-color: #174f56; outline-color: #9affec; }
+.cell.logic-target { background-color: #663d22; outline-color: #ffd19a; }
+.cell-notes { color: #eefaff; font-weight: 600; }
+.candidate-source { background: #b0ffe9; color: #082f31; border-radius: 2px; font-weight: 700; }
+.candidate-removed { background: #ffe0ad; color: #522407; border-radius: 2px; text-decoration-color: #8b160c; }
+.notes-mode-toggle.MuiIconButton-root { border: 1px solid #65838b; border-radius: .5rem; width: 2rem; height: 2rem; }
+.notes-mode-toggle.MuiIconButton-root[aria-pressed="true"] { color: #092e35; background: #9af0e8; border-color: #9af0e8; box-shadow: inset 0 0 0 1px #092e35; }
+/* Hint cells can also be source/target cells: keep their foreground and fill paired. */
+.cell.hint,
+.cell.hint.logic-source,
+.cell.hint.logic-target {
+    background-color: #20563f;
+    color: #f4fff8;
+}
+.cell.hint .value,
+.cell.hint input {
+    color: #f4fff8;
+    -webkit-text-fill-color: #f4fff8;
+    font-weight: 700;
+}

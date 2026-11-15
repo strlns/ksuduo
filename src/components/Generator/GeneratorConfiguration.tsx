@@ -102,8 +102,8 @@ export default (props: GeneratorConfigurationProps) => {
                     <option value={DIFFICULTY_LEVEL.HARD}>Hard</option>
                 </NativeSelect>
                 <FormHelperText style={{lineHeight: 1, marginBottom: ksuduoThemeNormal.spacing(2)}}>
-                    {`${isRangeSliderVisible ? 'Difficulty changes range of the slider below, but also generator strategy.'
-                        : 'Puzzle is guaranteed to be solvable without using advanced techniques.'}`}
+                    {props.difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 'Naked singles only.' : props.difficulty === DIFFICULTY_LEVEL.EASY ? 'Naked and hidden singles only.' : props.difficulty === DIFFICULTY_LEVEL.MEDIUM ? 'Singles and locked candidates (pointing / claiming).' : 'Singles, locked candidates and naked pairs.'}
+                    {' These are technique limits; a puzzle may be easier. More clues may be kept to respect the limit.'}
                 </FormHelperText>
             </FormControl>
         </ThemeProvider>

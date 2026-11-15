@@ -3,7 +3,8 @@ import {almostDailyNightmareSudokus, gnomeGs4HardSudokus} from '../src/examples/
 import {invalid2Solutions, invalid3Solutions, invalid4Solutions, invalid10Solutions, invalid125Solutions} from '../src/examples/invalidExamples';
 import {solveCheckUnique, SOLVER_FAILURE} from '../src/algorithm/solver/solverBacktracking';
 import {solverResultIsError} from '../src/algorithm/solver/solver';
-import solveHuman from '../src/algorithm/solver/solverHumanTechniques';
+import {solveLogical} from '../src/algorithm/solver/logical';
+import {puzzleToSudoku} from '../src/model/Sudoku';
 import solutionRespectsHints from '../src/debug/solutionRespectsHints';
 import {coordsToFlatIndex, flatIndexToCoords, CellIndex} from '../src/model/Board';
 import {puzzle, solution} from './fixtures';
@@ -48,8 +49,8 @@ describe('human solver fixed regressions', () => {
     gnomeGs4HardSudokus.forEach((board, index) => {
         it(`only fills correct values in hard fixture ${index + 1}`, () => {
             const expected = solveCheckUnique(board);
-            const partial = solveHuman(board, true);
-            if (typeof expected === 'number' || typeof partial === 'number') throw new Error('Solver failed');
+            const partial = solveLogical(puzzleToSudoku(board), 3, true);
+            if (typeof expected === 'number' || !partial) throw new Error('Solver failed');
             partial.forEach((value, i) => expect(value === 0 || value === expected[i]).toBe(true));
         });
     });

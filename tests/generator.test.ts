@@ -1,7 +1,7 @@
 import {afterEach, expect, it, vi} from 'vitest';
 import {Sudoku} from '../src/model/Sudoku';
 import {isTriviallySolvable} from '../src/algorithm/transformations';
-import {generateTriviallySolvableBoard} from '../src/algorithm/generator/generatorHumanTechniques';
+import {generateLogical} from '../src/algorithm/generator/generatorLogical';
 import {solveCheckUnique, SOLVER_FAILURE} from '../src/algorithm/solver/solverBacktracking';
 import {makeBoard, solution} from './fixtures';
 
@@ -32,16 +32,15 @@ it('rejects a filled but conflicting board', () => {
     expect(isTriviallySolvable(board)).toBe(false);
 });
 
-it.each([1, 2, 3, 42])('test generator preserves unique, trivially solvable boards for seed %i', seed => {
-    vi.spyOn(Sudoku, 'getFullLatinSquare').mockReturnValue(solution.slice());
+it.each([1, 2, 3, 42])('current Easiest generator preserves uniqueness and singles solvability for seed %i', seed => {
     let state = seed;
     vi.spyOn(Math, 'random').mockImplementation(() => {
         state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
         return state / 4294967296;
     });
-    const board = generateTriviallySolvableBoard();
+    const board = generateLogical(28, 0, 1);
     expect(isTriviallySolvable(board)).toBe(true);
-    expect(solveCheckUnique(board)).toEqual(solution);
+    expect(solveCheckUnique(board)).toEqual(board.getSolution());
 });
 
 it.each([
@@ -49,9 +48,8 @@ it.each([
     [1, 29, 1], [1, 29, 42],
     [2, 24, 1], [2, 24, 42],
 ])('gameplay difficulty %i with %i clues and seed %i keeps a unique solution', async (difficulty, clues, seed) => {
-    const {generateSudoku} = await import('../src/algorithm/generator/generatorConstraintBased');
+    const {default: generateSudoku} = await import('../src/algorithm/generator/generator');
     const {GENERATOR_CODE} = await import('../src/algorithm/generator/generator');
-    vi.spyOn(Sudoku, 'getFullLatinSquare').mockReturnValue(solution.slice());
     let state = seed;
     vi.spyOn(Math, 'random').mockImplementation(() => {
         state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
@@ -63,5 +61,5 @@ it.each([
     const result = generateSudoku(clues, difficulty, true);
     expect(result[0]).not.toBe(GENERATOR_CODE.UNKNOWN_ERROR);
     expect(result[1]).toBeInstanceOf(Sudoku);
-    expect(solveCheckUnique(result[1]!)).toEqual(solution);
+    expect(solveCheckUnique(result[1]!)).toEqual(result[1]!.getSolution());
 });

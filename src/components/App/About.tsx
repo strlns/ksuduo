@@ -28,7 +28,7 @@ export default () => {
                 </a>
                 <p>
                     I started Ksuduo in 2021 as my first project to learn React and TypeScript.
-                    In 2026, I picked it up again, using AI-assisted coding to start improving it further.
+                    In 2026, I picked it up again, using AI-assisted coding to improve it.
                 </p>
                 <h3>How to play?</h3>
                 <p>
@@ -42,23 +42,21 @@ export default () => {
                     This is a learning project.
                 </p>
                 <p>
-                    It starts with a randomly generated, completely filled board (latin square / solution).
-                    Then cells are cleared one at a time.
-                    After each removal, the resulting board must solved.
-                    If more than one solution is found, the board is invalid and not a sudoku.
-                    In this case, the cell cannot be cleared.
+                    It starts with a randomly generated complete solution, then removes clues one at a time.
+                    A removal is kept only if the puzzle can still be solved using the techniques allowed at your chosen level.
+                    An independent solver checks that the final puzzle has exactly one solution.
                 </p>
                 <p>
-                    When no more cells can be removed, but the desired number of cells has not yet been cleared,
-                    the fully filled "seed" board is discarded.
+                    Easiest uses naked singles. Easy also allows hidden singles.
+                    Medium adds locked candidates, and Hard adds naked pairs.
+                    These are upper limits: a puzzle can be easier than the selected level.
+                    More clues may be kept than requested to stay within that limit.
                 </p>
                 <p>
-                    To provide the <strong>difficult levels</strong>, different kinds of cells are preferred by the generator.<br/>
-                    At the level <em>"Easiest"</em>, it is guaranteed that every cell in the resulting board can be filled using simple "solving techniques".
-                    <br/>
-                    You can see a step-by-step solution by repeatedly clicking the button "Add Hint".
-                    In the other three modes from <em>"Easy"</em> to <em>"Hard"</em>, the generator prefers cells with varying numbers of possible values (at the corresponding stage of the removal process).
-                    For example, at the level <em>"Easy"</em>, the cleared cell is always one of the cells with the least number of possible remaining values.
+                    Add Hint walks through placements and candidate eliminations, with highlighted cells and an explanation.
+                    Older saved puzzles may need a value revealed from the solution if these techniques cannot make progress.
+                    Turn on Notes to enter pencil marks, or use Annotate selected cell to list values allowed by the current board.
+                    Your notes are separate from the hint solver. Marks conflicting with current entries are hidden and return if those entries are undone or cleared.
                 </p>
                 <Box onClick={() => setExplanationModalOpen(false)}>
                     <IconButton style={{margin: 'auto', display: 'block'}} title="Close">

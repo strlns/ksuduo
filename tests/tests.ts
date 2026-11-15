@@ -14,8 +14,4 @@ testTriviallySolvableBoardsHaveOneSolution(8);
 testInvalidBoardsAreRecognized();
 
 testHumanSolvingTechniquesDeliverValidPartialSolutions(4);
-testGeneratorHumanTechniques(32, 1);
-
-// const board = generateBoardSolvableUsingEasyTechniques(24, 1);
-// console.log(board.getNumberOfFilledCells())
-// drawPuzzle(board)
+testGeneratorHumanTechniques(32);

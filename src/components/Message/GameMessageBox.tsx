@@ -15,14 +15,12 @@ export const GAME_MSG_BOX_WIDTH = '24em';
 export const GAME_MSG_BOX_SPACE = '.25rem';
 
 export const GameMessageBox = React.memo(({message}: GameMessageBoxProps) => (
-    <PaperBox sx={{...({
-        width: GAME_MSG_BOX_WIDTH, maxWidth: '80vw', zIndex: 999,
-        border: '1px solid', borderColor: 'divider', m: GAME_MSG_BOX_SPACE, flexShrink: 0,
-    }), display: "flex", flexDirection: "column", p: 1}}>
-        {message.dismissable ? <IconButton sx={{flexShrink: 0, alignSelf: 'flex-end'}}
-            size="small" edge="end" title="Close" onClick={message.dismiss}>
+    <PaperBox sx={{display: 'flex', alignItems: 'flex-start', gap: 1, p: 1.25,
+        width: '100%', minWidth: 0, border: '1px solid', borderColor: 'divider'}}>
+        <Typography sx={{fontSize: '.875rem', lineHeight: 1.45, overflowWrap: 'anywhere', flex: 1}}>{message.text}</Typography>
+        {message.dismissable ? <IconButton sx={{flexShrink: 0, alignSelf: 'flex-start'}}
+            size="small" edge="end" title="Dismiss notification" aria-label="Dismiss notification" onClick={message.dismiss}>
             <CloseRounded/>
         </IconButton> : null}
-        <Typography sx={{fontSize: '.875rem'}}>{message.text}</Typography>
     </PaperBox>
 ));

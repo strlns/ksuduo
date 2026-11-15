@@ -1,6 +1,7 @@
+import {generateFullSolution} from '../algorithm/generator/generateFullSolution';
 import {CellData, cellIsEmpty, CellValue, EXCLUDE_NOTHING, NonEmptyCellValues,} from "./CellData";
 import {BlockData} from "./BlockData";
-import {cloneDeep, shuffle} from "lodash-es";
+import {cloneDeep} from "lodash-es";
 import {pickRandomArrayValue} from "../utility/pickRandom";
 import {getCellWithMinPossAndValueFromSolution, Solution, solve, solverResultIsError} from "../algorithm/solver/solver";
 import {
@@ -192,44 +193,10 @@ export class Sudoku {
     }
 
     public static getFullLatinSquare(): Solution {
-        let deadEnd = false;
-        const tempBoard = new Sudoku();
-        while (deadEnd || !tempBoard.isFilled()) {
-            tempBoard.clearBoard();
-            const blocks = tempBoard.getBlocks();
-            const middleBlock = blocks[Math.floor(blocks.length / 2)];
-            deadEnd = false;
-            const middleValues = shuffle(NonEmptyCellValues);
-            let i = 0;
-            for (const cell of middleBlock.cells) {
-                cell.value = middleValues[i];
-                cell.isInitial = true;
-                i++;
-            }
-            for (const cell of tempBoard.getFlatCells()) {
-                if (middleBlock.cells.includes(cell)) {
-                    continue;
-                }
-                const val = tempBoard.getAllowedCellValue(cell.x, cell.y);
-                if (val === CellValue.EMPTY) {
-                    deadEnd = true;
-                    break;
-                }
-                cell.value = val;
-                cell.isInitial = true;
-            }
-        }
-        return tempBoard.getFlatValues();
+        return generateFullSolution();
     }
 
-    /*
-     Get a random completely filled initial board.
-     Uses naive brute-force approach - discard "impossible" boards and try again.
-     Could be improved for better performance.
-
-     After some code changes, this is even more inefficient using a temporary 2nd Sudoku instance,
-     but that shouldn't make much of a difference. (Benefit: more flexibility)
-    */
+    /** Compatibility entry point; uses the same complete-board constructor as gameplay. */
     public fillWithRandomCompleteSolution() {
         const solution = Sudoku.getFullLatinSquare();
         this.initWithNumbers(solution, false);

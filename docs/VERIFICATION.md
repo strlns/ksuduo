@@ -1,43 +1,20 @@
-# Migration verification
+# Verification
 
-Verified locally on Node 26.13.1:
+Use Node 26 and install with `npm ci`.
 
-- Migration checkpoint: 642 Vitest tests passed across 7 files.
-- Final checkpoint including the separate generator fix: 655 tests passed across 8 files.
-- TypeScript app, test and configuration checks passed.
-- Vite production build passed, emitting separate worker, image and local font assets.
-- npm installation audit: 0 vulnerabilities; direct dependency tree resolves cleanly.
-- Real browser: existing saved game from the Webpack build restored under Vite.
-- Production preview: new puzzle generation, hints and explanation, undo, timer toggle,
-  pause/resume, show solution, reset and native difficulty/slider controls checked.
-- Desktop and 390px phone layouts inspected.
-- Production browser console had no warnings or errors during these checks.
-- Application font/CSS/image/script asset references are local. External URLs are
-  ordinary user-activated source/documentation links, not CDN resources.
+- `npm test`: deterministic fixtures for solver correctness, ambiguous-board
+  rejection, technique ceilings and grades, seeded generation replay, logical
+  eliminations, saved-game/class compatibility, worker fallback, hints and notes.
+- `npm run test:legacy`: randomized console diagnostics using the current generator
+  and logical engine; `--verbose` output and puzzle drawings remain available via
+  `npm run test:legacy:verbose`. These supplement deterministic regression tests.
+- `npm run build`: TypeScript checks and production assets, including the worker,
+  fonts and images. Tests run locally; the Pages workflow typechecks and builds.
+- `npm run preview`: manually check real generation, worker and synchronous paths,
+  hints, undo/reset, notes, pause/resume, saved-game restore and mobile layouts.
 
-The original randomized diagnostic runner was exercised in Node. It failed on an
-ambiguous board returned by its test-only generator helper. The original pre-migration
-source failed on that diagnostic too. See KNOWN_ISSUES.md; no algorithms were changed.
-
-GitHub Actions and deployment cannot be exercised until the commits are pushed and
-the repository's Pages source is switched to GitHub Actions. Nothing has been pushed
-or deployed by this migration task.
-
-Next browser automation work: fixed gameplay fixtures and a complete solve/winner
-flow, worker-blocking scenarios, storage restrictions and repeated generation. The
-current React regression tests exercise generation with fixed worker replies and
-synchronous results; they do not replace cross-browser end-to-end tests.
-
-## Separately requested algorithm correction
-
-After the migration checkpoint, deterministic regressions reproduced an ambiguous
-four-cell rectangle accepted by the gameplay shortcut, plus the test-only generator's
-missing rollback. Both were corrected separately. The original `test:legacy` runner
-subsequently passed, including its random generation and human-techniques checks.
-
-The predicate regression uses a constructed ambiguous board; it does not reproduce
-an ambiguous final gameplay result. The earlier randomized failure came from the
-test-only helper. No ambiguous final gameplay board was observed in these checks,
-but Easy/Medium/Hard relied on the faulty shortcut without a final uniqueness
-rejection, so absence of a reproduced gameplay failure does not establish safety.
-See KNOWN_ISSUES.md for the distinction and affected paths.
+Component tests use fixed generation results and do not establish real worker or
+native mobile keyboard behavior. Browser emulation supplements tests; real-device
+checks remain necessary. An open port or successful build alone does not validate
+puzzle correctness. Preserve the regression fixtures described in the
+[generator development log](GENERATOR_DEVELOPMENT_LOG.md).

@@ -1,3 +1,6 @@
+import {Dialog, DialogTitle, DialogContent, DialogActions} from "@mui/material";
+import {MessageQueue} from "../Message/MessageQueue";
+import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep} from "../../algorithm/solver/logical";
 import { ThemeProvider } from "@mui/material/styles";
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,26 +56,14 @@ import { BOARD_SIZE, DEFAULT_CLUES } from "../../model/Board";
 import { WinnerMessage } from "../Message/WinnerMessage";
 import { formatTime } from "../../utility/formatTime";
 import { Timer } from "../../model/Timer";
-import { alpha } from "@mui/material/styles";
 import { ksuduoThemeNormal } from "../Theme/NormalKsuduoTheme";
 import About from "./About";
 import { usePageVisibility } from "../../utility/usePageVisibility";
-import { getNextCellToFill } from "../../algorithm/solver/solverHumanTechniques";
 import { CellData, CellValue } from "../../model/CellData";
 import { restoreGameStateOrInitialize } from "../../persistence/restoreGameStateOrInitialize";
-import {
-  hintExplanation,
-  SOLVING_TECHNIQUE,
-} from "../../algorithm/solver/humanTechniques";
 import { getCellWithMinPossAndValueFromSolution } from "../../algorithm/solver/solver";
-import { addPossibleValuesToCellDataArray } from "../../algorithm/transformations";
 import { pickRandomArrayValue } from "../../utility/pickRandom";
-import {
-  GameMessage,
-  GameMessageBox,
-  GAME_MSG_BOX_SPACE,
-  GAME_MSG_BOX_WIDTH,
-} from "../Message/GameMessageBox";
+import type {GameMessage} from "../Message/GameMessageBox";
 import { hashCode } from "../../utility/stringHash";
 
 let sudokuWorker: Worker;
@@ -178,9 +169,7 @@ export const Game = (props: GameProps) => {
       case GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL:
         return {
           sudoku: board,
-          ...(result[0] !== GENERATOR_CODE.OK
-            ? { generatorMessage: result[2] }
-            : {}),
+          generatorMessage: result[2] ?? "",
         };
       case GENERATOR_CODE.UNKNOWN_ERROR:
       default:
@@ -265,38 +254,14 @@ export const Game = (props: GameProps) => {
     }));
   };
   //set up a ref to access the gameMessages array inside a setTimeout call
-  const currentMessagesRef = useRef(state.gameMessages);
-  //update the ref each time the render function is called
-  currentMessagesRef.current = state.gameMessages;
-
   const addGameMessage = (message: GameMessage): void => {
     message.dismissable =
       message.dismissable === undefined ? true : message.dismissable;
     message.key = hashCode(`${Date.now()} ${message.text}`);
-    const newMessages = state.gameMessages.slice();
-    newMessages.unshift(message);
-    setState((prevState) => ({
-      ...prevState,
-      gameMessages: newMessages,
+    message.dismiss = () => setState(prev => ({
+      ...prev, gameMessages: prev.gameMessages.filter(entry => entry !== message),
     }));
-    const removeMessage = () => {
-      const messages = currentMessagesRef.current;
-      const index = messages.indexOf(message);
-      const newMessages = messages.slice();
-      if (index !== -1) {
-        newMessages.splice(index, 1);
-      }
-      setState((prevState) => ({
-        ...prevState,
-        gameMessages: newMessages,
-      }));
-    };
-    if (message.duration > 0) {
-      window.setTimeout(removeMessage, message.duration);
-    }
-    if (message.dismissable) {
-      message.dismiss = removeMessage;
-    }
+    setState(prev => ({...prev, gameMessages: [...prev.gameMessages.slice(0, 4), message]}));
   };
 
   const resetSudoku = () => {
@@ -450,6 +415,19 @@ export const Game = (props: GameProps) => {
     }));
   };
 
+  const logicRef = useRef<{signature: string; candidates: Candidates} | undefined>(undefined);
+  const [logicStep, setLogicStep] = useState<LogicStep | undefined>(undefined);
+  const [hintCandidates, setHintCandidates] = useState<Record<string, number[]> | undefined>(undefined);
+  const currentSignature = state.sudoku.getFlatValues().join('');
+  useEffect(() => {
+    if (logicRef.current?.signature !== currentSignature) {
+      logicRef.current = undefined;
+      setLogicStep(undefined);
+      setHintCandidates(undefined);
+    }
+  }, [currentSignature]);
+  const [generationInfoOpen, setGenerationInfoOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const hintTimeoutRef: { current: undefined | number } = useRef(undefined);
 
   /**
@@ -499,19 +477,28 @@ export const Game = (props: GameProps) => {
         return;
       }
 
-      let usedTechnique: SOLVING_TECHNIQUE = SOLVING_TECHNIQUE.NONE;
-      let setUsedTechnique = (tech: SOLVING_TECHNIQUE) => {
-        usedTechnique = tech;
-      };
-
-      let cellWithVal = getNextCellToFill(sudoku, false, setUsedTechnique);
-      if (!cellWithVal) {
-        cellWithVal = getCellWithMinPossAndValueFromSolution(
-          sudoku,
-          setUsedTechnique,
-          addPossibleValuesToCellDataArray(sudoku.getEmptyCells(), sudoku)
-        );
+      const signature = sudoku.getFlatValues().join('');
+      const candidates = logicRef.current?.signature === signature ? logicRef.current.candidates : candidatesFor(sudoku);
+      const step = nextHintStep(sudoku, candidates);
+      if (step) {
+        if (hintTimeoutRef.current !== undefined) clearTimeout(hintTimeoutRef.current);
+        applyLogicStep(sudoku, candidates, step, true);
+        logicRef.current = {signature: sudoku.getFlatValues().join(''), candidates};
+        setLogicStep(step);
+        setHintCandidates(step.placement ? undefined : Object.fromEntries(
+          [...step.sources, ...step.targets].map(cell => [`${cell.x},${cell.y}`, candidates.get(cell.y * 9 + cell.x) ?? []])
+        ));
+        setState(prev => ({...prev, sudoku,
+          highlightedCell: sudoku.getCell(step.targets[0].x, step.targets[0].y),
+          forceFocus: sudoku.getCell(step.targets[0].x, step.targets[0].y),
+          secondaryHighlight: [...step.sources, ...step.targets].map(c => sudoku.getCell(c.x, c.y)),
+          solutionShown: sudoku.isSolved(),
+        }));
+        return;
       }
+      setLogicStep(undefined);
+      setHintCandidates(undefined);
+      const cellWithVal = getCellWithMinPossAndValueFromSolution(sudoku);
 
       if (cellWithVal) {
         const hintCellData = {
@@ -524,16 +511,13 @@ export const Game = (props: GameProps) => {
           ...prevState,
           sudoku,
           highlightedCell: sudoku.getCell(hintCellData.x, hintCellData.y),
-          secondaryHighlight: getSecondaryHighlightFromCellAndTechnique(
-            usedTechnique,
-            hintCellData,
-            sudoku
-          ),
+          forceFocus: sudoku.getCell(hintCellData.x, hintCellData.y),
+          secondaryHighlight: [],
           solutionShown:
             prevState.sudoku.getNumberOfFilledCells() === BOARD_SIZE - 1,
         }));
         addGameMessage({
-          text: hintExplanation(usedTechnique, hintCellData),
+          text: `Value ${hintCellData.value} at (${hintCellData.x + 1}|${hintCellData.y + 1}) was filled in from solution.`,
           duration: 6000,
         });
       } else {
@@ -554,23 +538,6 @@ export const Game = (props: GameProps) => {
           secondaryHighlight: [],
         }));
       }, 5000);
-    }
-  };
-
-  const getSecondaryHighlightFromCellAndTechnique = (
-    tech: SOLVING_TECHNIQUE,
-    cell: CellData,
-    board: Sudoku
-  ): CellData[] => {
-    switch (tech) {
-      case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_ROW:
-        return board.getRows()[cell.y];
-      case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_COL:
-        return board.getColumns()[cell.x];
-      case SOLVING_TECHNIQUE.HUMAN_UNIQPOSS_BLOCK:
-        return board.getCellsInBlock(cell);
-      default:
-        return [];
     }
   };
 
@@ -603,32 +570,20 @@ export const Game = (props: GameProps) => {
 
   return (
     <Container style={{ padding: 0 }}>
-      {state.gameMessages.length > 0 ? (
-        <Box
-          style={{
-            maxHeight: "20rem",
-            padding: GAME_MSG_BOX_SPACE,
-            overflow: "auto",
-            background: `linear-gradient(to bottom, ${alpha(
-              ksuduoThemeNormal.palette.background.paper,
-              0.75
-            )}, ${alpha(ksuduoThemeNormal.palette.background.paper, 0.75)})`,
-            borderBottom: `1px solid ${ksuduoThemeNormal.palette.text.primary}`,
-          }} sx={{position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 99, display: "flex"}}
-        >
-          {state.gameMessages.map((message) => (
-            <GameMessageBox message={message} key={message.key} />
-          ))}
-        </Box>
-      ) : null}
+      <MessageQueue messages={state.gameMessages}/>
+      {logicStep && <section className="logic-step" aria-live="polite">
+        <strong>{logicStep.technique}</strong><p>{logicStep.explanation}</p>
+        <p>{logicStep.placement ? 'The forced value has been filled.' : 'Crossed-out candidates are eliminated. Outlined cells show the source pattern; dashed cells show where candidates are removed.'} Highlighted cells show the pattern and affected cells. Press Add Hint for the next step.</p>
+        <Button onClick={() => {setLogicStep(undefined); setHintCandidates(undefined);}}>Hide explanation</Button>
+      </section>}
       <Grid
         container
         spacing={3}
         style={{ padding: "2rem 0 0", position: "relative", zIndex: 3 }}
         className={`game${state.isWorking ? " working" : ""}`} sx={{justifyContent: "center"}}
       >
-        <Grid size={{xs: 12, md: 8, lg: 6}} container sx={{justifyContent: "center"}}>
-          <PaperBox sx={{...paperBoxDefaultLayoutSx, width: "100%"}}>
+        <Grid className="board-column" size={{xs: 12, md: 8, lg: 6}} container sx={{justifyContent: "center"}}>
+          <PaperBox className="board-card" sx={{...paperBoxDefaultLayoutSx, width: "100%"}}>
             <Box sx={{p: 1}}>
               <LinearProgress
                 value={percentFilled()}
@@ -647,6 +602,8 @@ export const Game = (props: GameProps) => {
               </Typography>
             </Box>
             <Board
+                hintCandidates={hintCandidates}
+                logicStep={logicStep}
               solutionIsFromApp={state.solutionShown}
               sudoku={state.sudoku}
               cellCallback={updateCallback}
@@ -668,12 +625,13 @@ export const Game = (props: GameProps) => {
           </PaperBox>
         </Grid>
         <Grid
+          className="game-controls"
           size="grow"
           container sx={{alignItems: "stretch", alignContent: "flex-start"}}
         >
           <Grid size={12}>
             <PaperBox
-              className={smallTextClass} sx={{...paperBoxDefaultLayoutSx}}
+              className={`${smallTextClass} timer-card`} sx={{...paperBoxDefaultLayoutSx}}
             >
               <Clock
                 secondsElapsed={state.secondsElapsed}
@@ -712,7 +670,7 @@ export const Game = (props: GameProps) => {
             </PaperBox>
           </Grid>
           <Grid size={12}>
-            <PaperBox sx={{...paperBoxDefaultLayoutSx, marginTop: [1, 2, 3], flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap"}}
+            <PaperBox className="play-actions" sx={{...paperBoxDefaultLayoutSx, marginTop: [1, 2, 3], flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap"}}
             >
               <ThemeProvider theme={ksuduoThemeSecond}>
                 <Button
@@ -743,7 +701,7 @@ export const Game = (props: GameProps) => {
             </PaperBox>
           </Grid>
           <Grid size={12}>
-            <PaperBox sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
+            <PaperBox className="solution-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <Button
                 endIcon={<HighlightRounded />}
                 disabled={
@@ -757,37 +715,54 @@ export const Game = (props: GameProps) => {
             </PaperBox>
           </Grid>
           <Grid size={12}>
-            <PaperBox sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
+            <PaperBox className="generation-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <GenerateButton
                 onClick={generateSudoku}
                 isWorking={state.isWorking}
                 text="Generate sudoku"
               />
-              {state.generatorMessage.length > 0 ? (
-                <Box sx={{display: "flex", alignItems: "center"}}>
-                  <InfoOutlined style={{ margin: "0 .75rem" }} />
-                  <Typography className={smallTextClass}>
-                    {state.generatorMessage}
-                  </Typography>
-                </Box>
-              ) : null}
-              <GeneratorConfiguration
+              <Button className="generation-info" size="small" startIcon={<InfoOutlined/>} onClick={() => setGenerationInfoOpen(true)} aria-label="About puzzle generation">
+                {state.generatorMessage || "How puzzles are generated"}
+              </Button>
+              <Button size="small" onClick={() => setSettingsOpen(true)}>Puzzle settings</Button>
+
+            </PaperBox>
+          </Grid>
+          <Grid size={12}>
+            <PaperBox className="about-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
+              <About />
+            </PaperBox>
+          </Grid>
+        </Grid>
+      </Grid>
+      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="puzzle-settings-title">
+        <DialogTitle id="puzzle-settings-title">Puzzle settings</DialogTitle>
+        <DialogContent>              <GeneratorConfiguration
                 numberOfClues={state.numberOfClues}
                 setNumberOfClues={updateNumberOfClues}
                 difficulty={state.difficulty}
                 difficultyOfCurrentPuzzle={state.currentDifficulty}
                 setDifficulty={selectDifficulty}
                 numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
-              />
-            </PaperBox>
-          </Grid>
-          <Grid size={12}>
-            <PaperBox sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
-              <About />
-            </PaperBox>
-          </Grid>
-        </Grid>
-      </Grid>
+              /></DialogContent>
+        <DialogActions><Button onClick={() => setSettingsOpen(false)}>Done</Button></DialogActions>
+      </Dialog>
+      <Dialog open={generationInfoOpen} onClose={() => setGenerationInfoOpen(false)} fullWidth maxWidth="sm" aria-labelledby="generation-info-title">
+        <DialogTitle id="generation-info-title">How puzzles are generated</DialogTitle>
+        <DialogContent>
+          <p>Puzzles are generated from scratch in your browser. Each accepted clue removal leaves a puzzle solvable using the selected techniques. A separate backtracking solver checks final uniqueness.</p>
+          <ul>
+            <li><strong>Easiest:</strong> naked singles — only one candidate in a cell.</li>
+            <li><strong>Easy:</strong> also hidden singles — only one place for a digit in a row, column or box.</li>
+            <li><strong>Medium:</strong> also locked candidates — pointing and claiming between a box and a line.</li>
+            <li><strong>Hard:</strong> also naked pairs — two cells reserve the same two candidates in a unit.</li>
+          </ul>
+          <p>The generator tries up to three puzzles to match your requested grade. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
+          <p>If the search returns an easier puzzle, the game tells you; you can generate again. It may retain extra clues to stay within the technique limit. Fewer clues do not necessarily mean a harder puzzle.</p>
+          {state.generatorMessage && <p><strong>This puzzle:</strong> {state.generatorMessage}</p>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setGenerationInfoOpen(false)}>Close</Button></DialogActions>
+      </Dialog>
       <Modal open={winnerModalOpen} onClose={() => setWinnerModalOpen(false)}>
         <WinnerMessage>
           <Box sx={{display: "flex", justifyContent: "center"}}>
