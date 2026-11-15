@@ -1,0 +1,55 @@
+# Extra Hard and clue-range experiment
+
+Extra Hard appends saved ID 4 and logical ceiling 4. Existing ceilings stay intact.
+It adds basic X-Wing (two base/two cover lines) and Swordfish (three/three); no fins.
+The pigeonhole argument reserves one digit in each cover line, permitting only
+eliminations outside the base lines. Each base must have 2..N candidate positions,
+all confined to exactly N cover lines. Both orientations are supported.
+
+Independent row/column matching fixtures check each elimination, near misses,
+no-op patterns and lower-level exclusion. Source/target candidate marks plus
+mint/amber coordinate labels visualize the pattern. Full hints explain the rule.
+
+Generation retains the bounded minimal-unique repair strategy and extends it to
+Extra Hard. Measure seeds 49–52 at 20/24/28 clue goals for Hard and Extra Hard,
+checking independent uniqueness and every deduction against the known solution.
+Run Node 26: `node --import tsx --import ./tests/legacy-globals.mjs docs/experiments/extra-hard.ts`.
+Output is `/tmp/extra-hard-results.json`. Results pending; range changes await data.
+
+XY-Wing added to Extra Hard after fish-only generation samples missed the grade.
+The pivot AB sees AC and BC; a cell seeing both wings cannot hold C. Independent
+exhaustion of the three bivalue assignments checks this implication. Existing
+levels remain unchanged. A historical fixed puzzle now has a complete Extra Hard
+path but no Hard path; every deduction is checked against the independent solution.
+
+Clue range decision: widen Hard/Extra Hard upward to 28, retaining minimum 21.
+The 20-clue trials so far retain 23–24 clues, while 28-clue Hard puzzles occur.
+Lower targets would mostly add missed-goal messages; more clues can still need
+advanced solving. Final measurement results will be retained below.
+
+Checkpoint hypothesis: on unique digging paths, inspect accepted stages at 36
+clues and below, before the clue goal. Archive a stage only when Hard stalls and
+Extra Hard completes. Continue toward the clue goal, but recover the archived
+stage if the minimal leaf/repair loses the Extra Hard requirement. Extra Hard
+starts with these unique paths; existing difficulty generation remains unchanged.
+Compare the expanded catalogue with and without checkpoints on seeds 53–60.
+
+Correctness-preserving clue transformations: adding a known-solution clue to a
+unique board preserves its unique solution; removing a clue requires an independent
+uniqueness check. Composing these permits clue exchanges that can change required
+techniques. Grading must still be measured after the exchange. No claim of monotone
+difficulty or predictable difficulty gain follows from preserving uniqueness.
+
+Final checkpoint comparison (seeds 53–60, 24-clue goal, XY-Wing included): see
+extra-checkpoint-results.json. Every output passed independent uniqueness and every
+step was checked against its known solution. These are development measurements,
+not equal-time or independent confirmation trials. Final presentation now samples
+Sudoku automorphisms (digits, bands/stacks, rows/columns, transpose); it keeps the
+shuffle only if independent uniqueness and measured grade are unchanged, because
+solver ordering is not proven grade-invariant.
+
+Decision: reject the checkpoint/unique-first variant: 3/8 Extra Hard hits versus
+4/8 baseline, medians 7.06 versus 6.89 seconds, maxima 11.75 versus 9.34 seconds.
+Production retains ordinary digging followed by bounded minimal-unique repair.
+The experiment is preserved, not shipped. Baseline Extra Hard clue counts and
+full paths are in the raw JSON. No claim of reliable grade attainment is made.

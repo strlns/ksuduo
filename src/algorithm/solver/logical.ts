@@ -1,7 +1,7 @@
 import {Sudoku} from '../../model/Sudoku';
 import {CellData, CellValue, NonEmptyCellValues} from '../../model/CellData';
 
-export type LogicLevel = 0 | 1 | 2 | 3;
+export type LogicLevel = 0 | 1 | 2 | 3 | 4;
 export interface LogicStep {
     technique: string;
     explanation: string;
@@ -9,13 +9,14 @@ export interface LogicStep {
     targets: CellData[];
     value: CellValue;
     placement: boolean;
+    fish?: {orientation: 'rows' | 'columns'; bases: number[]; covers: number[]};
 }
 export type Candidates = Map<number, CellValue[]>;
 const key = (c: CellData) => c.y * 9 + c.x;
 export function candidatesFor(board: Sudoku): Candidates {
     return new Map(board.getEmptyCells().map(c => [key(c), board.getAllowedCellValues(c)]));
 }
-export function nextLogicStep(board: Sudoku, candidates: Candidates, level: LogicLevel = 3): LogicStep | undefined {
+export function nextLogicStep(board: Sudoku, candidates: Candidates, level: LogicLevel = 4): LogicStep | undefined {
     const cells = board.getEmptyCells();
     const units = [...board.getRows(), ...board.getColumns(), ...board.getBlocks().map(b => b.cells)];
     const values = (c: CellData) => candidates.get(key(c)) ?? [];
@@ -54,6 +55,7 @@ export function nextLogicStep(board: Sudoku, candidates: Candidates, level: Logi
                 sources, targets, value, placement: false};
         }
     }
+    if (level >= 4) return findFish(board, candidates, 2) ?? findXYWing(board, candidates) ?? findFish(board, candidates, 3);
 }
 export function applyLogicStep(board: Sudoku, candidates: Candidates, step: LogicStep, recordHistory = false): void {
     if (step.placement) {
@@ -86,9 +88,9 @@ export function solveLogically(input: Sudoku, level: LogicLevel): boolean {
 
 /** Lowest ceiling that completes the puzzle with this app's deterministic techniques. */
 export function rateLogical(board: Sudoku): LogicLevel | undefined {
-    for (const level of [0, 1, 2, 3] as const) if (solveLogically(board, level)) return level;
+    for (const level of [0, 1, 2, 3, 4] as const) if (solveLogically(board, level)) return level;
 }
-export const logicLevelNames = ['Easiest', 'Easy', 'Medium', 'Hard'] as const;
+export const logicLevelNames = ['Easiest', 'Easy', 'Medium', 'Hard', 'Extra Hard'] as const;
 
 /** All only-place explanations, with equal treatment of blocks, rows and columns. */
 export function unitSingleSteps(board: Sudoku, candidates: Candidates, firstOnly = false): LogicStep[] {
@@ -119,6 +121,65 @@ export function techniqueExplanation(step: LogicStep): string {
         case 'Hidden single': return 'A hidden single is the only place for a digit in one row, column or block, even if that cell has other candidates. The highlighted unit rules out every other position for this digit.';
         case 'Locked candidates': return 'When all positions for a digit in a block lie on one line, that digit is reserved on their intersection; the same reasoning works from a line into a block. The highlighted source cells therefore exclude the crossed-out digit from the rest of the intersecting unit.';
         case 'Naked pair': return 'Two cells with the same two candidates reserve both digits between them, whichever order they take. Other cells in their shared unit cannot use either digit, so the marked candidate is removed.';
+        case 'XY-Wing': return 'The double-outlined pivot has two candidates; each choice forces one of its two wings to contain the eliminated digit. Any cell that sees both wings cannot contain that digit, even when it does not see the pivot.';
+        case 'X-Wing': return 'Two parallel lines restrict this digit to the same two crossing lines, so each crossing line must receive it from the highlighted pattern. Remove the digit from other cells on those crossing lines; the mint and amber coordinate labels identify the two line sets.';
+        case 'Swordfish': return 'Three parallel lines restrict this digit to three crossing lines; each crossing line must receive one of those three placements. The pattern can have missing corners, but candidates outside it on the amber crossing lines are impossible.';
         default: return '';
+    }
+}
+
+/** Basic fish only (no fins): N base lines reserve N distinct crossing lines. */
+export function findFish(board: Sudoku, candidates: Candidates, size: 2 | 3): LogicStep | undefined {
+    for (const orientation of ['rows', 'columns'] as const) {
+        const lines = orientation === 'rows' ? board.getRows() : board.getColumns();
+        const cross = (c: CellData) => orientation === 'rows' ? c.x : c.y;
+        for (const value of NonEmptyCellValues) {
+            const eligible = lines.map((line, index) => ({index,
+                cells: line.filter(c => !c.value && candidates.get(key(c))?.includes(value))
+            })).filter(line => line.cells.length >= 2 && line.cells.length <= size);
+            for (let a = 0; a < eligible.length; a++) for (let b = a + 1; b < eligible.length; b++) {
+                const thirds = size === 2 ? [-1] : eligible.map((_, i) => i).filter(i => i > b);
+                for (const c of thirds) {
+                    const chosen = [eligible[a], eligible[b], ...(c < 0 ? [] : [eligible[c]])];
+                    const sources = chosen.flatMap(line => line.cells);
+                    const covers = [...new Set(sources.map(cross))].sort((a, b) => a - b);
+                    if (covers.length !== size) continue;
+                    const bases = chosen.map(line => line.index);
+                    const targets = lines.flatMap((line, i) => bases.includes(i) ? [] :
+                        line.filter(cell => !cell.value && covers.includes(cross(cell)) && candidates.get(key(cell))?.includes(value)));
+                    if (!targets.length) continue;
+                    const other = orientation === 'rows' ? 'columns' : 'rows';
+                    return {technique: size === 2 ? 'X-Wing' : 'Swordfish', value, placement: false,
+                        sources, targets, fish: {orientation, bases, covers},
+                        explanation: `${value} in ${orientation} ${bases.map(i => i + 1).join(', ')} is confined to ${other} ${covers.map(i => i + 1).join(', ')}. Remove ${value} from ${targets.map(cell => `r${cell.y + 1}c${cell.x + 1}`).join(', ')}.`};
+                }
+            }
+        }
+    }
+}
+
+/** A bivalue pivot AB sees wings AC and BC; common wing peers cannot contain C. */
+export function findXYWing(board: Sudoku, candidates: Candidates): LogicStep | undefined {
+    const values = (c: CellData) => candidates.get(key(c)) ?? [];
+    const sees = (a: CellData, b: CellData) => a !== b && (a.x === b.x || a.y === b.y || a.blockIndex === b.blockIndex);
+    const cells = board.getEmptyCells();
+    const pairs = cells.filter(c => values(c).length === 2);
+    for (const pivot of pairs) {
+        const [a,b] = values(pivot);
+        const wings = pairs.filter(c => sees(pivot,c));
+        for (const first of wings) {
+            const pair = values(first);
+            if (!pair.includes(a) || pair.includes(b)) continue;
+            const other = pair.find(v => v !== a)!;
+            for (const second of wings) {
+                if (second === first || !values(second).includes(b) || !values(second).includes(other)) continue;
+                const sources = [pivot,first,second];
+                const targets = cells.filter(c => !sources.includes(c) && sees(c,first) && sees(c,second) && values(c).includes(other));
+                if (!targets.length) continue;
+                const at = (c: CellData) => `r${c.y+1}c${c.x+1}`;
+                return {technique:'XY-Wing',placement:false,value:other,sources,targets,
+                    explanation:`Pivot ${at(pivot)} is ${a}/${b}; wings ${at(first)} (${a}/${other}) and ${at(second)} (${b}/${other}) force ${other} into one wing. Remove ${other} from ${targets.map(at).join(', ')}.`};
+            }
+        }
     }
 }

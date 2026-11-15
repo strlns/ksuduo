@@ -80,7 +80,7 @@ describe('gameplay migration baseline', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Puzzle settings'}));
         const select = screen.getByLabelText('Difficulty');
         expect(screen.queryByRole('slider')).toBeNull();
-        for (const [difficulty, maximum] of [['0', '37'], ['1', '29'], ['2', '24']]) {
+        for (const [difficulty, maximum] of [['0', '37'], ['1', '29'], ['2', '28'], ['4', '28']]) {
             fireEvent.change(select, {target: {value: difficulty}});
             const slider = screen.getByRole('slider');
             expect(slider.getAttribute('min')).toBe('21');
@@ -221,7 +221,7 @@ it('selects the visibly highlighted hint cell and explains generation in a dialo
     expect(screen.getByRole('button', {name: 'Annotate selected cell'}).hasAttribute('disabled')).toBe(true);
     fireEvent.click(screen.getByRole('button', {name: 'About puzzle generation'}));
     expect(screen.getByRole('dialog', {name: 'How puzzles are generated'})).toBeTruthy();
-    expect(screen.getByText(/The generator tries up to three puzzles/)).toBeTruthy();
+    expect(screen.getByText(/The generator first tries up to three puzzles/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', {name: /^Close$/}));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
@@ -333,4 +333,15 @@ it('shows settings directly on desktop', async () => {
         expect(screen.queryByRole('button', {name:'Puzzle settings'})).toBeNull();
         expect(screen.queryByRole('dialog')).toBeNull();
     } finally { window.matchMedia = original; }
+});
+
+it('emits entry effects for keyboard numbers and distinguishes conflicts', async () => {
+ await startGame();const cues:boolean[]=[];
+ const listener=(event:Event)=>cues.push((event as CustomEvent).detail.wrong);
+ document.addEventListener('ksuduo-entry-cue',listener);
+ try {
+  const input=screen.getByRole('textbox',{name:'Row 1, column 3'});
+  await userEvent.click(input);await userEvent.keyboard('4');await userEvent.keyboard('{Backspace}');await userEvent.keyboard('5');
+  expect(cues).toEqual([false,true]);
+ } finally {document.removeEventListener('ksuduo-entry-cue',listener);}
 });

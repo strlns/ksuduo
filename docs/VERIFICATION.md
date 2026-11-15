@@ -18,3 +18,17 @@ native mobile keyboard behavior. Browser emulation supplements tests; real-devic
 checks remain necessary. An open port or successful build alone does not validate
 puzzle correctness. Preserve the regression fixtures described in the
 [generator development log](GENERATOR_DEVELOPMENT_LOG.md).
+
+Extra Hard adds matching-oracle X-Wing/Swordfish fixtures, XY-Wing assignment
+checks, known-solution deduction replay, save ID compatibility and fish line labels.
+Presentation shuffles must preserve independently checked uniqueness and measured
+grade. Sound entry cues cover both keypress and input paths and identify Sudoku
+conflicts, without revealing a solution digit. Sound remains opt-in in all modes.
+
+Browser checks for this change: 360/390/768/1280 widths without page or action-label
+overflow; 800×600, 960×700, 1100×700 and 1440×900 resized layouts; fixed Extra Hard
+hint walkthrough with mint base/amber cover labels; opt-in audio startup and entry
+cue playback without Web Audio errors. At 1100×700 the populated play area ended
+at about 662px, keeping the board and controls within the viewport. Smaller sizes
+retain vertical scrolling. Subjective sound quality and real mobile devices remain
+manual checks.

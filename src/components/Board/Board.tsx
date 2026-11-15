@@ -1,3 +1,4 @@
+import {playEntryCue} from '../../audio/AquaticAudio';
 import {annotationsFor, AnnotationRequest} from './annotations';
 import * as React from "react";
 import type {LogicStep} from "../../algorithm/solver/logical";
@@ -159,7 +160,9 @@ export const Board = React.memo(
                 return;
             }
             if (CellValues.includes(v)) {
+                const changed = sudoku.getCell(x,y).value !== v;
                 sudoku.setValue(x, y, v);
+                if (changed && v) playEntryCue(!sudoku.isCellValid(sudoku.getCell(x,y)));
             }
             if (cellCallback) {
                 cellCallback();
@@ -226,12 +229,19 @@ export const Board = React.memo(
         console.log("Re-render of Board.tsx");
     }
 
+    const fishLineClass = (axis: 'rows' | 'columns', index: number) => {
+        const fish = logicStep?.fish;
+        if (!fish) return undefined;
+        return fish.orientation === axis
+            ? (fish.bases.includes(index) ? 'fish-base-label' : undefined)
+            : (fish.covers.includes(index) ? 'fish-cover-label' : undefined);
+    };
     const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
     const key = `${selected.x},${selected.y}`;
     return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={logicStep}><NotesContext.Provider value={{...visibleNotes, ...hintCandidates}}><div className="board-panel">
         <div className={`board-frame${showCoordinates ? ' coordinates-visible' : ''}`}>
-        <div className="coordinate-columns" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i}>c{i+1}</span>)}</div>
-        <div className="coordinate-rows" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i}>r{i+1}</span>)}</div>
+        <div className="coordinate-columns" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('columns', i)}>c{i+1}</span>)}</div>
+        <div className="coordinate-rows" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('rows', i)}>r{i+1}</span>)}</div>
         <PaperBox elevation={9}
                      className={classes}
                      onKeyUp={onKeyUp}

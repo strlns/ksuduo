@@ -22,7 +22,7 @@ const MIN_CLUES = MINIMUM_CLUES + 4;
 
 const MAXIMUM_CLUES_EASY = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 2 - 3));
 const MAXIMUM_CLUES_MEDIUM = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 3 + 2));
-const MAXIMUM_CLUES_HARD = Math.min(BOARD_SIZE, Math.floor(BOARD_SIZE / 4 + 4));
+const MAXIMUM_CLUES_HARD = 28;
 
 export default (props: GeneratorConfigurationProps) => {
     let MAX_CLUES = MAXIMUM_CLUES_MEDIUM;
@@ -33,6 +33,7 @@ export default (props: GeneratorConfigurationProps) => {
         case DIFFICULTY_LEVEL.MEDIUM:
             MAX_CLUES = MAXIMUM_CLUES_MEDIUM
             break;
+        case DIFFICULTY_LEVEL.EXTRA_HARD:
         case DIFFICULTY_LEVEL.HARD:
             MAX_CLUES = MAXIMUM_CLUES_HARD
             break;
@@ -100,9 +101,10 @@ export default (props: GeneratorConfigurationProps) => {
                     <option value={DIFFICULTY_LEVEL.EASY}>Easy</option>
                     <option value={DIFFICULTY_LEVEL.MEDIUM}>Medium</option>
                     <option value={DIFFICULTY_LEVEL.HARD}>Hard</option>
+                    <option value={DIFFICULTY_LEVEL.EXTRA_HARD}>Extra Hard</option>
                 </NativeSelect>
                 <FormHelperText style={{lineHeight: 1, marginBottom: ksuduoThemeNormal.spacing(2)}}>
-                    {props.difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 'Naked singles only.' : props.difficulty === DIFFICULTY_LEVEL.EASY ? 'Naked and hidden singles only.' : props.difficulty === DIFFICULTY_LEVEL.MEDIUM ? 'Singles and locked candidates (pointing / claiming).' : 'Singles, locked candidates and naked pairs.'}
+                    {props.difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 'Naked singles only.' : props.difficulty === DIFFICULTY_LEVEL.EASY ? 'Naked and hidden singles only.' : props.difficulty === DIFFICULTY_LEVEL.MEDIUM ? 'Singles and locked candidates (pointing / claiming).' : props.difficulty === DIFFICULTY_LEVEL.HARD ? 'Singles, locked candidates and naked pairs.' : 'All Hard techniques, plus X-Wing, XY-Wing and Swordfish.'}
                     {' These are technique limits; a puzzle may be easier. More clues may be kept to respect the limit.'}
                 </FormHelperText>
             </FormControl>

@@ -66,3 +66,17 @@ it('undoes retained elimination annotations without undoing a number entry', () 
  expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes['3,0']).toBeUndefined();
  expect(screen.getByRole('textbox',{name:'Row 1, column 3'}).getAttribute('aria-description')).toBe('Notes: 1, 2, 4');
 });
+
+it.each(['rows', 'columns'] as const)('labels fish base and crossing %s and keeps eliminated notes across hints', orientation => {
+ const board=makeBoard(), source=board.getCell(2,0),target=board.getCell(3,0);
+ const step:LogicStep={technique:'Swordfish',explanation:'test',sources:[source],targets:[target],value:2,placement:false,
+   fish:{orientation,bases:[0,3,6],covers:[1,4,7]}};
+ const {container,rerender}=render(<Board {...props(board)} logicStep={step} hintCandidates={{'2,0':[2,4],'3,0':[6]}}/>);
+ expect(container.querySelectorAll(`.coordinate-${orientation} .fish-base-label`)).toHaveLength(3);
+ expect(container.querySelectorAll('.fish-cover-label')).toHaveLength(3);
+ expect(container.querySelector('.coordinates-visible')).toBeTruthy();
+ expect(container.querySelector('.candidate-removed')?.textContent).toBe('2');
+ rerender(<Board {...props(board)}/>);
+ expect(container.querySelectorAll('.fish-base-label,.fish-cover-label')).toHaveLength(0);
+ expect(screen.getByRole('textbox',{name:'Row 1, column 4'}).getAttribute('aria-description')).toBe('Notes: 6');
+});
