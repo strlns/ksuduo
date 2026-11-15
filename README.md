@@ -75,10 +75,13 @@ and hints:
 | Hard | Also naked pairs: two cells reserve the same two candidates in a unit |
 | Extra Hard | Also X-Wing, XY-Wing and basic Swordfish, with visual elimination hints |
 
-Every accepted clue removal must leave a puzzle solvable within the selected
-techniques. A separate backtracking solver checks final uniqueness.
+Ordinary clue removal preserves a complete logical solving path. Advanced search
+can dig through harder unique puzzles and restore clues until the selected
+techniques solve them. A separate backtracking solver checks final uniqueness.
 
-The generator tries up to three puzzles to match your requested grade. The displayed
+The generator first tries up to three puzzles, with bounded refinement and
+additional minimal-puzzle repair attempts for missed Hard/Extra Hard grades.
+Hard and Extra Hard clue goals span 21–28. The displayed
 rating is the lowest level that solves the puzzle using **this app's techniques**,
 not a universal measure of human difficulty. If the search returns an easier puzzle,
 the game tells you; you can generate again. It may also retain extra clues to stay
