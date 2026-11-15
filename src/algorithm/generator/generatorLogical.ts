@@ -11,7 +11,7 @@ function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false
     board.initWithNumbers(values, false);
     board.setSolution(values.slice());
     for (const cell of shuffle(board.getFlatCells())) {
-        if (board.getNumberOfHints() <= clues) break;
+        if (board.getNumberOfHints() <= (uniqueDigging ? 17 : clues)) break;
         board.clearCell(cell, false);
         if (uniqueDigging ? !Array.isArray(solveCheckUnique(board)) : !solveLogically(board, level)) board.setValueUseCell(cell, false);
     }
@@ -27,6 +27,13 @@ function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false
             if (board.getNumberOfHints() <= clues) break;
             board.clearCell(cell, false);
             if (!solveLogically(board, level)) board.setValueUseCell(cell, false);
+        }
+    }
+    if (uniqueDigging && rateLogical(board) === level) {
+        for (const cell of shuffle(board.getEmptyCells())) {
+            if (board.getNumberOfHints() >= clues) break;
+            board.setValue(cell.x, cell.y, values[cell.y * 9 + cell.x], true, false);
+            if (rateLogical(board) !== level) board.clearCell(board.getCell(cell.x, cell.y), false);
         }
     }
     return Sudoku.cloneWithoutHistory(board);

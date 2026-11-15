@@ -23,3 +23,9 @@ unique-digging/repair paths only if Hard is still missed. Stop between attempts 
 4 seconds extra (one attempt/750 ms synchronous). These are soft budgets: an
 individual bounded attempt can overrun. No baseline result is replaced unless a
 complete Hard solve is established. Measure this separately before adoption.
+
+Second observation: stopping unique digging at 24 clues often never reaches a
+meaningfully different state. The next variant digs to a uniqueness-minimal leaf
+(or 17 clues), repairs to the logical ceiling, and restores clues toward the goal
+only while retaining Hard. This permits fewer clues than requested, reported by
+the existing board count. The UI goal range stays unchanged in this slice.
