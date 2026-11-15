@@ -10,10 +10,21 @@ function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false
     const values = generateFullSolution();
     board.initWithNumbers(values, false);
     board.setSolution(values.slice());
+    let checkpoint: Sudoku | undefined;
     for (const cell of shuffle(board.getFlatCells())) {
         if (board.getNumberOfHints() <= (uniqueDigging ? 17 : clues)) break;
         board.clearCell(cell, false);
-        if (uniqueDigging ? !Array.isArray(solveCheckUnique(board)) : !solveLogically(board, level)) board.setValueUseCell(cell, false);
+        if (uniqueDigging ? !Array.isArray(solveCheckUnique(board)) : !solveLogically(board, level)) {
+            board.setValueUseCell(cell, false);
+            continue;
+        }
+        // Archive confirmed advanced stages before the clue goal or minimal leaf.
+        // An easy intermediate never prunes descendants: difficulty is not monotone.
+        if (uniqueDigging && level === 4 && board.getNumberOfHints() <= 36 &&
+            !solveLogically(board, 3) && solveLogically(board, 4)) {
+            checkpoint = Sudoku.cloneWithoutHistory(board);
+            if (board.getNumberOfHints() <= clues) return checkpoint;
+        }
     }
     if (uniqueDigging && !solveLogically(board, level)) {
         // A unique puzzle beyond our ceiling can still lead to a useful sibling:
@@ -29,6 +40,7 @@ function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false
             if (!solveLogically(board, level)) board.setValueUseCell(cell, false);
         }
     }
+    if (checkpoint && rateLogical(board) !== level) return checkpoint;
     if (uniqueDigging && rateLogical(board) === level) {
         for (const cell of shuffle(board.getEmptyCells())) {
             if (board.getNumberOfHints() >= clues) break;
@@ -75,7 +87,7 @@ export function generateLogical(clues: number, level: LogicLevel, attempts = 3):
     let best: Sudoku | undefined;
     let bestRating = -1;
     for (let i = 0; i < Math.max(1, Math.min(3, attempts)); i++) {
-        const board = generateAttempt(clues, level);
+        const board = generateAttempt(clues, level, level === 4);
         const rating = rateLogical(board);
         if (rating === undefined || rating > level) throw new Error('Generated puzzle exceeds its technique limit.');
         if (!best || rating > bestRating || (rating === bestRating && board.getNumberOfHints() < best.getNumberOfHints())) {

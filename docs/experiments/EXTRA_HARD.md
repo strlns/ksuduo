@@ -26,3 +26,16 @@ Clue range decision: widen Hard/Extra Hard upward to 28, retaining minimum 21.
 The 20-clue trials so far retain 23–24 clues, while 28-clue Hard puzzles occur.
 Lower targets would mostly add missed-goal messages; more clues can still need
 advanced solving. Final measurement results will be retained below.
+
+Checkpoint hypothesis: on unique digging paths, inspect accepted stages at 36
+clues and below, before the clue goal. Archive a stage only when Hard stalls and
+Extra Hard completes. Continue toward the clue goal, but recover the archived
+stage if the minimal leaf/repair loses the Extra Hard requirement. Extra Hard
+starts with these unique paths; existing difficulty generation remains unchanged.
+Compare the expanded catalogue with and without checkpoints on seeds 53–60.
+
+Correctness-preserving clue transformations: adding a known-solution clue to a
+unique board preserves its unique solution; removing a clue requires an independent
+uniqueness check. Composing these permits clue exchanges that can change required
+techniques. Grading must still be measured after the exchange. No claim of monotone
+difficulty or predictable difficulty gain follows from preserving uniqueness.
