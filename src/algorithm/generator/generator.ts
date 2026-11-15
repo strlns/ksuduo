@@ -3,6 +3,7 @@
  *
  */
 
+import {randomizePresentation} from './randomizePresentation';
 import { Sudoku } from "../../model/Sudoku";
 import { MINIMUM_CLUES } from "../../model/Board";
 import {generateLogical} from "./generatorLogical";
@@ -40,7 +41,7 @@ export default function generateRandomSudoku(
     const level = difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 0 :
       difficulty === DIFFICULTY_LEVEL.EASY ? 1 : difficulty === DIFFICULTY_LEVEL.MEDIUM ? 2 : difficulty === DIFFICULTY_LEVEL.HARD ? 3 : 4;
     const target = Math.max(MINIMUM_CLUES, Math.min(81, Math.floor(numberOfClues)));
-    const board = generateLogical(target, level, fewerRetries ? 1 : 3);
+    let board = generateLogical(target, level, fewerRetries ? 1 : 3);
     const actual = board.getNumberOfHints();
     const code = actual > target ? GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL : GENERATOR_CODE.OK;
     // Check the actual returned board, independently of removal-loop shortcuts.
@@ -53,6 +54,10 @@ export default function generateRandomSudoku(
     if (rating === undefined || rating > level) {
       return [GENERATOR_CODE.UNKNOWN_ERROR, undefined, "Generated puzzle exceeds its solving-technique limit. Please try again."];
     }
+    // Geometry preserves uniqueness and technique patterns, but deterministic
+    // deduction ordering can affect measured grade. Keep only equal-grade shuffles.
+    const presented = randomizePresentation(board);
+    if (rateLogical(presented) === rating && Array.isArray(solveCheckUnique(presented))) board = presented;
     const ratingMessage = `Rated ${logicLevelNames[rating]} by the app's solving techniques.`;
     const details = actual > target ? ` Kept ${actual} clues (requested ${target}).` : '';
     const easier = rating < level ? ` Requested ${logicLevelNames[level]}; try again for a more demanding puzzle.` : '';

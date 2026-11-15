@@ -493,3 +493,5 @@ a { color: #62d7e5; }
 /* Fish: solid mint base-line labels and dashed amber crossing-line labels. */
 .fish-base-label { color: #b0ffe9; font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; }
 .fish-cover-label { color: #ffe0ad; font-weight: 700; text-decoration: underline dashed; text-decoration-thickness: 2px; }
+
+.cell.logic-pivot { outline: 4px double #b0ffe9; outline-offset: -5px; }

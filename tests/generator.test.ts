@@ -88,3 +88,15 @@ it('recovers Hard by repairing a minimal unique leaf after the ordinary search m
     expect(solveCheckUnique(board)).toEqual(board.getSolution());
     expect(board.getNumberOfHints()).toBeLessThanOrEqual(27);
 }, 30000);
+
+it('generates a genuine Extra Hard puzzle with the expanded catalogue (seed 54)', async () => {
+    const {rateLogical,solveLogically} = await import('../src/algorithm/solver/logical');
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    let seed=54;
+    vi.spyOn(Math,'random').mockImplementation(()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/2**32));
+    const board=generateLogical(24,4);
+    expect(rateLogical(board)).toBe(4);
+    expect(solveLogically(board,3)).toBe(false);
+    expect(solveCheckUnique(board)).toEqual(board.getSolution());
+    expect(board.getNumberOfHints()).toBeLessThanOrEqual(28);
+},30000);

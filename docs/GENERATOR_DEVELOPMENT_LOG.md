@@ -205,3 +205,19 @@ See [experiment notes](experiments/UNIQUE_DIGGING.md) for measured alternatives,
 raw observations, reproducibility and limitations. The initial replacement and
 shallow exploration variants were rejected. Stronger trajectory heuristics,
 equal-time restart controls and additional techniques remain separate work.
+
+## Extra Hard catalogue and presentation
+
+Saved difficulty ID 4 appends Extra Hard; existing IDs/ceilings remain intact.
+Logical level 4 adds X-Wing, XY-Wing and basic Swordfish (both fish orientations,
+no fins). Hints show candidates, eliminations, fish line labels and an XY pivot.
+Independent matching/assignment fixtures and a complete historical unique puzzle
+validate eliminations. Hard/Extra Hard clue goals now span 21–28: low-goal trials
+retained 23–24 clues, so the lower bound remains 21. Achieved grades stay explicit.
+
+Extra Hard extends the bounded unique-digging/repair fallback. Early checkpoint
+experimentation was rejected (3/8 versus 4/8 hits); see experiments/EXTRA_HARD.md
+and raw observations for the development samples and timing limitations.
+Final cosmetic automorphisms are accepted only after equal-rating and independent
+uniqueness checks. Clue exchanges preserve correctness only with the uniqueness
+checks; no predictable monotone difficulty transformation has been established.

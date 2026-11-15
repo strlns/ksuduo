@@ -39,3 +39,17 @@ unique board preserves its unique solution; removing a clue requires an independ
 uniqueness check. Composing these permits clue exchanges that can change required
 techniques. Grading must still be measured after the exchange. No claim of monotone
 difficulty or predictable difficulty gain follows from preserving uniqueness.
+
+Final checkpoint comparison (seeds 53–60, 24-clue goal, XY-Wing included): see
+extra-checkpoint-results.json. Every output passed independent uniqueness and every
+step was checked against its known solution. These are development measurements,
+not equal-time or independent confirmation trials. Final presentation now samples
+Sudoku automorphisms (digits, bands/stacks, rows/columns, transpose); it keeps the
+shuffle only if independent uniqueness and measured grade are unchanged, because
+solver ordering is not proven grade-invariant.
+
+Decision: reject the checkpoint/unique-first variant: 3/8 Extra Hard hits versus
+4/8 baseline, medians 7.06 versus 6.89 seconds, maxima 11.75 versus 9.34 seconds.
+Production retains ordinary digging followed by bounded minimal-unique repair.
+The experiment is preserved, not shipped. Baseline Extra Hard clue counts and
+full paths are in the raw JSON. No claim of reliable grade attainment is made.

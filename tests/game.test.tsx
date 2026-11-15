@@ -221,7 +221,7 @@ it('selects the visibly highlighted hint cell and explains generation in a dialo
     expect(screen.getByRole('button', {name: 'Annotate selected cell'}).hasAttribute('disabled')).toBe(true);
     fireEvent.click(screen.getByRole('button', {name: 'About puzzle generation'}));
     expect(screen.getByRole('dialog', {name: 'How puzzles are generated'})).toBeTruthy();
-    expect(screen.getByText(/The generator tries up to three puzzles/)).toBeTruthy();
+    expect(screen.getByText(/The generator first tries up to three puzzles/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', {name: /^Close$/}));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
