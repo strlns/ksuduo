@@ -130,6 +130,12 @@ For implementation details, confirmed problems and future work, see the
 Improvements should add understandable regression fixtures, not pursue a coverage
 percentage for its own sake.
 
+## AI explainers
+
+[Sudoku: the shape of uniqueness](docs/ai/sudoku-proof-and-generator-lab/index.html)
+is a standalone interactive essay on unavoidable sets and generator search.
+See [docs/ai](docs/ai/README.md) for opening and verifying it; no build is needed.
+
 ## Deploying
 
 The [GitHub Pages workflow](.github/workflows/pages.yml) typechecks and builds pull
