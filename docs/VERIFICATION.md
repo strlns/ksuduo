@@ -57,3 +57,11 @@ larger bubbles lasting 3.8 seconds; reduced motion retains the static checkmark.
 The board footer uses a separate achieved logical rating, saved at array index 8.
 Older eight-field saves are rated from their givens at restore. Requested settings
 remain independent. Generation-error responses retain the existing achieved rating.
+
+Completion sequencing: the solved grid remains visible before the result modal
+(1.8 seconds normally, 1 second with reduced motion). The progress legend announces
+completion without moving the board. Normal motion shows a diagonal cell glow;
+reduced motion uses a steady outline. Timer stopping remains immediate. Undo,
+reset, generation and unmount cancel the pending modal. The hint-to-final-manual-
+entry regression asserts the board stage precedes the modal. Browser checks cover
+both motion preferences at mobile dimensions; neither opens the modal immediately.

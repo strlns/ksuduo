@@ -161,6 +161,8 @@ export const Game = (props: GameProps) => {
 
   const desktopSettings = useMediaQuery("(min-width:900px)");
   const [arrivalVersion, setArrivalVersion] = useState(0);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const [boardCelebrating, setBoardCelebrating] = useState(false);
   const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
 
   const pageIsVisible = usePageVisibility();
@@ -429,19 +431,23 @@ export const Game = (props: GameProps) => {
     state.isPaused,
   ]);
 
-  /*Stop timer on completion. */
+  /* Show the completed board before opening the result dialog. Cancel on undo,
+     reset, generation or unmount so an old completion cannot interrupt play. */
   useEffect(() => {
-    setWinnerModalOpen(
-      state.sudoku.isSolved() &&
-        !state.solutionShown &&
-        !state.initialBoardIsSolved
-    );
-    if (state.sudoku.isSolved()) {
-      timer.pause();
-    } else if (!state.isPaused) {
-      timer.resume();
-    }
-  }, [state.sudoku.isSolved()]);
+    const solved = state.sudoku.isSolved();
+    setWinnerModalOpen(false);
+    const celebrate = solved && !state.solutionShown && !state.initialBoardIsSolved && !state.isWorking;
+    setBoardCelebrating(celebrate);
+    if (solved) timer.pause();
+    else if (!state.isPaused) timer.resume();
+    if (!celebrate) return;
+    if (document.activeElement instanceof HTMLElement && document.activeElement.matches('.cell input')) document.activeElement.blur();
+    const timeout = window.setTimeout(() => {
+      setBoardCelebrating(false);
+      setWinnerModalOpen(true);
+    }, reducedMotion ? 1000 : 1800);
+    return () => window.clearTimeout(timeout);
+  }, [state.sudoku.isSolved(), state.solutionShown, state.initialBoardIsSolved, state.isWorking, reducedMotion]);
 
   const selectDifficulty: React.ChangeEventHandler<HTMLSelectElement> = (
     event
@@ -674,7 +680,7 @@ export const Game = (props: GameProps) => {
         className={`game${state.isWorking ? " working" : ""}`} sx={{justifyContent: "center"}}
       >
         <Grid className="board-column" size={{xs: 12, md: 8, lg: 6}} container sx={{justifyContent: "center"}}>
-          <PaperBox className="board-card" sx={{...paperBoxDefaultLayoutSx, width: "100%"}}>
+          <PaperBox className={`board-card${boardCelebrating ? " board-celebrating" : ""}`} sx={{...paperBoxDefaultLayoutSx, width: "100%"}}>
             {arrivalVersion > 0 && <span key={arrivalVersion} className="board-arrival" aria-hidden="true"/>}
             <Box sx={{p: 1}}>
               <LinearProgress
@@ -684,13 +690,14 @@ export const Game = (props: GameProps) => {
               />
               <Typography
                 component={"legend"}
+                role={boardCelebrating ? 'status' : undefined}
                 style={{
                   textAlign: "center",
                   marginTop: ksuduoThemeNormal.spacing(1),
                 }}
                 className={smallTextClass}
               >
-                {state.sudoku.getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
+                {boardCelebrating ? '✓ Puzzle complete · ' : ''}{state.sudoku.getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
               </Typography>
             </Box>
             <Board

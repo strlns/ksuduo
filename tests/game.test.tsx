@@ -395,7 +395,11 @@ it('celebrates a manual final entry after hints filled every other empty cell', 
  const remaining=values().findIndex(value=>!value);
  const {solution}=await import('./fixtures');
  fireEvent.input(screen.getByRole('textbox',{name:`Row ${Math.floor(remaining/9)+1}, column ${remaining%9+1}`}),{target:{value:String(solution[remaining])}});
- await waitFor(()=>expect(screen.getByText('Good job!')).toBeTruthy());
+ expect(screen.queryByText('Good job!')).toBeNull();
+ expect(screen.getByRole('status').textContent).toContain('Puzzle complete');
+ expect(document.querySelector('.board-celebrating')).toBeTruthy();
+ await waitFor(()=>expect(screen.getByText('Good job!')).toBeTruthy(), {timeout:3000});
+ expect(document.querySelector('.board-celebrating')).toBeNull();
  expect(document.querySelector('.victory-crown')).toBeTruthy();
  expect(document.querySelectorAll('.victory-bubbles span')).toHaveLength(10);
  expect(screen.queryByText('Solution shown')).toBeNull();

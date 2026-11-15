@@ -89,7 +89,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
         }
     }
 
-    return <div className={className}>
+    return <div className={className} style={{'--win-delay': `${(props.cell.x + props.cell.y) * 30}ms`} as React.CSSProperties}>
         {!props.cell.value && (notes.length > 0 || removed) && <span className="cell-notes" aria-hidden="true">
             {[1,2,3,4,5,6,7,8,9].map(n => <span key={n} className={removed === n ? 'candidate-removed' : source && !step?.placement && step?.value === n ? 'candidate-source' : undefined}>{notes.includes(n) || removed === n ? n : ' '}</span>)}
         </span>}
