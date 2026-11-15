@@ -5,7 +5,7 @@ import {generateFullSolution} from './generateFullSolution';
 import {LogicLevel, solveLogically, rateLogical, solveLogical} from '../solver/logical';
 
 /** Bounded removal: every accepted puzzle has a complete logical solving path. */
-function generateAttempt(clues: number, level: LogicLevel): Sudoku {
+function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false): Sudoku {
     const board = new Sudoku();
     const values = generateFullSolution();
     board.initWithNumbers(values, false);
@@ -13,9 +13,9 @@ function generateAttempt(clues: number, level: LogicLevel): Sudoku {
     for (const cell of shuffle(board.getFlatCells())) {
         if (board.getNumberOfHints() <= clues) break;
         board.clearCell(cell, false);
-        if (level === 3 ? !Array.isArray(solveCheckUnique(board)) : !solveLogically(board, level)) board.setValueUseCell(cell, false);
+        if (uniqueDigging ? !Array.isArray(solveCheckUnique(board)) : !solveLogically(board, level)) board.setValueUseCell(cell, false);
     }
-    if (level === 3 && !solveLogically(board, level)) {
+    if (uniqueDigging && !solveLogically(board, level)) {
         // A unique puzzle beyond our ceiling can still lead to a useful sibling:
         // restore different clues, rather than reject that removal permanently.
         for (const cell of shuffle(board.getEmptyCells())) {
@@ -77,7 +77,16 @@ export function generateLogical(clues: number, level: LogicLevel, attempts = 3):
         }
         if (rating === level && board.getNumberOfHints() <= clues) break;
     }
-    return bestRating < level && level >= 2
+    let result = bestRating < level && level >= 2
         ? refineDifficulty(best!, clues, level, attempts > 1 ? 3000 : 750)
         : best!;
+    if (level !== 3 || rateLogical(result) === level) return result;
+    const deadline = performance.now() + (attempts > 1 ? 4000 : 750);
+    // Preserve the original search result; explore at most four new paths.
+    for (let i = 0; i < (attempts > 1 ? 4 : 1) && performance.now() < deadline; i++) {
+        const alternative = generateAttempt(clues, level, true);
+        const rating = rateLogical(alternative);
+        if (rating === level) return alternative;
+    }
+    return result;
 }
