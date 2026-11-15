@@ -140,3 +140,14 @@ build files are needed. Relative asset paths support hosting below `/ksuduo/`.
 Created by Moritz Rehbach. Licensed under GPL-3.0-or-later.
 The water background is supplied by the project owner. IBM Plex Sans and IBM Plex
 Mono are self-hosted through Fontsource; their packages include the font licenses.
+
+## Optional sound
+
+The footer sound button cycles **Off → Music + FX → FX only → Music only → Off**. Sound starts
+only when you enable it and defaults to Off on each visit. The music is a slow,
+original D-minor ambient progression with soft synth tones and sparse upper notes;
+hints and completed generation use quiet watery tones with a filtered echo.
+Other interactions use a much softer, short filtered glide. Music only disables all
+interaction and activation effects. Audio pauses when
+the tab is hidden. Everything is synthesized locally with Web Audio: no external
+music, tracking, downloads or cached audio files.

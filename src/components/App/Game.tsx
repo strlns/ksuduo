@@ -1,3 +1,5 @@
+import {playAquaticCue} from '../../audio/AquaticAudio';
+import {AudioControl} from './AudioControl';
 import type {AnnotationRequest, AnnotationScope} from '../Board/annotations';
 import {Menu, MenuItem, Tooltip} from '@mui/material';
 import {MoreHorizRounded} from '@mui/icons-material';
@@ -217,6 +219,7 @@ export const Game = (props: GameProps) => {
           currentDifficulty: state.difficulty,
           ...stateFromGenerator(result),
         }));
+        if (result[1]) playAquaticCue();
         callback();
         timer.start();
       };
@@ -239,6 +242,7 @@ export const Game = (props: GameProps) => {
             currentDifficulty: state.difficulty,
             ...stateFromGenerator(result),
           }));
+          if (result[1]) playAquaticCue();
           callback();
           timer.start();
         }, 25);
@@ -492,6 +496,7 @@ export const Game = (props: GameProps) => {
    */
   const giveHint = (): void => {
     if (!(state.isWorking || state.sudoku.isSolved())) {
+      playAquaticCue();
       setHintActivationKey(key => key + 1);
       const sudoku = cloneDeep(state.sudoku);
 
@@ -744,6 +749,7 @@ export const Game = (props: GameProps) => {
                 <Button45Mt
                   endIcon={<EmojiObjectsRounded />}
                   color="secondary"
+                  data-aquatic-cue
                   onClick={giveHint}
                   variant="outlined"
                 >
@@ -791,6 +797,7 @@ export const Game = (props: GameProps) => {
                 <strong>Ksuduo</strong>{" "}<span>strlns.github.io/ksuduo/</span>
               </a>
               <About />
+              <AudioControl />
             </PaperBox>
 
       </footer>

@@ -467,3 +467,6 @@ a { color: #62d7e5; }
     .explainer-expanded .explainer-heading strong { display: block; }
     .logic-step.explainer-expanded .explainer-text, .logic-step.explainer-expanded .explainer-status { display: block; }
 }
+
+.game-footer .about-card.MuiPaper-root { flex-wrap: wrap; justify-content: center; }
+.game-footer .audio-control.MuiButton-root { font-size: .7rem; text-transform: none; white-space: nowrap; }
