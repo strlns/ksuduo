@@ -452,7 +452,7 @@ it('discards hint replay when the player makes a new move, even if that move is 
         const explanation = document.getElementById('step-explanation')!.textContent;
         fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
         const cell = screen.getByRole('textbox', {name: 'Row 1, column 3'});
-        fireEvent.keyDown(cell, {key:'4'});
+        fireEvent.input(cell, {target: {value: '4'}, data: '4', inputType: 'insertText'});
         expect(values()[2]).toBe(4);
         expect(screen.getByText('Hints: 30')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
