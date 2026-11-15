@@ -157,6 +157,7 @@ export const Game = (props: GameProps) => {
     useState(false);
 
   const desktopSettings = useMediaQuery("(min-width:900px)");
+  const [arrivalVersion, setArrivalVersion] = useState(0);
   const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
 
   const pageIsVisible = usePageVisibility();
@@ -221,7 +222,7 @@ export const Game = (props: GameProps) => {
           currentDifficulty: state.difficulty,
           ...stateFromGenerator(result),
         }));
-        if (result[1]) playAquaticCue();
+        if (result[1]) {playAquaticCue(); setArrivalVersion(version => version + 1);}
         callback();
         timer.start();
       };
@@ -244,7 +245,7 @@ export const Game = (props: GameProps) => {
             currentDifficulty: state.difficulty,
             ...stateFromGenerator(result),
           }));
-          if (result[1]) playAquaticCue();
+          if (result[1]) {playAquaticCue(); setArrivalVersion(version => version + 1);}
           callback();
           timer.start();
         }, 25);
@@ -680,6 +681,7 @@ export const Game = (props: GameProps) => {
       >
         <Grid className="board-column" size={{xs: 12, md: 8, lg: 6}} container sx={{justifyContent: "center"}}>
           <PaperBox className="board-card" sx={{...paperBoxDefaultLayoutSx, width: "100%"}}>
+            {arrivalVersion > 0 && <span key={arrivalVersion} className="board-arrival" aria-hidden="true"/>}
             <Box sx={{p: 1}}>
               <LinearProgress
                 value={percentFilled()}

@@ -376,3 +376,14 @@ it('protects progress with cancellable confirmations for destructive and bulk ac
  fireEvent.click(screen.getByRole('button',{name:'Confirm reset puzzle'}));
  await waitFor(()=>expect(values()).toEqual(puzzle));
 });
+
+it('plays arrival visuals only for successful generation, keeping the board mounted during hints', async () => {
+ await startGame();
+ const arrival=document.querySelector('.board-arrival');
+ expect(arrival).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Add Hint',exact:true}));
+ expect(document.querySelector('.board-arrival')).toBe(arrival);
+ fireEvent.click(screen.getByRole('button',{name:'Generate sudoku',exact:true}));
+ await confirmIfNeeded();
+ await waitFor(()=>expect(document.querySelector('.board-arrival')).not.toBe(arrival));
+});
