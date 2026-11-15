@@ -365,14 +365,14 @@ it('protects progress with cancellable confirmations for destructive and bulk ac
  fireEvent.click(screen.getByRole('button',{name:'Annotate selected cell'}));
  const before=values(),savedNotes=localStorage.getItem('ksuduo-notes');
  for(const name of ['Reset','Show Solution','Generate sudoku','Annotate all','Clear all notes']) {
-  fireEvent.click(screen.getByRole('button',{name,exact:true}));
+  fireEvent.click(screen.getByRole('button',{name: new RegExp(`^${name}$`)}));
   expect(screen.getByRole('dialog')).toBeTruthy();
   expect(values()).toEqual(before);
   fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
   await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
   expect(values()).toEqual(before);expect(localStorage.getItem('ksuduo-notes')).toBe(savedNotes);
  }
- fireEvent.click(screen.getByRole('button',{name:'Reset',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:/^Reset$/}));
  fireEvent.click(screen.getByRole('button',{name:'Confirm reset puzzle'}));
  await waitFor(()=>expect(values()).toEqual(puzzle));
 });
@@ -381,9 +381,9 @@ it('plays arrival visuals only for successful generation, keeping the board moun
  await startGame();
  const arrival=document.querySelector('.board-arrival');
  expect(arrival).toBeTruthy();
- fireEvent.click(screen.getByRole('button',{name:'Add Hint',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:/^Add Hint$/}));
  expect(document.querySelector('.board-arrival')).toBe(arrival);
- fireEvent.click(screen.getByRole('button',{name:'Generate sudoku',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:/^Generate sudoku$/}));
  await confirmIfNeeded();
  await waitFor(()=>expect(document.querySelector('.board-arrival')).not.toBe(arrival));
 });
