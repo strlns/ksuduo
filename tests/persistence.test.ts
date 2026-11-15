@@ -52,3 +52,9 @@ it('remains playable when privacy settings block storage', () => {
     expect(restoreGameStateOrInitialize().board.isEmpty()).toBe(true);
     expect(() => persist({board: makeBoard(), secondsElapsed: 0, isPaused: false, timerEnabled: false, currentDifficulty: DIFFICULTY_LEVEL.EASY, solutionShown: false})).not.toThrow();
 });
+
+it('appends Extra Hard without changing saved difficulty IDs', () => {
+    expect([DIFFICULTY_LEVEL.EASY, DIFFICULTY_LEVEL.MEDIUM, DIFFICULTY_LEVEL.HARD, DIFFICULTY_LEVEL.EASY_NEW, DIFFICULTY_LEVEL.EXTRA_HARD]).toEqual([0,1,2,3,4]);
+    persist({board:makeBoard(), secondsElapsed:0, isPaused:false, timerEnabled:false, currentDifficulty:DIFFICULTY_LEVEL.EXTRA_HARD, solutionShown:false});
+    expect(restoreGameStateOrInitialize().currentDifficulty).toBe(DIFFICULTY_LEVEL.EXTRA_HARD);
+});

@@ -80,7 +80,7 @@ describe('gameplay migration baseline', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Puzzle settings'}));
         const select = screen.getByLabelText('Difficulty');
         expect(screen.queryByRole('slider')).toBeNull();
-        for (const [difficulty, maximum] of [['0', '37'], ['1', '29'], ['2', '24']]) {
+        for (const [difficulty, maximum] of [['0', '37'], ['1', '29'], ['2', '24'], ['4', '24']]) {
             fireEvent.change(select, {target: {value: difficulty}});
             const slider = screen.getByRole('slider');
             expect(slider.getAttribute('min')).toBe('21');

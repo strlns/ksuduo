@@ -7,7 +7,7 @@ import {Sudoku} from '../src/model/Sudoku';
 vi.mock('../src/algorithm/generator/generatorLogical', () => ({generateLogical: vi.fn()}));
 afterEach(() => vi.resetAllMocks());
 
-const modes = [DIFFICULTY_LEVEL.EASY, DIFFICULTY_LEVEL.MEDIUM, DIFFICULTY_LEVEL.HARD, DIFFICULTY_LEVEL.EASY_NEW];
+const modes = [DIFFICULTY_LEVEL.EASY, DIFFICULTY_LEVEL.MEDIUM, DIFFICULTY_LEVEL.HARD, DIFFICULTY_LEVEL.EASY_NEW, DIFFICULTY_LEVEL.EXTRA_HARD];
 function supply(board: Sudoku, code = GENERATOR_CODE.OK) {
     vi.mocked(generateLogical).mockReturnValue(board);
 }
