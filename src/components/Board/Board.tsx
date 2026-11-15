@@ -1,3 +1,4 @@
+import {playEntryCue} from '../../audio/AquaticAudio';
 import {annotationsFor, AnnotationRequest} from './annotations';
 import * as React from "react";
 import type {LogicStep} from "../../algorithm/solver/logical";
@@ -159,7 +160,9 @@ export const Board = React.memo(
                 return;
             }
             if (CellValues.includes(v)) {
+                const changed = sudoku.getCell(x,y).value !== v;
                 sudoku.setValue(x, y, v);
+                if (changed && v) playEntryCue(!sudoku.isCellValid(sudoku.getCell(x,y)));
             }
             if (cellCallback) {
                 cellCallback();

@@ -1,3 +1,5 @@
+export const ENTRY_CUE = 'ksuduo-entry-cue';
+export const playEntryCue = (wrong: boolean) => document.dispatchEvent(new CustomEvent(ENTRY_CUE, {detail: {wrong}}));
 export const COMPLETION_SWEEP = 'ksuduo-completion-sweep';
 export const playCompletionSweep = () => document.dispatchEvent(new Event(COMPLETION_SWEEP));
 export const AQUATIC_CUE = 'ksuduo-aquatic-cue';
@@ -81,13 +83,32 @@ export class AquaticAudio {
         if (!this.effects || this.context.state !== 'running' || now - this.lastFx < .12) return;
         this.lastFx = now;
         if (aquatic) {
-            this.tone(74, .9, .024, .045, 0, true);
-            this.tone(81, .7, .0096, .08, .09, true);
-        } else {
-            // A short, softly filtered downward glide well below the aquatic cue.
-            this.tone(67, .24, .006, .025, 0, true);
-        }
+            const base = 70 + Math.random()*10;
+            [0,.07,.16].forEach((delay,i) => this.bubble(base*9*(1+i*.35), .2+Math.random()*.15, .018, delay));
+        } else this.bubble(350+Math.random()*250,.09,.008);
     }
+    private bubble(frequency: number, duration: number, volume: number, delay=0, wrong=false) {
+        const ctx=this.context, start=ctx.currentTime+delay;
+        const oscillator=ctx.createOscillator(), gain=ctx.createGain(), filter=ctx.createBiquadFilter();
+        oscillator.type=wrong ? 'triangle' : 'sine';
+        oscillator.frequency.setValueAtTime(frequency,start);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency*(wrong ? .28 : 2.4),start+duration*.22);
+        oscillator.frequency.exponentialRampToValueAtTime(Math.max(40,frequency*.35),start+duration);
+        filter.type='bandpass'; filter.frequency.value=wrong ? 700 : 1400; filter.Q.value=1.2;
+        gain.gain.setValueAtTime(0,start); gain.gain.linearRampToValueAtTime(volume,start+.005);
+        gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+        oscillator.connect(filter);filter.connect(gain);gain.connect(this.master);
+        oscillator.start(start);oscillator.stop(start+duration+.02);
+        oscillator.onended=()=>{oscillator.disconnect();filter.disconnect();gain.disconnect();};
+    }
+    entry(wrong: boolean) {
+        const now=this.context.currentTime;
+        if(!this.effects || this.context.state!=='running' || now-this.lastFx<.06)return;
+        this.lastFx=now;
+        this.bubble((wrong ? 220 : 450)+Math.random()*250, wrong ? .22 : .12,.018,0,wrong);
+        if(wrong)this.bubble(170+Math.random()*100,.12,.01,.06,true);
+    }
+
     completionSweep() {
         if (!this.effects || this.context.state !== 'running') return;
         // One rising, overlapping pentatonic shimmer, even for several units at once.
