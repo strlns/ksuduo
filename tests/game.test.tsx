@@ -29,6 +29,10 @@ vi.mock('../src/algorithm/generator/generator', async importOriginal => ({
 
 beforeEach(() => {localStorage.clear(); mode.requests.length = 0; mode.synchronousCalls = 0; mode.probeWorks = true;});
 afterEach(() => cleanup());
+const confirmIfNeeded = () => {
+ const button=screen.queryByRole('button',{name:/^Confirm /});
+ if(button)fireEvent.click(button);
+};
 const values = () => {
     const flat = Array<number>(81);
     document.querySelectorAll<HTMLInputElement>('.cell input').forEach(input => {
@@ -69,10 +73,12 @@ describe('gameplay migration baseline', () => {
         fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
         await waitFor(() => expect(values()).toEqual(puzzle));
         fireEvent.click(screen.getByRole('button', {name: /Show Solution/i}));
+ confirmIfNeeded();
         await waitFor(() => expect(screen.getByText('Solution shown')).toBeTruthy());
         expect(values().filter(Boolean)).toHaveLength(81);
         expect(screen.queryByText('Good job!')).toBeNull();
         fireEvent.click(screen.getByRole('button', {name: /^Reset$/i}));
+ confirmIfNeeded();
         await waitFor(() => expect(values()).toEqual(puzzle));
     });
     it('keeps native difficulty options, slider ranges and the timer toggle', async () => {
@@ -158,6 +164,7 @@ it('clears all notes across cells and persists the cleared state without editing
     expect(second.getAttribute('aria-description')).toBeNull();
     expect(first.getAttribute('aria-description')).toContain('Notes:');
     fireEvent.click(screen.getByRole('button', {name: 'Clear all notes'}));
+ confirmIfNeeded();
     expect(first.getAttribute('aria-description')).toBeNull();
     expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes).toEqual({});
     expect(values()).toEqual(puzzle);
@@ -275,6 +282,7 @@ it('manual notes are not undo steps, number undo retains them and reset clears t
  fireEvent.click(screen.getByRole('button', {name: 'Undo'}));
  expect(input.getAttribute('aria-description')).toBe('Notes: 1, 2, 4');
  fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
+ confirmIfNeeded();
  expect(document.querySelectorAll('.cell-notes')).toHaveLength(0);
  expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes).toEqual({});
  expect(screen.getByRole('button', {name: 'Undo'}).hasAttribute('disabled')).toBe(true);
@@ -317,6 +325,7 @@ it('plays one completion sweep when an entry completes a correct unit, and stays
         }
         expect(sweep).toHaveBeenCalledTimes(1);
         fireEvent.click(screen.getByRole('button', {name:'Show Solution'}));
+ confirmIfNeeded();
         expect(sweep).toHaveBeenCalledTimes(1);
     } finally { document.removeEventListener('ksuduo-completion-sweep', sweep); }
 });
@@ -344,4 +353,26 @@ it('emits entry effects for keyboard numbers and distinguishes conflicts', async
   await userEvent.click(input);await userEvent.keyboard('4');await userEvent.keyboard('{Backspace}');await userEvent.keyboard('5');
   expect(cues).toEqual([false,true]);
  } finally {document.removeEventListener('ksuduo-entry-cue',listener);}
+});
+
+it('protects progress with cancellable confirmations for destructive and bulk actions', async () => {
+ await startGame();
+ const input=screen.getByRole('textbox',{name:'Row 1, column 3'});
+ await userEvent.click(input);await userEvent.keyboard('4');
+ fireEvent.click(screen.getByRole('button',{name:'Annotate selected cell'}));
+ // Add a note in an empty cell so Clear all also has work to protect.
+ await userEvent.click(screen.getByRole('textbox',{name:'Row 1, column 4'}));
+ fireEvent.click(screen.getByRole('button',{name:'Annotate selected cell'}));
+ const before=values(),savedNotes=localStorage.getItem('ksuduo-notes');
+ for(const name of ['Reset','Show Solution','Generate sudoku','Annotate all','Clear all notes']) {
+  fireEvent.click(screen.getByRole('button',{name,exact:true}));
+  expect(screen.getByRole('dialog')).toBeTruthy();
+  expect(values()).toEqual(before);
+  fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+  await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
+  expect(values()).toEqual(before);expect(localStorage.getItem('ksuduo-notes')).toBe(savedNotes);
+ }
+ fireEvent.click(screen.getByRole('button',{name:'Reset',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:'Confirm reset puzzle'}));
+ await waitFor(()=>expect(values()).toEqual(puzzle));
 });
