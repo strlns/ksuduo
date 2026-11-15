@@ -1,0 +1,610 @@
+[
+  {
+    "seed": 1,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1687.153616
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4231.52247
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2870.1727389999996
+    }
+  },
+  {
+    "seed": 1,
+    "level": 3,
+    "base": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1076.299572
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4137.231966
+    },
+    "sixAttempts": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1102.781398
+    }
+  },
+  {
+    "seed": 2,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1188.2631659999988
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1679.6793739999994
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2263.179451
+    }
+  },
+  {
+    "seed": 2,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1190.5556390000002
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3621.8238850000016
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2711.328197
+    }
+  },
+  {
+    "seed": 3,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1366.7552309999992
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2993.789656000001
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2723.8966739999996
+    }
+  },
+  {
+    "seed": 3,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1348.4797590000016
+    },
+    "candidate": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 901.4775699999991
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2792.4976189999998
+    }
+  },
+  {
+    "seed": 4,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1293.4706050000023
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 473.94148399999904
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2581.4493270000003
+    }
+  },
+  {
+    "seed": 4,
+    "level": 3,
+    "base": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 393.80842499999926
+    },
+    "candidate": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 455.10306499999933
+    },
+    "sixAttempts": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 366.92452200000116
+    }
+  },
+  {
+    "seed": 5,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1373.2711689999996
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2216.2939039999983
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2699.762866000001
+    }
+  },
+  {
+    "seed": 5,
+    "level": 3,
+    "base": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1346.3305789999977
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3832.0234159999964
+    },
+    "sixAttempts": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1348.4067289999984
+    }
+  },
+  {
+    "seed": 6,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1240.7183689999947
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3965.735826999997
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2730.843014000002
+    }
+  },
+  {
+    "seed": 6,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1303.9254819999987
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3832.2400979999948
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2719.520786000001
+    }
+  },
+  {
+    "seed": 7,
+    "level": 2,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1326.248501999995
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4022.340387999997
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1341.4987370000017
+    }
+  },
+  {
+    "seed": 7,
+    "level": 3,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1335.7186589999983
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4047.4523160000026
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2907.9602290000003
+    }
+  },
+  {
+    "seed": 8,
+    "level": 2,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1331.4195919999984
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3809.7069980000015
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1399.2345989999994
+    }
+  },
+  {
+    "seed": 8,
+    "level": 3,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1381.8416729999954
+    },
+    "candidate": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 3222.779072000005
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2758.692001000003
+    }
+  },
+  {
+    "seed": 9,
+    "level": 2,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 933.4929329999868
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3764.928706000006
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 871.4755160000059
+    }
+  },
+  {
+    "seed": 9,
+    "level": 3,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1313.1519719999924
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3770.122360999987
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2663.8341509999955
+    }
+  },
+  {
+    "seed": 10,
+    "level": 2,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 872.4023200000083
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 3004.5006259999936
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 924.2983480000039
+    }
+  },
+  {
+    "seed": 10,
+    "level": 3,
+    "base": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1297.6175890000013
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4007.4255730000004
+    },
+    "sixAttempts": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1398.4098659999945
+    }
+  },
+  {
+    "seed": 11,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1522.1334420000057
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3738.5793980000017
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3010.9619419999945
+    }
+  },
+  {
+    "seed": 11,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1490.278032999995
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3833.542909999989
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2957.0378429999982
+    }
+  },
+  {
+    "seed": 12,
+    "level": 2,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1029.7894309999974
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1216.4296060000052
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1053.1214720000062
+    }
+  },
+  {
+    "seed": 12,
+    "level": 3,
+    "base": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1573.5000889999937
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 3910.059605000002
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2899.5175400000007
+    }
+  },
+  {
+    "seed": 13,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1252.6326160000026
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3649.5976999999984
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2182.0323969999954
+    }
+  },
+  {
+    "seed": 13,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1237.0514850000036
+    },
+    "candidate": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 3099.086851
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2704.334535000002
+    }
+  },
+  {
+    "seed": 14,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1485.3792209999956
+    },
+    "candidate": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 2305.9789149999997
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3106.9511740000016
+    }
+  },
+  {
+    "seed": 14,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1436.7886490000092
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3740.9917769999884
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3287.874646999997
+    }
+  },
+  {
+    "seed": 15,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1488.7992999999988
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3885.3151450000005
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2778.8828469999935
+    }
+  },
+  {
+    "seed": 15,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1494.6879960000078
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 3756.246820999979
+    },
+    "sixAttempts": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 2922.5801120000106
+    }
+  },
+  {
+    "seed": 16,
+    "level": 2,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1403.8698250000016
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4492.501749999996
+    },
+    "sixAttempts": {
+      "rating": 2,
+      "clues": 28,
+      "ms": 1882.9691890000104
+    }
+  },
+  {
+    "seed": 16,
+    "level": 3,
+    "base": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 1387.3132479999913
+    },
+    "candidate": {
+      "rating": 1,
+      "clues": 28,
+      "ms": 4314.278407000005
+    },
+    "sixAttempts": {
+      "rating": 3,
+      "clues": 28,
+      "ms": 1790.5732909999933
+    }
+  }
+]

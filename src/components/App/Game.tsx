@@ -1,10 +1,13 @@
+import type {AnnotationRequest, AnnotationScope} from '../Board/annotations';
+import {Menu, MenuItem, Tooltip} from '@mui/material';
+import {MoreHorizRounded} from '@mui/icons-material';
 import {Dialog, DialogTitle, DialogContent, DialogActions} from "@mui/material";
 import {MessageQueue} from "../Message/MessageQueue";
 import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep} from "../../algorithm/solver/logical";
 import { ThemeProvider } from "@mui/material/styles";
 import * as React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Board, OptionalCell } from "../Board/Board";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Board, OptionalCell, NotesHistoryControls } from "../Board/Board";
 import "../../css/app.css";
 import generateRandomSudoku, {
   DIFFICULTY_LEVEL,
@@ -265,6 +268,11 @@ export const Game = (props: GameProps) => {
   };
 
   const resetSudoku = () => {
+    notesHistoryRef.current?.clear();
+    setLogicStep(undefined);
+    setHintCandidates(undefined);
+    logicRef.current = undefined;
+    setSelectionResetKey(key => key + 1);
     const sudoku = cloneDeep(state.sudoku);
     sudoku.reset();
     setState((prevState) => ({
@@ -426,6 +434,21 @@ export const Game = (props: GameProps) => {
       setHintCandidates(undefined);
     }
   }, [currentSignature]);
+  const [hintActivationKey, setHintActivationKey] = useState(0);
+  const notesHistoryRef = useRef<NotesHistoryControls>(null);
+  const [hasNotesHistory, setHasNotesHistory] = useState(false);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
+  const [hasSelection, setHasSelection] = useState(true);
+  const [annotationRequest, setAnnotationRequest] = useState<AnnotationRequest | undefined>(undefined);
+  const [hintMenuAnchor, setHintMenuAnchor] = useState<HTMLElement | null>(null);
+  const [explainerExpanded, setExplainerExpanded] = useState(false);
+  const [hintDetailsOpen, setHintDetailsOpen] = useState(false);
+  const annotate = (scope: AnnotationScope) => {
+    setAnnotationRequest(previous => ({id: (previous?.id ?? 0) + 1, scope}));
+    setHintMenuAnchor(null);
+  };
+  const solverCandidates = useMemo(() => logicRef.current?.signature === currentSignature
+    ? Object.fromEntries([...logicRef.current.candidates].map(([i, values]) => [`${i % 9},${Math.floor(i / 9)}`, values])) : undefined, [currentSignature, logicStep]);
   const [generationInfoOpen, setGenerationInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const hintTimeoutRef: { current: undefined | number } = useRef(undefined);
@@ -469,6 +492,7 @@ export const Game = (props: GameProps) => {
    */
   const giveHint = (): void => {
     if (!(state.isWorking || state.sudoku.isSolved())) {
+      setHintActivationKey(key => key + 1);
       const sudoku = cloneDeep(state.sudoku);
 
       const wronglyFilledCells = state.sudoku.getWronglyFilledCells();
@@ -542,12 +566,19 @@ export const Game = (props: GameProps) => {
   };
 
   const undo = () => {
+    setSelectionResetKey(key => key + 1);
+    setLogicStep(undefined);
+    setHintCandidates(undefined);
+    logicRef.current = undefined;
     const sudoku = cloneDeep(state.sudoku);
-    sudoku.undo();
+    if (!notesHistoryRef.current?.undo() && !sudoku.isHistoryEmpty()) sudoku.undo();
     setState((prevState) => ({
       ...prevState,
       sudoku,
       solutionShown: false,
+      forceFocus: undefined,
+      highlightedCell: undefined,
+      secondaryHighlight: [],
     }));
   };
 
@@ -571,11 +602,24 @@ export const Game = (props: GameProps) => {
   return (
     <Container style={{ padding: 0 }}>
       <MessageQueue messages={state.gameMessages}/>
-      {logicStep && <section className="logic-step" aria-live="polite">
-        <strong>{logicStep.technique}</strong><p>{logicStep.explanation}</p>
-        <p>{logicStep.placement ? 'The forced value has been filled.' : 'Crossed-out candidates are eliminated. Outlined cells show the source pattern; dashed cells show where candidates are removed.'} Highlighted cells show the pattern and affected cells. Press Add Hint for the next step.</p>
-        <Button onClick={() => {setLogicStep(undefined); setHintCandidates(undefined);}}>Hide explanation</Button>
-      </section>}
+      <div className="gameplay-area">
+      <div className="explainer-slot">
+      <section className={`logic-step${explainerExpanded ? ' explainer-expanded' : ''}${logicStep ? '' : ' logic-step-empty'}`} aria-label="Solving explanation" aria-live="polite">
+        <header className="explainer-header">
+          <div className="explainer-heading">
+            <strong>{logicStep?.technique ?? 'Step-by-step hints'}</strong>
+            <span className="explainer-summary">{logicStep?.explanation ?? 'Add Hint to take the next solving step'}</span>
+          </div>
+          <div className="explainer-actions">
+            <Button className="explainer-toggle" size="small" aria-expanded={explainerExpanded} aria-controls="step-explanation" onClick={() => setExplainerExpanded(expanded => !expanded)}>{explainerExpanded ? 'Collapse' : 'Explain'}</Button>
+            <Button className="explainer-details" size="small" disabled={!logicStep} onClick={() => setHintDetailsOpen(true)}>Details</Button>
+            <Tooltip title="Hint details and annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip>
+          </div>
+        </header>
+        <p id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">{logicStep?.explanation ?? 'Add Hint explains one solving step at a time.'}</p>
+        <small className="explainer-status">{logicStep ? (logicStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : 'Follow the highlighted cells and candidates.'}</small>
+      </section>
+      </div>
       <Grid
         container
         spacing={3}
@@ -602,7 +646,15 @@ export const Game = (props: GameProps) => {
               </Typography>
             </Box>
             <Board
-                hintCandidates={hintCandidates}
+                onInvalidNote={text => addGameMessage({text, duration: 3500})}
+                notesHistoryRef={notesHistoryRef}
+                onNotesHistoryChange={setHasNotesHistory}
+                hintActivationKey={hintActivationKey}
+                selectionResetKey={selectionResetKey}
+                onSelectionChange={setHasSelection}
+                annotationRequest={annotationRequest}
+                solverCandidates={solverCandidates}
+                hintCandidates={solverCandidates ? hintCandidates : undefined}
                 logicStep={logicStep}
               solutionIsFromApp={state.solutionShown}
               sudoku={state.sudoku}
@@ -676,7 +728,7 @@ export const Game = (props: GameProps) => {
                 <Button
                   endIcon={<UndoRounded />}
                   variant="outlined"
-                  disabled={state.sudoku.isHistoryEmpty()}
+                  disabled={state.sudoku.isHistoryEmpty() && !hasNotesHistory}
                   onClick={undo}
                 >
                   Undo
@@ -728,13 +780,40 @@ export const Game = (props: GameProps) => {
 
             </PaperBox>
           </Grid>
-          <Grid size={12}>
-            <PaperBox className="about-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
-              <About />
-            </PaperBox>
-          </Grid>
+
         </Grid>
       </Grid>
+      </div>
+      <footer className="game-footer">
+
+            <PaperBox className="about-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
+              <a className="app-identity" href="https://strlns.github.io/ksuduo/" title="Ksuduo home">
+                <strong>Ksuduo</strong>{" "}<span>strlns.github.io/ksuduo/</span>
+              </a>
+              <About />
+            </PaperBox>
+
+      </footer>
+      <Menu anchorEl={hintMenuAnchor} open={!!hintMenuAnchor} onClose={() => setHintMenuAnchor(null)} slotProps={{list: {'aria-label': 'Hint and annotation options'}}}>
+        <MenuItem disabled={!logicStep} onClick={() => {setHintDetailsOpen(true); setHintMenuAnchor(null);}}>Read the full explanation</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !logicStep} onClick={() => annotate('explanation')}>Annotate explanation cells</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection} onClick={() => annotate('row')}>Annotate selected row</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection} onClick={() => annotate('column')}>Annotate selected column</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection} onClick={() => annotate('block')}>Annotate selected block</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking} onClick={() => annotate('all')}>Annotate all empty cells</MenuItem>
+      </Menu>
+      <Dialog open={hintDetailsOpen} onClose={() => setHintDetailsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="hint-details-title">
+        <DialogTitle id="hint-details-title">{logicStep?.technique ?? 'Solving hints'}</DialogTitle>
+        <DialogContent>
+          <p>{logicStep?.explanation ?? 'Press Add Hint for the next logical step.'}</p>
+          <p>{logicStep?.placement ? 'The blue cell with a gold border is the digit just filled.' : 'This step removes impossible candidates without filling a digit. The remaining notes are kept on the board. Press Add Hint to continue from these deductions.'}</p>
+          <p>Mint outlines and highlighted digits show the source pattern. Warm dashed outlines and crossed-out digits show what was eliminated. Row and column labels run top to bottom and left to right: r2c6 means row 2, column 6.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={state.isPaused || state.isWorking || !logicStep} onClick={() => annotate('explanation')}>Annotate these cells</Button>
+          <Button onClick={() => setHintDetailsOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="puzzle-settings-title">
         <DialogTitle id="puzzle-settings-title">Puzzle settings</DialogTitle>
         <DialogContent>              <GeneratorConfiguration

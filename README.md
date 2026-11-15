@@ -18,9 +18,10 @@ Enter numbers with your keyboard or device keypad. Undo, reset, pause and a time
 are available; Show Solution reveals the completed board.
 
 The **pencil icon** toggles Notes mode (highlighted when active). Type a digit or use the note buttons to add or remove
-it. The compact digit strip lets you toggle marks without returning to the keyboard.
-**Annotate** annotates the selected cell with digits allowed by its current row, column
-and box. **Clear cell** removes its marks; **Clear all notes** removes marks across
+it. Impossible marks are rejected with a brief explanation of the conflicting unit. The compact digit strip lets you toggle marks without returning to the keyboard.
+**Annotate** fills the selected cell’s notes with its remaining candidates. The
+explainer’s **⋯** menu can annotate its explanation cells, the selected row/column/box,
+or all empty cells. These actions respect eliminations from the current solving session. **Clear cell** removes its marks; **Clear all notes** removes marks across
 the entire puzzle. Notes are saved separately from the game and don't affect the hint solver.
 Marks conflicting with current entries are hidden and reappear if those entries
 are undone or cleared. Annotate again to populate all currently allowed digits. Filled cells hide their notes, and undo can reveal them again.
@@ -31,8 +32,35 @@ favoring a unit type, before cell-based naked singles. The explanation stays vis
 you can follow it at your own pace.
 Solid outlines show the source pattern; dashed outlines and crossed-out digits
 show candidate eliminations. Candidate eliminations are shown only in the cells involved in that hint; your
-other notes remain visible. Placement hints do not annotate the board. An older saved puzzle outside the supported
+other notes remain visible. Notes from elimination steps are kept after the explanation
+is hidden and saved with your other annotations. Placement hints do not annotate the board.
+On phones, the explainer starts as a compact one-line deduction, with ellipsis for
+long explanations. **Explain** opens the
+reading panel over the board; **Collapse** returns to the status bar without moving
+the board. Long explanations scroll inside the panel. The **⋯** menu (or desktop
+**Details** button) opens the full explanation and a plain-language color legend.
+
+Subtle row/column labels are off by default and turn on when you request a hint.
+Use the tiny grid icon beside the pencil to toggle them: **r2c6 means row 2, column 6**.
+The labels always reserve their space, so toggling them does not move the board.
+Reset clears all annotations. Undo reverses number entries and annotations added by elimination hints;
+manual notes and annotation buttons do not create undo steps. Manual edits made after a hint are preserved.
+The annotation undo history lasts for the current session, while the notes themselves survive reloads.
+Undo clears the selected cell and input focus; click a cell to select it again. An older saved puzzle outside the supported
 techniques can still receive a clearly labelled value from its saved solution.
+
+On phones, the board is constrained by width and the small viewport height (`svh`),
+which reserves room for visible browser controls without following address-bar
+animation. The footer sits below gameplay and uses ordinary scrolling.
+
+## Add to your home screen
+
+On iPhone/iPad, use Safari’s Share → Add to Home Screen. On Android, use your
+browser’s Install app or Add to Home screen action when available. Ksuduo includes
+a manifest and local icons for a standalone window. It requires a network connection
+to load: there is no service worker or offline app cache that can pin an old release.
+Reopening or reloading fetches the current app under the host’s normal HTTP caching.
+Your saved game and notes remain in local storage.
 
 ## Difficulty and solving techniques
 

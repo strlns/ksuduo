@@ -42,8 +42,9 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     const matches = (c: CellData) => c.x === props.cell.x && c.y === props.cell.y;
     const source = step?.sources.some(matches);
     const target = !step?.placement && step?.targets.some(matches);
+    const added = !!props.cell.value && (props.isHighlighted || (step?.placement && step.targets.some(matches)));
     const removed = target ? step?.value : undefined;
-    const className = `cell${selected ? " selected-cell" : ""}${source ? " logic-source" : ""}${target ? " logic-target" : ""}${props.cell.isInitial ? ' fixed' : ''}\
+    const className = `cell${added ? " hint-added" : ""}${selected ? " selected-cell" : ""}${source ? " logic-source" : ""}${target ? " logic-target" : ""}${props.cell.isInitial ? ' fixed' : ''}\
     ${props.cell.isValid ? '' : ' invalid'}\
     ${props.isHighlighted ? 'hint' : ''}\
     ${props.isSecondarilyHighlighted && !props.isHighlighted ? 'hint-origin' : ''}\
@@ -97,7 +98,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
             //iOS, some versions show normal keypad.
                   slotProps={{input: {
                       'aria-label': `Row ${props.cell.y + 1}, column ${props.cell.x + 1}`,
-                      'aria-description': props.cell.value ? undefined : removed ? `Candidates: ${notes.join(', ')}. Eliminated ${removed}.` : notes.length ? `Notes: ${notes.join(', ')}` : undefined,
+                      'aria-description': added ? 'Value added by the hint.' : props.cell.value ? undefined : removed ? `Candidates: ${notes.join(', ')}. Eliminated ${removed}.` : notes.length ? `Notes: ${notes.join(', ')}` : undefined,
                       inputMode: 'numeric',
                       pattern: '[0-9]'
                   }}}

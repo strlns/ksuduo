@@ -237,3 +237,71 @@ it('does not open input focus on mount and retains it during touch note entry', 
     expect(document.activeElement).toBe(input);
     expect(input.getAttribute('aria-description')).toBe('Notes: 4');
 });
+it('keeps a hint slot mounted before, during and after step explanations', async()=>{
+ await startGame();
+ const slot=screen.getByLabelText('Solving explanation');
+ expect(slot.classList.contains('logic-step-empty')).toBe(true);
+ fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
+ expect(screen.getByLabelText('Solving explanation')).toBe(slot);
+ expect(slot.classList.contains('logic-step-empty')).toBe(false);
+ expect(slot.querySelector('.explainer-summary')!.textContent).toBe(slot.querySelector('.explainer-text')!.textContent);
+ expect(screen.queryByRole('button',{name:'Hide explanation'})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Undo'}));
+ expect(screen.getByLabelText('Solving explanation')).toBe(slot);
+ expect(slot.classList.contains('logic-step-empty')).toBe(true);
+ expect(screen.getByRole('link',{name:'Ksuduo strlns.github.io/ksuduo/'}).getAttribute('href')).toBe('https://strlns.github.io/ksuduo/');
+});
+it('offers annotation expansion and clears input selection on undo',async()=>{
+ await startGame();
+ fireEvent.click(screen.getByRole('button',{name:'Hint and annotation options'}));
+ fireEvent.click(screen.getByRole('menuitem',{name:'Annotate all empty cells'}));
+ await waitFor(()=>expect(document.querySelectorAll('.cell-notes')).toHaveLength(51));
+ const input=screen.getByRole('textbox',{name:'Row 1, column 3'});
+ await userEvent.click(input);await userEvent.keyboard('4');
+ fireEvent.click(screen.getByRole('button',{name:'Undo'}));
+ await waitFor(()=>expect(document.querySelector('.selected-cell')).toBeNull());
+ expect(document.activeElement?.matches('.cell input')).toBe(false);
+ expect(screen.getByRole('button',{name:'Annotate selected cell'}).hasAttribute('disabled')).toBe(true);
+});
+it('manual notes are not undo steps, number undo retains them and reset clears them', async () => {
+ await startGame();
+ const input = screen.getByRole('textbox', {name: 'Row 1, column 3'});
+ await userEvent.click(input);
+ fireEvent.click(screen.getByRole('button', {name: 'Annotate selected cell'}));
+ expect(input.getAttribute('aria-description')).toBe('Notes: 1, 2, 4');
+ expect(screen.getByRole('button', {name: 'Undo'}).hasAttribute('disabled')).toBe(true);
+ await userEvent.keyboard('4');
+ fireEvent.click(screen.getByRole('button', {name: 'Undo'}));
+ expect(input.getAttribute('aria-description')).toBe('Notes: 1, 2, 4');
+ fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
+ expect(document.querySelectorAll('.cell-notes')).toHaveLength(0);
+ expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes).toEqual({});
+ expect(screen.getByRole('button', {name: 'Undo'}).hasAttribute('disabled')).toBe(true);
+});
+
+it('explains impossible pencil marks without changing notes or values', async () => {
+ await startGame();
+ const input=screen.getByRole('textbox',{name:'Row 1, column 3'});
+ await userEvent.click(input);
+ fireEvent.click(screen.getByRole('button',{name:'Notes mode'}));
+ fireEvent.click(screen.getByRole('button',{name:'Toggle note 5'}));
+ expect(screen.getByText('Cannot note 5 in r1c3: Row 1 already contains 5.')).toBeTruthy();
+ expect(input.getAttribute('aria-description')).toBeNull();
+ expect(values()).toEqual(puzzle);
+ fireEvent.click(screen.getByRole('button',{name:'Toggle note 4'}));
+ expect(input.getAttribute('aria-description')).toBe('Notes: 4');
+});
+it('expands and collapses the explanation without replacing the board or hint slot', async () => {
+ await startGame();
+ const slot=screen.getByLabelText('Solving explanation');
+ const board=document.querySelector('.board');
+ const explain=screen.getByRole('button',{name:'Explain'});
+ expect(explain.getAttribute('aria-expanded')).toBe('false');
+ fireEvent.click(explain);
+ expect(screen.getByRole('button',{name:'Collapse'}).getAttribute('aria-expanded')).toBe('true');
+ fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
+ expect(screen.getByLabelText('Solving explanation')).toBe(slot);
+ expect(document.querySelector('.board')).toBe(board);
+ fireEvent.click(screen.getByRole('button',{name:'Collapse'}));
+ expect(screen.getByRole('button',{name:'Explain'}).getAttribute('aria-expanded')).toBe('false');
+});

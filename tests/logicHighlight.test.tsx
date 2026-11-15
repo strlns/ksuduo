@@ -18,3 +18,14 @@ it.each(['Locked candidates','Naked pair'])('visualizes %s sources and crossed-o
  expect(container.querySelector('.candidate-source')?.textContent).toBe('2');
  expect(screen.getByRole('textbox',{name:'Row 1, column 4'}).getAttribute('aria-description')).toContain('Eliminated 2');
 });
+
+it('marks the added value separately from its explanatory unit',()=>{
+ const board=makeBoard();board.setValue(2,0,4,false,false);
+ const target=board.getCell(2,0),other=board.getCell(3,0);
+ const step:LogicStep={technique:'Hidden single',explanation:'test',sources:board.getRows()[0],targets:[target],value:4,placement:true};
+ const cell=(c:typeof target,highlight:boolean)=><Cell cell={c} ref={createRef()} setCellValue={()=>{}} setFocusedCell={()=>{}} isHighlighted={highlight} isSecondarilyHighlighted={!highlight} supportsInputMode/>;
+ const {container}=render(<LogicStepContext.Provider value={step}>{cell(target,true)}{cell(other,false)}</LogicStepContext.Provider>);
+ expect(container.querySelectorAll('.logic-source')).toHaveLength(2);
+ expect(container.querySelectorAll('.hint-added')).toHaveLength(1);
+ expect(container.querySelector('.hint-added input')?.getAttribute('aria-description')).toBe('Value added by the hint.');
+});

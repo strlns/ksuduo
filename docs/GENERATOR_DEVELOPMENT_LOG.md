@@ -61,6 +61,9 @@
   it is not a gameplay uniqueness shortcut.
 - Stopped deterministic unit-single scans at their first usable result; gameplay
   retains all alternatives. Eight seeded cases retained identical puzzles/grades.
+- Added retained elimination notes, scoped/bulk annotation that respects current
+  solver deductions, an expandable full explanation and fixed coordinate labels.
+  Undo clears cell selection and focus; annotations remain separate from puzzle undo.
 - Paired hint foreground/background styles so source/target overlays cannot make
   digits dark-on-dark; browser contrast checks measured 8.32:1.
 
@@ -86,3 +89,49 @@ Run `npm test`, `npm run test:legacy`, and `npm run build` locally. Pages runs
 installation, typechecking and the build, not the test suite. Retain the ambiguous
 fixtures, known-solution partial checks, seeded replay, logical-level boundaries
 and final-return rejection tests when extending or refactoring the engine.
+
+## 2026-11-14: difficulty hit-rate search experiment
+
+Baseline: `bbced50`, Node 26, seeds 1–16, 28 requested clues, Medium and Hard.
+Each run resets a 32-bit LCG: `state = (1664525 * state + 1013904223) mod 2^32`,
+then divides by `2^32`; multiplication uses `Math.imul`. All shuffles and solution
+construction use this stream. These are 16 trials per grade, not population estimates.
+
+| Search | Medium matches | Hard matches | Mean Medium time | Mean Hard time |
+| --- | ---: | ---: | ---: | ---: |
+| Current, up to 3 attempts | 5/16 | 4/16 | 1.30 s | 1.29 s |
+| Up to 3 attempts + 24 clue exchanges per attempt | 7/16 | 4/16 | 3.09 s | 3.41 s |
+| Ordinary removal, up to 6 attempts | 8/16 | 5/16 | 2.15 s | 2.33 s |
+
+Raw seed-by-seed observations: [grade-search.json](experiments/2026-11-14-grade-search.json).
+Times measure generation including internal rating; independent validation is outside
+that timer. These are single cloud measurements, without repetitions or phone timing.
+The exchange and baseline runs were interleaved; the six-attempt control ran afterward.
+All 96 results retained exactly 28 clues, passed independent `solveCheckUnique`, and
+had a defined logical rating at or below the requested level.
+
+- **Rejected experiment:** after ordinary removal, randomly restore an empty cell
+  from the solution and remove a randomly selected existing clue. Keep the exchange
+  only if the complete logical solve succeeds at the requested ceiling; otherwise
+  restore the previous board. Stop at the requested rating or 24 exchanges, then
+  use the existing best-of-three selection. This is a random walk, without a
+  lower-grade monotonicity constraint or best-intermediate archive. Each loop also
+  re-rates the puzzle, adding overhead. It does not improve Hard hit rate in this
+  sample and loses to six ordinary attempts at both grades. Do not ship it.
+- **Measured limitation:** ordinary generation only follows one irreversible clue
+  removal path per attempt, stops at the clue target, and checks the achieved grade
+  afterward. The ceiling prevents overly hard boards but does not steer toward the
+  desired grade. This is a search limitation, not evidence of incorrect uniqueness.
+- **Control, not a shipped change:** six attempts improve this sample modestly,
+  especially Medium, but Hard still misses 11/16 times. More retries alone are not
+  a sufficient search improvement. Production remains at three attempts.
+- **Next scoped experiment:** retain the best intermediate puzzle and target clue
+  exchanges around the cells where the next-lower technique tier stalls. Compare
+  against ordinary restarts at equal elapsed-time budgets, using a separate seed
+  set before adoption. Report hit rate, clue counts, median/tail runtime, and
+  independent uniqueness/ceiling checks; retain ambiguous-board regression fixtures.
+- Actual elapsed work (`performance.now()`) is the appropriate budget signal.
+  Core count does not measure this worker's Sudoku throughput. Check deadlines
+  between bounded operations, retain an iteration cap, and keep synchronous
+  fallback conservative. A deadline checked between operations is not a hard
+  interruption guarantee. No device benchmark or adaptive policy was added here.

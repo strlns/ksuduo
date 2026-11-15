@@ -1,3 +1,4 @@
+import {annotationsFor, AnnotationRequest} from './annotations';
 import * as React from "react";
 import type {LogicStep} from "../../algorithm/solver/logical";
 import {NotesContext, LogicStepContext, SelectedCellContext} from "./NotesContext";
@@ -8,10 +9,15 @@ import {Block} from "../Cell/Block";
 import {CellData, CellValue, CellValues} from "../../model/CellData";
 import {PaperBox} from "../MaterialUiTsHelper/PaperBox";
 import {IconButton, Tooltip} from "@mui/material";
-import {EditNoteRounded, PauseCircleFilledTwoTone} from "@mui/icons-material";
+import {EditNoteRounded, GridOnRounded, PauseCircleFilledTwoTone} from "@mui/icons-material";
 import {BOARD_WIDTH, CellIndex} from "../../model/Board";
 
+export interface NotesHistoryControls { undo: () => boolean; clear: () => void }
+
 interface BoardProps {
+    onInvalidNote?: (message: string) => void,
+    notesHistoryRef?: React.Ref<NotesHistoryControls>,
+    onNotesHistoryChange?: (available: boolean) => void,
     sudoku: Sudoku,
     cellCallback?: Function,
     highlightedCell: OptionalCell,
@@ -25,6 +31,11 @@ interface BoardProps {
      * {@see Cell}
      */
     logicStep?: LogicStep,
+    hintActivationKey?: number,
+    selectionResetKey?: number,
+    onSelectionChange?: (selected: boolean) => void,
+    annotationRequest?: AnnotationRequest,
+    solverCandidates?: Record<string, number[]>,
     hintCandidates?: Record<string, number[]>,
     supportsInputMode: boolean
 }
@@ -50,13 +61,26 @@ export const Board = React.memo(
          cellCallback,
          supportsInputMode,
          hintCandidates,
-         logicStep
+         logicStep,
+         annotationRequest,
+         solverCandidates,
+         selectionResetKey,
+         hintActivationKey,
+         onSelectionChange,
+         onInvalidNote,
+         notesHistoryRef,
+         onNotesHistoryChange
      }: BoardProps) => {
 
+        const notesHistory = React.useRef<{depth: number; before: Record<string, number[] | undefined>; after: Record<string, number[]>}[]>([]);
         const [notes, setNotes] = useState<Record<string, number[]>>({});
+        const [selectionVisible, setSelectionVisible] = useState(true);
+        const [showCoordinates, setShowCoordinates] = useState(false);
         const [noteMode, setNoteMode] = useState(false);
         const puzzleKey = sudoku.getSolution().join('') + ':' + sudoku.getFlatCells().map(c => c.isInitial ? c.value : 0).join('');
         useEffect(() => {
+            notesHistory.current = [];
+            onNotesHistoryChange?.(false);
             try {
                 const saved = JSON.parse(localStorage.getItem('ksuduo-notes') ?? 'null');
                 const valid = saved?.puzzle === puzzleKey && saved.notes && typeof saved.notes === 'object'
@@ -64,10 +88,55 @@ export const Board = React.memo(
                 setNotes(valid as Record<string, number[]>);
             } catch { setNotes({}); }
         }, [puzzleKey]);
-        const saveNotes = (next: Record<string, number[]>) => {
+        const persistNotes = (next: Record<string, number[]>) => {
             setNotes(next);
             try { localStorage.setItem('ksuduo-notes', JSON.stringify({puzzle: puzzleKey, notes: next})); } catch { /* optional storage */ }
         };
+        const saveNotes = (next: Record<string, number[]>, solutionStep = false) => {
+            if (!solutionStep && JSON.stringify(next) === JSON.stringify(notes)) return;
+            if (solutionStep) {
+                const changed = Object.keys(next).filter(key => JSON.stringify(notes[key]) !== JSON.stringify(next[key]));
+                notesHistory.current.push({depth: sudoku.history.length,
+                    before: Object.fromEntries(changed.map(key => [key, notes[key]])),
+                    after: Object.fromEntries(changed.map(key => [key, next[key]]))});
+                onNotesHistoryChange?.(true);
+            }
+            persistNotes(next);
+        };
+        React.useImperativeHandle(notesHistoryRef, () => ({
+            undo: () => {
+                const latest = notesHistory.current.at(-1);
+                if (!latest || latest.depth !== sudoku.history.length) return false;
+                notesHistory.current.pop();
+                const restored = {...notes};
+                for (const [key, previous] of Object.entries(latest.before)) {
+                    // Preserve pencil marks the player edited after this hint.
+                    if (JSON.stringify(restored[key]) !== JSON.stringify(latest.after[key])) continue;
+                    if (previous === undefined) delete restored[key];
+                    else restored[key] = previous;
+                }
+                persistNotes(restored);
+                onNotesHistoryChange?.(notesHistory.current.length > 0);
+                return true;
+            },
+            clear: () => {
+                notesHistory.current = [];
+                persistNotes({});
+                onNotesHistoryChange?.(false);
+            },
+        }));
+        useEffect(() => {
+            if (logicStep || hintActivationKey) setShowCoordinates(true);
+        }, [logicStep, hintActivationKey]);
+        useEffect(() => {
+            if (hintCandidates && !logicStep?.placement) saveNotes({...notes, ...hintCandidates}, true);
+        }, [hintCandidates, logicStep]);
+        useEffect(() => {
+            if (annotationRequest && !isPaused && (selectionVisible || annotationRequest.scope === 'all' || annotationRequest.scope === 'explanation')) {
+                const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
+                saveNotes({...notes, ...annotationsFor(sudoku, selected, annotationRequest.scope, logicStep, solverCandidates)});
+            }
+        }, [annotationRequest]);
         // Retain pencil marks for undo, but show only candidates allowed by current entries.
         const visibleNotes = Object.fromEntries(sudoku.getEmptyCells().map(cell => {
             const key = `${cell.x},${cell.y}`;
@@ -79,7 +148,13 @@ export const Board = React.memo(
             if (noteMode && !sudoku.getCell(x, y).value && CellValues.includes(v)) {
                 const key = `${x},${y}`;
                 const current = visibleNotes[key] ?? [];
-                if (v !== 0 && !sudoku.getAllowedCellValues(sudoku.getCell(x, y)).includes(v)) return;
+                if (v !== 0 && !sudoku.getAllowedCellValues(sudoku.getCell(x, y)).includes(v)) {
+                    const conflicts = sudoku.getFlatCells().filter(cell => cell.value === v);
+                    const unit = conflicts.some(cell => cell.y === y) ? `row ${y + 1}`
+                        : conflicts.some(cell => cell.x === x) ? `column ${x + 1}` : 'block';
+                    onInvalidNote?.(`Cannot note ${v} in r${y + 1}c${x + 1}: ${unit === 'block' ? 'this block' : unit[0].toUpperCase() + unit.slice(1)} already contains ${v}.`);
+                    return;
+                }
                 saveNotes({...notes, [key]: v === 0 ? [] : current.includes(v) ? current.filter(n => n !== v) : [...current, v].sort()});
                 return;
             }
@@ -98,7 +173,17 @@ export const Board = React.memo(
     }, [forceFocus]);
 
     // brittle code to allow arrow key navigation.
-        let [focusedCell, setFocusedCell] = useState(sudoku.getFirstEmptyCell());
+        const [focusedCell, setFocusedCellState] = useState(sudoku.getFirstEmptyCell());
+        const setFocusedCell: React.Dispatch<React.SetStateAction<CellData>> = next => {
+            setFocusedCellState(next);
+            setSelectionVisible(true);
+        };
+        useEffect(() => {
+            if (!selectionResetKey) return;
+            setSelectionVisible(false);
+            if (document.activeElement?.matches('.cell input')) (document.activeElement as HTMLInputElement).blur();
+        }, [selectionResetKey]);
+        useEffect(() => {onSelectionChange?.(selectionVisible);}, [selectionVisible, onSelectionChange]);
         const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
             if (isPaused) {
                 return;
@@ -143,7 +228,10 @@ export const Board = React.memo(
 
     const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
     const key = `${selected.x},${selected.y}`;
-    return <SelectedCellContext.Provider value={key}><LogicStepContext.Provider value={logicStep}><NotesContext.Provider value={{...visibleNotes, ...hintCandidates}}><div className="board-panel">
+    return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={logicStep}><NotesContext.Provider value={{...visibleNotes, ...hintCandidates}}><div className="board-panel">
+        <div className={`board-frame${showCoordinates ? ' coordinates-visible' : ''}`}>
+        <div className="coordinate-columns" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i}>c{i+1}</span>)}</div>
+        <div className="coordinate-rows" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i}>r{i+1}</span>)}</div>
         <PaperBox elevation={9}
                      className={classes}
                      onKeyUp={onKeyUp}
@@ -174,6 +262,7 @@ export const Board = React.memo(
                 /></IconButton>
             : null}
     </PaperBox>
+        </div>
         <section className="notes-toolbar" aria-label="Pencil notes" onPointerDown={event => {
             // Keep an already-open keyboard stable while toggling notes or digits.
             if (document.activeElement?.matches('.cell input')) event.preventDefault();
@@ -184,15 +273,17 @@ export const Board = React.memo(
                         <EditNoteRounded fontSize="small"/>
                     </IconButton></span>
                 </Tooltip>
-                <span className="notes-selection">r{selected.y + 1}c{selected.x + 1}</span>
-                <Button size="small" aria-label="Annotate selected cell" title="Annotate the currently selected cell with its allowed digits" disabled={isPaused || !!selected.value} onClick={() => saveNotes({...notes, [key]: sudoku.getAllowedCellValues(selected)})}>Annotate</Button>
-                <Button size="small" aria-label="Clear cell notes" disabled={isPaused || !(notes[key]?.length)} onClick={() => saveNotes({...notes, [key]: []})}>Clear cell</Button>
+                <Tooltip title="Show row and column labels (r2c6 = row 2, column 6)">
+                    <IconButton className="coordinate-toggle" size="small" aria-label="Coordinate labels" aria-pressed={showCoordinates} onClick={() => setShowCoordinates(!showCoordinates)}><GridOnRounded fontSize="inherit"/></IconButton>
+                </Tooltip>
+                <span className="notes-selection">{selectionVisible ? `r${selected.y + 1}c${selected.x + 1}` : 'Select cell'}</span>
+                <Button size="small" aria-label="Annotate selected cell" title="Annotate the currently selected cell with its allowed digits" disabled={isPaused || !selectionVisible || !!selected.value} onClick={() => saveNotes({...notes, [key]: solverCandidates?.[key] ?? sudoku.getAllowedCellValues(selected)})}>Annotate</Button>
+                <Button size="small" aria-label="Clear cell notes" disabled={isPaused || !selectionVisible || !(notes[key]?.length)} onClick={() => saveNotes({...notes, [key]: []})}>Clear cell</Button>
                 <Button size="small" aria-label="Clear all notes" disabled={isPaused || !Object.values(notes).some(values => values.length)} onClick={() => saveNotes({})}>Clear all</Button>
             </div>
             {noteMode && <div className="note-digits" role="group" aria-label="Note digits">
-                {[1,2,3,4,5,6,7,8,9].map(n => <Button key={n} size="small" disabled={isPaused || !!selected.value} aria-label={`Toggle note ${n}`} aria-pressed={(visibleNotes[key] ?? []).includes(n)} onClick={() => updateCellValue(selected.x, selected.y, n)}>{n}</Button>)}
+                {[1,2,3,4,5,6,7,8,9].map(n => <Button key={n} size="small" disabled={isPaused || !selectionVisible || !!selected.value} aria-label={`Toggle note ${n}`} aria-pressed={(visibleNotes[key] ?? []).includes(n)} onClick={() => updateCellValue(selected.x, selected.y, n)}>{n}</Button>)}
             </div>}
-            {hintCandidates && <small>Hint candidates are shown only in the highlighted cells.</small>}
         </section>
     </div></NotesContext.Provider></LogicStepContext.Provider></SelectedCellContext.Provider>
     });
