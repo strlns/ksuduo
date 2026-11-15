@@ -4,6 +4,7 @@ import {generateLogical} from '../src/algorithm/generator/generatorLogical';
 import {makeBoard, solution} from './fixtures';
 import {Sudoku} from '../src/model/Sudoku';
 
+vi.mock('../src/algorithm/generator/randomizePresentation', () => ({randomizePresentation: (board: Sudoku) => board}));
 vi.mock('../src/algorithm/generator/generatorLogical', () => ({generateLogical: vi.fn()}));
 afterEach(() => vi.resetAllMocks());
 
