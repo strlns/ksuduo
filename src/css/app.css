@@ -575,3 +575,13 @@ a { color: #62d7e5; }
     .board-arrival, .victory-bubbles { display: none; }
     .board-arrival::before, .board-arrival::after, .victory-bubbles span { animation: none; }
 }
+
+/* A visible completion moment, including games finished after many hints. */
+.victory-panel { background: radial-gradient(ellipse at 50% 0%, #246b70, #102734 70%) !important; border-color: #9ff7dc !important; }
+.victory-crown { display: grid; place-items: center; margin: 0 auto 1rem; width: 5rem; height: 5rem; position: relative; }
+.victory-crown span { display: grid; place-items: center; width: 100%; height: 100%; border: 2px solid #b0ffe9; border-radius: 50%; color: #d9fff5; background: #163f45; font: 3rem/1 sans-serif; box-shadow: 0 0 35px #79f2cd55; animation: victory-bloom 650ms cubic-bezier(.2,.7,.2,1) both; }
+.victory-crown::after { content: ''; position: absolute; inset: -.5rem; border: 2px solid #b0ffe9; border-radius: 50%; animation: victory-halo 1800ms ease-out both; pointer-events: none; }
+.victory-bubbles span { animation-duration: 3800ms; border-width: 2px; box-shadow: inset -3px -3px 10px #64d7df66, 0 0 18px #88eee944; }
+@keyframes victory-bloom { from { opacity: 0; transform: scale(.35) rotate(-20deg); } 70% { opacity: 1; transform: scale(1.12) rotate(4deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes victory-halo { from { opacity: .9; transform: scale(.7); } to { opacity: 0; transform: scale(2.6); } }
+@media (prefers-reduced-motion: reduce) { .victory-crown span, .victory-crown::after { animation: none; } .victory-crown::after { display: none; } }

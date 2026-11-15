@@ -49,3 +49,11 @@ message contains six one-shot bubbles behind its content. Browser checks at
 390×844 verified both effects, normal input/click handling, no page errors and
 `prefers-reduced-motion: reduce` hiding the effects. No loops, timers or external
 animation assets are used.
+
+Winning/rating correction: a gameplay regression fills 50 of 51 empty cells with
+hints, enters the last digit manually, and expects the celebration (not a solution
+reveal). The completion message now has a larger checkmark, expanding halo and ten
+larger bubbles lasting 3.8 seconds; reduced motion retains the static checkmark.
+The board footer uses a separate achieved logical rating, saved at array index 8.
+Older eight-field saves are rated from their givens at restore. Requested settings
+remain independent. Generation-error responses retain the existing achieved rating.

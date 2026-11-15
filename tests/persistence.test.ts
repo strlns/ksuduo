@@ -17,9 +17,9 @@ afterEach(() => vi.unstubAllGlobals());
 it('round trips the existing array format, board, history, solution and all flags', () => {
     const board = makeBoard();
     board.setValue(2, 0, 4);
-    const state = {board, secondsElapsed: 73, isPaused: true, timerEnabled: true, currentDifficulty: DIFFICULTY_LEVEL.HARD, solutionShown: false};
+    const state = {board, secondsElapsed: 73, isPaused: true, timerEnabled: true, currentDifficulty: DIFFICULTY_LEVEL.HARD, achievedRating: 0 as const, solutionShown: false};
     persist(state);
-    expect(JSON.parse(values.get(LOCALSTORAGE_KEY)!)).toHaveLength(8);
+    expect(JSON.parse(values.get(LOCALSTORAGE_KEY)!)).toHaveLength(9);
     const restored = restoreGameStateOrInitialize();
     expect(restored).toEqual(state);
     expect(restored.board).toBeInstanceOf(Sudoku);
@@ -57,4 +57,10 @@ it('appends Extra Hard without changing saved difficulty IDs', () => {
     expect([DIFFICULTY_LEVEL.EASY, DIFFICULTY_LEVEL.MEDIUM, DIFFICULTY_LEVEL.HARD, DIFFICULTY_LEVEL.EASY_NEW, DIFFICULTY_LEVEL.EXTRA_HARD]).toEqual([0,1,2,3,4]);
     persist({board:makeBoard(), secondsElapsed:0, isPaused:false, timerEnabled:false, currentDifficulty:DIFFICULTY_LEVEL.EXTRA_HARD, solutionShown:false});
     expect(restoreGameStateOrInitialize().currentDifficulty).toBe(DIFFICULTY_LEVEL.EXTRA_HARD);
+});
+
+it('re-rates older saves from givens instead of trusting the requested grade', () => {
+ const board=makeBoard();board.setValue(2,0,4);
+ values.set(LOCALSTORAGE_KEY, JSON.stringify([board.getFlatCells(),board.history,solution,0,false,false,DIFFICULTY_LEVEL.EXTRA_HARD,false]));
+ expect(restoreGameStateOrInitialize().achievedRating).toBe(0);
 });

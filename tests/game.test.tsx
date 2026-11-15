@@ -387,3 +387,28 @@ it('plays arrival visuals only for successful generation, keeping the board moun
  await confirmIfNeeded();
  await waitFor(()=>expect(document.querySelector('.board-arrival')).not.toBe(arrival));
 });
+
+it('celebrates a manual final entry after hints filled every other empty cell', async () => {
+ await startGame();
+ for(let i=0;i<50;i++)fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
+ expect(values().filter(Boolean)).toHaveLength(80);
+ const remaining=values().findIndex(value=>!value);
+ const {solution}=await import('./fixtures');
+ fireEvent.input(screen.getByRole('textbox',{name:`Row ${Math.floor(remaining/9)+1}, column ${remaining%9+1}`}),{target:{value:String(solution[remaining])}});
+ await waitFor(()=>expect(screen.getByText('Good job!')).toBeTruthy());
+ expect(document.querySelector('.victory-crown')).toBeTruthy();
+ expect(document.querySelectorAll('.victory-bubbles span')).toHaveLength(10);
+ expect(screen.queryByText('Solution shown')).toBeNull();
+},60000);
+
+it('labels the achieved board rating even when a harder grade was requested', async () => {
+ await startGame();
+ fireEvent.click(screen.getByRole('button',{name:'Puzzle settings'}));
+ fireEvent.change(screen.getByLabelText('Difficulty'),{target:{value:'4'}});
+ fireEvent.click(screen.getByRole('button',{name:'Done'}));
+ await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
+ fireEvent.click(screen.getByRole('button',{name:'Generate sudoku'}));
+ await waitFor(()=>expect(mode.requests).toHaveLength(2));
+ expect(screen.getByText('Difficulty: Easiest')).toBeTruthy();
+ expect(JSON.parse(localStorage.getItem('ksuduoState')!)[8]).toBe(0);
+});
