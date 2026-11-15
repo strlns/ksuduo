@@ -76,3 +76,15 @@ it('uses the lower-tier stall to retain a Hard puzzle at 28 clues (seed 18)', as
     expect(solveLogically(board, 2)).toBe(false);
     expect(solveCheckUnique(board)).toEqual(board.getSolution());
 }, 30000);
+
+it('recovers Hard by repairing a minimal unique leaf after the ordinary search misses (seed 34)', async () => {
+    const {rateLogical, solveLogically} = await import('../src/algorithm/solver/logical');
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    let seed = 34;
+    vi.spyOn(Math, 'random').mockImplementation(() => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32));
+    const board = generateLogical(24, 3);
+    expect(rateLogical(board)).toBe(3);
+    expect(solveLogically(board, 2)).toBe(false);
+    expect(solveCheckUnique(board)).toEqual(board.getSolution());
+    expect(board.getNumberOfHints()).toBeLessThanOrEqual(27);
+}, 30000);

@@ -174,3 +174,34 @@ Raw observations: [frontier-search.json](experiments/2026-11-15-frontier-search.
 Reproduce with Node 26:
 `node --import tsx --import ./tests/legacy-globals.mjs docs/experiments/2026-11-15-frontier-search.ts`.
 The archived baseline module is a measurement control, never imported by the app.
+
+
+## 2026-11-15: minimal unique digging and repair
+
+Hard now preserves the existing search result, then, only after a missed grade,
+tries up to four alternative full solutions. Each is dug to a minimal unique leaf
+(or 17 clues) using independent uniqueness checks. Random solution clues are
+restored until the existing Hard solver can finish; redundant repair clues are
+removed with logical checks. If Hard is reached below the clue goal, restoration
+is allowed only while retaining that rating. An alternative replaces the original
+only if rated Hard. All production final uniqueness/ceiling checks still apply.
+
+This crosses intermediate states outside the logical ceiling, exploring paths
+which ceiling-constrained digging rejects. Ambiguity is monotone under removal:
+removing more clues cannot eliminate either existing solution. Therefore a failed
+uniqueness removal stays failed throughout a descending pass. This establishes
+minimality after a complete pass; it does **not** establish a monotone difficulty
+score, or prove that solver failure makes a whole subtree useless. Row/column/
+digit symmetries preserve the technique patterns and are not a difficulty lever.
+
+Additional exploration checks a 4-second deadline between at most four attempts;
+the synchronous path permits one attempt with a 750-ms start budget. An attempt
+can overrun that deadline. Each attempt has bounded removal/restoration passes.
+This adds latency on misses. Clue goals remain best-effort; the UI range is unchanged.
+No techniques or saved difficulty IDs changed. Candidate-count-driven deletion is
+not used: removal is shuffled, with uniqueness or logical-solvability acceptance.
+
+See [experiment notes](experiments/UNIQUE_DIGGING.md) for measured alternatives,
+raw observations, reproducibility and limitations. The initial replacement and
+shallow exploration variants were rejected. Stronger trajectory heuristics,
+equal-time restart controls and additional techniques remain separate work.

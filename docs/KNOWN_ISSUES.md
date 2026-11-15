@@ -1,6 +1,6 @@
 # Current limitations
 
-- Generation may retain more clues or return an easier grade than requested;
+- Generation may retain more or fewer clues or return an easier grade than requested;
   achieved results are reported. The grade measures this app's techniques, not
   universal human difficulty.
 - Generation has a bounded removal/attempt count but no cancellation or overall
