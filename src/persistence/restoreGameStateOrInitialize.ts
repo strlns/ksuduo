@@ -1,3 +1,4 @@
+import {rateLogical, type LogicLevel} from '../algorithm/solver/logical';
 import {BOARD_SIZE} from "../model/Board";
 import {Sudoku} from "../model/Sudoku";
 import {Solution} from "../algorithm/solver/solver";
@@ -17,7 +18,12 @@ export const restoreGameStateOrInitialize = (): GameStateSerializable => {
             if (data[2] as Solution) {
                 sudoku.setSolution(data[2]);
             }
+            const givens = Sudoku.cloneWithoutHistory(sudoku);
+            givens.reset();
+            const achievedRating = Number.isInteger(data[8]) && data[8] >= 0 && data[8] <= 4
+                ? data[8] as LogicLevel : rateLogical(givens);
             return {
+                achievedRating,
                 board: sudoku,
                 secondsElapsed: data[3],
                 isPaused: data[4],

@@ -9,6 +9,7 @@ export type GameStateSerializable = {
     isPaused: boolean,
     timerEnabled: boolean,
     currentDifficulty: DIFFICULTY_LEVEL,
+    achievedRating?: import("../algorithm/solver/logical").LogicLevel,
     solutionShown: boolean
 }
 
@@ -46,7 +47,8 @@ export const persist = (state: GameStateSerializable): void => {
                     state.isPaused,
                     state.timerEnabled,
                     state.currentDifficulty,
-                    state.solutionShown
+                    state.solutionShown,
+                    state.achievedRating
                 ])
             );
         }

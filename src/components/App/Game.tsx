@@ -5,7 +5,7 @@ import {Menu, MenuItem, Tooltip, useMediaQuery} from '@mui/material';
 import {MoreHorizRounded} from '@mui/icons-material';
 import {Dialog, DialogTitle, DialogContent, DialogActions} from "@mui/material";
 import {MessageQueue} from "../Message/MessageQueue";
-import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep, techniqueExplanation} from "../../algorithm/solver/logical";
+import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep, techniqueExplanation, rateLogical, logicLevelNames, LogicLevel} from "../../algorithm/solver/logical";
 import { ThemeProvider } from "@mui/material/styles";
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -94,6 +94,7 @@ export interface GameState {
   numberOfClues: number;
   difficulty: DIFFICULTY_LEVEL;
   currentDifficulty: DIFFICULTY_LEVEL;
+  achievedRating?: LogicLevel;
   highlightedCell: OptionalCell;
   secondaryHighlight: CellData[];
   isWorking: boolean;
@@ -121,6 +122,7 @@ const {
   solutionShown: initialSolutionShown,
   timerEnabled: initialTimerEnabled,
   currentDifficulty,
+  achievedRating,
 } = restoreGameStateOrInitialize();
 
 export const Game = (props: GameProps) => {
@@ -128,6 +130,7 @@ export const Game = (props: GameProps) => {
     sudoku: initialBoard,
     numberOfClues: DEFAULT_CLUES,
     currentDifficulty,
+    achievedRating,
     difficulty: currentDifficulty ?? DIFFICULTY_LEVEL.EASY,
     highlightedCell: undefined as OptionalCell,
     secondaryHighlight: [],
@@ -165,6 +168,7 @@ export const Game = (props: GameProps) => {
   interface StateFromGen {
     generatorMessage?: string;
     sudoku?: Sudoku;
+    achievedRating?: LogicLevel;
   }
 
   const stateFromGenerator = (
@@ -177,6 +181,7 @@ export const Game = (props: GameProps) => {
       case GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL:
         return {
           sudoku: board,
+          achievedRating: rateLogical(board),
           generatorMessage: result[2] ?? "",
         };
       case GENERATOR_CODE.UNKNOWN_ERROR:
@@ -312,6 +317,7 @@ export const Game = (props: GameProps) => {
       secondsElapsed,
       timerEnabled,
       currentDifficulty,
+      achievedRating,
       solutionShown,
     } = state;
     persist({
@@ -320,6 +326,7 @@ export const Game = (props: GameProps) => {
       secondsElapsed,
       timerEnabled,
       currentDifficulty,
+      achievedRating,
       solutionShown,
     } as GameStateSerializable);
   };
@@ -621,20 +628,7 @@ export const Game = (props: GameProps) => {
 
   const percentFilled = () =>
     (state.sudoku.getNumberOfCorrectlyFilledCells() / BOARD_SIZE) * 100;
-  const difficultyLabel = () => {
-    switch (state.currentDifficulty) {
-      case DIFFICULTY_LEVEL.EASY_NEW:
-        return "Easiest";
-      case DIFFICULTY_LEVEL.EASY:
-        return "Easy";
-      case DIFFICULTY_LEVEL.MEDIUM:
-        return "Medium";
-      case DIFFICULTY_LEVEL.EXTRA_HARD:
-        return "Extra Hard";
-      default:
-        return "Hard";
-    }
-  };
+  const difficultyLabel = () => state.achievedRating === undefined ? 'Unrated' : logicLevelNames[state.achievedRating];
 
   const settingsConfiguration = (<GeneratorConfiguration
                 numberOfClues={state.numberOfClues}
