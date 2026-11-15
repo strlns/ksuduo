@@ -32,3 +32,13 @@ cue playback without Web Audio errors. At 1100×700 the populated play area ende
 at about 662px, keeping the board and controls within the viewport. Smaller sizes
 retain vertical scrolling. Subjective sound quality and real mobile devices remain
 manual checks.
+
+Hint UX: expanded mobile explanations occupy normal flow, with scrollable text
+and readable board sizing. Focus hint hides unrelated displayed notes only; stored
+notes survive toggling. Note hint cells retains solver eliminations. Bulk annotation
+is available by the pencil toggle and play actions. Reset, reveal, generation and
+bulk note replacement/clearing require confirmation when entries/history or notes
+exist, including restored notes. Cancelling leaves values and notes unchanged.
+At 390×844, expanding a hint moved the board from y≈120 to y≈286; the explanation
+ended at y≈229, leaving both unobscured. Confirmation dialogs default focus to
+Cancel. The completion dialog closes before a next-puzzle confirmation opens.

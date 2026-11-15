@@ -16,6 +16,10 @@ import {BOARD_WIDTH, CellIndex} from "../../model/Board";
 export interface NotesHistoryControls { undo: () => boolean; clear: () => void }
 
 interface BoardProps {
+    focusHint?: boolean,
+    onNotesPresent?: (present: boolean) => void,
+    onAnnotateAll?: () => void,
+    confirmAction?: (title: string, description: string, action: () => void) => void,
     onInvalidNote?: (message: string) => void,
     notesHistoryRef?: React.Ref<NotesHistoryControls>,
     onNotesHistoryChange?: (available: boolean) => void,
@@ -53,6 +57,7 @@ export type OptionalCell = CellData | undefined;
 
 export const Board = React.memo(
     ({
+         focusHint, onNotesPresent, onAnnotateAll, confirmAction,
          isPaused,
          forceFocus,
          highlightedCell,
@@ -75,6 +80,7 @@ export const Board = React.memo(
 
         const notesHistory = React.useRef<{depth: number; before: Record<string, number[] | undefined>; after: Record<string, number[]>}[]>([]);
         const [notes, setNotes] = useState<Record<string, number[]>>({});
+        useEffect(() => { onNotesPresent?.(Object.values(notes).some(values => values.length > 0)); }, [notes, onNotesPresent]);
         const [selectionVisible, setSelectionVisible] = useState(true);
         const [showCoordinates, setShowCoordinates] = useState(false);
         const [noteMode, setNoteMode] = useState(false);
@@ -238,7 +244,8 @@ export const Board = React.memo(
     };
     const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
     const key = `${selected.x},${selected.y}`;
-    return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={logicStep}><NotesContext.Provider value={{...visibleNotes, ...hintCandidates}}><div className="board-panel">
+    return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={logicStep}><NotesContext.Provider value={Object.fromEntries(Object.entries({...visibleNotes, ...hintCandidates}).filter(([key]) =>
+        !focusHint || !logicStep || [...logicStep.sources,...logicStep.targets].some(c => `${c.x},${c.y}` === key)))}><div className="board-panel">
         <div className={`board-frame${showCoordinates ? ' coordinates-visible' : ''}`}>
         <div className="coordinate-columns" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('columns', i)}>c{i+1}</span>)}</div>
         <div className="coordinate-rows" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('rows', i)}>r{i+1}</span>)}</div>
@@ -286,10 +293,11 @@ export const Board = React.memo(
                 <Tooltip title="Show row and column labels (r2c6 = row 2, column 6)">
                     <IconButton className="coordinate-toggle" size="small" aria-label="Coordinate labels" aria-pressed={showCoordinates} onClick={() => setShowCoordinates(!showCoordinates)}><GridOnRounded fontSize="inherit"/></IconButton>
                 </Tooltip>
+                {onAnnotateAll && <Button size="small" aria-label="Annotate all empty cells" disabled={isPaused || sudoku.isSolved()} onClick={onAnnotateAll}>Note all</Button>}
                 <span className="notes-selection">{selectionVisible ? `r${selected.y + 1}c${selected.x + 1}` : 'Select cell'}</span>
                 <Button size="small" aria-label="Annotate selected cell" title="Annotate the currently selected cell with its allowed digits" disabled={isPaused || !selectionVisible || !!selected.value} onClick={() => saveNotes({...notes, [key]: solverCandidates?.[key] ?? sudoku.getAllowedCellValues(selected)})}>Annotate</Button>
                 <Button size="small" aria-label="Clear cell notes" disabled={isPaused || !selectionVisible || !(notes[key]?.length)} onClick={() => saveNotes({...notes, [key]: []})}>Clear cell</Button>
-                <Button size="small" aria-label="Clear all notes" disabled={isPaused || !Object.values(notes).some(values => values.length)} onClick={() => saveNotes({})}>Clear all</Button>
+                <Button size="small" aria-label="Clear all notes" disabled={isPaused || !Object.values(notes).some(values => values.length)} onClick={() => confirmAction ? confirmAction("Clear all notes", "Remove all pencil annotations? Your entered numbers will stay.", () => saveNotes({})) : saveNotes({})}>Clear all</Button>
             </div>
             {noteMode && <div className="note-digits" role="group" aria-label="Note digits">
                 {[1,2,3,4,5,6,7,8,9].map(n => <Button key={n} size="small" disabled={isPaused || !selectionVisible || !!selected.value} aria-label={`Toggle note ${n}`} aria-pressed={(visibleNotes[key] ?? []).includes(n)} onClick={() => updateCellValue(selected.x, selected.y, n)}>{n}</Button>)}

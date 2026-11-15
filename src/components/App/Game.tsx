@@ -464,9 +464,21 @@ export const Game = (props: GameProps) => {
   const [hintMenuAnchor, setHintMenuAnchor] = useState<HTMLElement | null>(null);
   const [explainerExpanded, setExplainerExpanded] = useState(false);
   const [hintDetailsOpen, setHintDetailsOpen] = useState(false);
+  const [hasNotes, setHasNotes] = useState(false);
+  const [focusHint, setFocusHint] = useState(false);
+  useEffect(() => {setFocusHint(false);}, [logicStep]);
+  const [confirmation, setConfirmation] = useState<{title: string; description: string; action: () => void} | null>(null);
+  const hasProgress = hasNotes || hasNotesHistory || !state.sudoku.isHistoryEmpty() ||
+    state.sudoku.getFlatCells().some(c => !c.isInitial && !!c.value);
+  const confirmAction = (title: string, description: string, action: () => void) => {
+    if (hasProgress) setConfirmation({title, description, action});
+    else action();
+  };
   const annotate = (scope: AnnotationScope) => {
-    setAnnotationRequest(previous => ({id: (previous?.id ?? 0) + 1, scope}));
     setHintMenuAnchor(null);
+    const apply = () => setAnnotationRequest(previous => ({id: (previous?.id ?? 0) + 1, scope}));
+    if (scope === 'all') confirmAction('Annotate all', 'Fill every empty cell with currently allowed candidates? This replaces existing notes in those cells and keeps the hint deductions.', apply);
+    else apply();
   };
   const solverCandidates = useMemo(() => logicRef.current?.signature === currentSignature
     ? Object.fromEntries([...logicRef.current.candidates].map(([i, values]) => [`${i % 9},${Math.floor(i / 9)}`, values])) : undefined, [currentSignature, logicStep]);
@@ -652,6 +664,11 @@ export const Game = (props: GameProps) => {
           </div>
         </header>
         <p id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">{logicStep ? `${logicStep.explanation} ${techniqueExplanation(logicStep)}` : 'Add Hint explains one solving step at a time.'}</p>
+        {logicStep && <div className="hint-tools">
+          <Button size="small" disabled={state.isPaused || state.isWorking} onClick={() => annotate('explanation')}>Note hint cells</Button>
+          <Button size="small" aria-pressed={focusHint} onClick={() => setFocusHint(value => !value)}>{focusHint ? 'Show all notes' : 'Focus hint'}</Button>
+          <span>{focusHint ? 'Other notes hidden, not erased' : 'Mint: pattern · Amber: elimination'}</span>
+        </div>}
         <small className="explainer-status">{logicStep ? (logicStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : 'Follow the highlighted cells and candidates.'}</small>
       </section>
       </div>
@@ -681,6 +698,10 @@ export const Game = (props: GameProps) => {
               </Typography>
             </Box>
             <Board
+                focusHint={focusHint}
+                onNotesPresent={setHasNotes}
+                onAnnotateAll={() => annotate('all')}
+                confirmAction={confirmAction}
                 onInvalidNote={text => addGameMessage({text, duration: 3500})}
                 notesHistoryRef={notesHistoryRef}
                 onNotesHistoryChange={setHasNotesHistory}
@@ -770,7 +791,7 @@ export const Game = (props: GameProps) => {
                 </Button>
                 <Button45Mt
                   endIcon={<HighlightOffRounded />}
-                  onClick={resetSudoku}
+                  onClick={() => confirmAction("Reset puzzle", "Clear entered numbers and all notes and restart this puzzle?", resetSudoku)}
                   variant="outlined"
                   color={"primary"}
                 >
@@ -790,18 +811,19 @@ export const Game = (props: GameProps) => {
                 disabled={
                   state.sudoku.isSolved() || !state.sudoku.hasSolutionSet()
                 }
-                onClick={showSolution}
+                onClick={() => confirmAction("Show solution", "Reveal the complete solution? This ends your current solving attempt.", showSolution)}
                 variant="outlined"
               >
                 Show Solution
               </Button>
+              <Button className="annotate-all-action" disabled={state.isWorking || state.isPaused || state.sudoku.isSolved()} onClick={() => annotate('all')}>Annotate all</Button>
               </ThemeProvider>
             </PaperBox>
           </Grid>
           <Grid size={12}>
             <PaperBox className="generation-card" sx={{...paperBoxDefaultLayoutSx, mt: [1, 2]}}>
               <GenerateButton
-                onClick={generateSudoku}
+                onClick={() => confirmAction("Generate puzzle", "Replace this puzzle and its entered numbers and notes?", generateSudoku)}
                 isWorking={state.isWorking}
                 text="Generate sudoku"
               />
@@ -832,6 +854,14 @@ export const Game = (props: GameProps) => {
             </PaperBox>
 
       </footer>
+      <Dialog open={!!confirmation} onClose={() => setConfirmation(null)} aria-labelledby="confirm-action-title" maxWidth="xs" fullWidth>
+        <DialogTitle id="confirm-action-title">{confirmation?.title}?</DialogTitle>
+        <DialogContent>{confirmation?.description}</DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={() => setConfirmation(null)}>Cancel</Button>
+          <Button onClick={() => {const action = confirmation?.action; setConfirmation(null); action?.();}}>Confirm {confirmation?.title.toLowerCase()}</Button>
+        </DialogActions>
+      </Dialog>
       <Menu anchorEl={hintMenuAnchor} open={!!hintMenuAnchor} onClose={() => setHintMenuAnchor(null)} slotProps={{list: {'aria-label': 'Hint and annotation options'}}}>
         <MenuItem disabled={!logicStep} onClick={() => {setHintDetailsOpen(true); setHintMenuAnchor(null);}}>Read the full explanation</MenuItem>
         <MenuItem disabled={state.isPaused || state.isWorking || !logicStep} onClick={() => annotate('explanation')}>Annotate explanation cells</MenuItem>
@@ -899,9 +929,10 @@ export const Game = (props: GameProps) => {
             </Button>
 
             <GenerateButton
-              onClick={() =>
-                generateSudokuThen(() => setWinnerModalOpen(false))
-              }
+              onClick={() => {
+                setWinnerModalOpen(false);
+                confirmAction("Generate puzzle", "Replace the completed puzzle and its notes?", () => generateSudokuThen(() => {}));
+              }}
               isWorking={state.isWorking}
               text="Generate another sudoku with the same settings"
             />

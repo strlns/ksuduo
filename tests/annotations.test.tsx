@@ -80,3 +80,16 @@ it.each(['rows', 'columns'] as const)('labels fish base and crossing %s and keep
  expect(container.querySelectorAll('.fish-base-label,.fish-cover-label')).toHaveLength(0);
  expect(screen.getByRole('textbox',{name:'Row 1, column 4'}).getAttribute('aria-description')).toBe('Notes: 6');
 });
+
+it('focuses hint notes without deleting unrelated annotations', () => {
+ const board=makeBoard(), step:LogicStep={technique:'Locked candidates',explanation:'test',sources:[board.getCell(2,0)],targets:[board.getCell(3,0)],value:2,placement:false};
+ const {rerender}=render(<Board {...props(board)} annotationRequest={{id:1,scope:'all'}}/>);
+ const unrelated=()=>screen.getByRole('textbox',{name:'Row 1, column 6'});
+ expect(unrelated().getAttribute('aria-description')).toContain('Notes:');
+ const saved=localStorage.getItem('ksuduo-notes');
+ rerender(<Board {...props(board)} logicStep={step} focusHint/>);
+ expect(unrelated().getAttribute('aria-description')).toBeNull();
+ expect(localStorage.getItem('ksuduo-notes')).toBe(saved);
+ rerender(<Board {...props(board)} logicStep={step} focusHint={false}/>);
+ expect(unrelated().getAttribute('aria-description')).toContain('Notes:');
+});
