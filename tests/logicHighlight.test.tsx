@@ -7,7 +7,7 @@ import {NotesContext, LogicStepContext} from '../src/components/Board/NotesConte
 import {makeBoard} from './fixtures';
 import type {LogicStep} from '../src/algorithm/solver/logical';
 afterEach(cleanup);
-it.each(['Locked candidates','Naked pair','X-Wing','Swordfish'])('visualizes %s sources and crossed-out eliminations', technique=>{
+it.each(['Locked candidates','Naked pair','X-Wing','Swordfish','XY-Wing'])('visualizes %s sources and crossed-out eliminations', technique=>{
  const board=makeBoard(),source=board.getCell(2,0),target=board.getCell(3,0);
  const step:LogicStep={technique,explanation:'test',sources:[source],targets:[target],value:2,placement:false};
  const renderCell=(cell:typeof source)=><Cell cell={cell} ref={createRef()} setCellValue={()=>{}} setFocusedCell={()=>{}} isHighlighted={false} isSecondarilyHighlighted={false} supportsInputMode/>;

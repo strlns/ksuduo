@@ -867,7 +867,7 @@ export const Game = (props: GameProps) => {
             <li><strong>Easy:</strong> also hidden singles — only one place for a digit in a row, column or box.</li>
             <li><strong>Medium:</strong> also locked candidates — pointing and claiming between a box and a line.</li>
             <li><strong>Hard:</strong> also naked pairs — two cells reserve the same two candidates in a unit.</li>
-            <li><strong>Extra Hard:</strong> also X-Wing and Swordfish — two or three parallel lines reserve the same number of crossing lines for a digit.</li>
+            <li><strong>Extra Hard:</strong> also X-Wing and Swordfish (patterns across parallel lines), and XY-Wing (a pivot and two wings force a candidate elimination).</li>
           </ul>
           <p>The generator first tries up to three puzzles to match your requested grade. If Hard or Extra Hard is still missed, it can explore up to four additional minimal unique puzzles and restore clues until the permitted techniques solve them. For Medium, Hard and Extra Hard, a bounded extra pass can remove more clues and then restore those that preserve the need for the requested technique. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
           <p>If the search returns an easier puzzle, the game tells you; you can generate again. It may retain extra clues to stay within the technique limit. Fewer clues do not necessarily mean a harder puzzle.</p>

@@ -53,3 +53,41 @@ it('does not invent eliminations when all crossing candidates are inside the fis
     for (let row=0;row<9;row++) if (![0,3].includes(row)) for (const col of [1,4]) candidates.set(row*9+col,[2,3,4,5,6,7,8,9]);
     expect(findFish(board,candidates,2)).toBeUndefined();
 });
+
+it('solves a fixed unique Extra Hard puzzle with fish while Hard stalls', async () => {
+    const {solveLogically,rateLogical} = await import('../src/algorithm/solver/logical');
+    const {solveCheckUnique} = await import('../src/algorithm/solver/solverBacktracking');
+    const board = new Sudoku();
+    board.initWithNumbers([...'010050080500603007006000500070060090600204001020030040002000400700106003080020060'].map(Number),false);
+    const solution = solveCheckUnique(board);
+    expect(Array.isArray(solution)).toBe(true);
+    expect(solveLogically(board,3)).toBe(false);
+    expect(rateLogical(board)).toBe(4);
+    const candidates = candidatesFor(board), techniques = new Set<string>();
+    while (!board.isSolved()) {
+        const step = nextLogicStep(board,candidates,4)!;
+        expect(step).toBeDefined();techniques.add(step.technique);
+        for(const cell of step.targets) {
+            const expected = (solution as number[])[cell.y*9+cell.x];
+            if(step.placement)expect(step.value).toBe(expected);else expect(step.value).not.toBe(expected);
+        }
+        applyLogicStep(board,candidates,step);
+    }
+    expect(techniques.has('X-Wing')).toBe(true);
+    expect(board.getFlatValues()).toEqual(solution);
+});
+
+it('XY-Wing removes only from cells seeing both wings and requires the pivot links', async () => {
+    const {findXYWing} = await import('../src/algorithm/solver/logical');
+    const board=new Sudoku(), candidates=candidatesFor(board);
+    candidates.set(0,[1,2]); candidates.set(4,[1,3]); candidates.set(36,[2,3]);
+    const step=findXYWing(board,candidates)!;
+    expect(step.technique).toBe('XY-Wing');expect(step.value).toBe(3);
+    expect(step.targets.map(c=>c.y*9+c.x)).toEqual([40]);
+    // Exhaust all pivot/wing assignments, independently enforcing their links.
+    for(const pivot of [1,2])for(const left of [1,3])for(const right of [2,3]) {
+        if(pivot===left||pivot===right)continue;
+        expect(left===3||right===3).toBe(true);
+    }
+    candidates.set(36,[2,4]);expect(findXYWing(board,candidates)).toBeUndefined();
+});
