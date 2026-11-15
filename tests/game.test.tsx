@@ -334,3 +334,14 @@ it('shows settings directly on desktop', async () => {
         expect(screen.queryByRole('dialog')).toBeNull();
     } finally { window.matchMedia = original; }
 });
+
+it('emits entry effects for keyboard numbers and distinguishes conflicts', async () => {
+ await startGame();const cues:boolean[]=[];
+ const listener=(event:Event)=>cues.push((event as CustomEvent).detail.wrong);
+ document.addEventListener('ksuduo-entry-cue',listener);
+ try {
+  const input=screen.getByRole('textbox',{name:'Row 1, column 3'});
+  await userEvent.click(input);await userEvent.keyboard('4');await userEvent.keyboard('{Backspace}');await userEvent.keyboard('5');
+  expect(cues).toEqual([false,true]);
+ } finally {document.removeEventListener('ksuduo-entry-cue',listener);}
+});

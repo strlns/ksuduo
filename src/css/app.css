@@ -501,7 +501,7 @@ a { color: #62d7e5; }
     .game.MuiGrid-root { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 1rem; padding-top: .75rem !important; align-items: start; }
     .board-column.MuiGrid-root, .game-controls.MuiGrid-root { width: 100%; min-width: 0; }
     .board-card.MuiPaper-root { padding: .5rem; }
-    .board-frame { width: min(100%, max(18rem, calc(100svh - 230px))); margin-inline: auto; }
+    .board-frame { width: min(100%, max(16rem, calc(100svh - 330px))); margin-inline: auto; }
     .board { display: grid; width: 100%; min-width: 0; aspect-ratio: 1; grid-template-rows: repeat(3, minmax(0,1fr)); }
     .board .block { display: grid; grid-template-rows: repeat(3,minmax(0,1fr)); min-width: 0; min-height: 0; }
     .block .row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); min-height: 0; }

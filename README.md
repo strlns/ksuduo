@@ -73,6 +73,7 @@ and hints:
 | Easy | Also hidden singles: only one place for a digit in a row, column or box |
 | Medium | Also locked candidates: pointing and claiming between a box and a line |
 | Hard | Also naked pairs: two cells reserve the same two candidates in a unit |
+| Extra Hard | Also X-Wing, XY-Wing and basic Swordfish, with visual elimination hints |
 
 Every accepted clue removal must leave a puzzle solvable within the selected
 techniques. A separate backtracking solver checks final uniqueness.
