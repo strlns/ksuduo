@@ -20,12 +20,14 @@ export function AudioControl() {
         const aquatic = () => engine.current?.effect(true);
         document.addEventListener(AQUATIC_CUE, aquatic);
         document.addEventListener('visibilitychange', visibility);
+        window.addEventListener('pageshow', visibility);
         document.addEventListener('click', click);
         document.addEventListener(ENTRY_CUE, input);
         return () => {
             document.removeEventListener(COMPLETION_SWEEP, completion);
             document.removeEventListener(AQUATIC_CUE, aquatic);
             document.removeEventListener('visibilitychange', visibility);
+            window.removeEventListener('pageshow', visibility);
             document.removeEventListener('click', click);
             document.removeEventListener(ENTRY_CUE, input);
             engine.current?.dispose();
@@ -37,13 +39,17 @@ export function AudioControl() {
         engine.current = undefined;
         try {
             if (next) {
-                const audio = new AquaticAudio(next === 1 || next === 3, next !== 3);
+                const stop = (failed: boolean) => {
+                    if (engine.current !== audio) return;
+                    audio.dispose(); engine.current = undefined;
+                    setMode(0); setFailed(failed);
+                };
+                const audio = new AquaticAudio(next === 1 || next === 3, next !== 3, () => stop(false));
                 engine.current = audio;
                 const timeout = setTimeout(() => fail(), 4000);
                 const fail = () => {
                     if (engine.current !== audio) return;
-                    audio.dispose(); engine.current = undefined;
-                    setMode(0); setFailed(true);
+                    stop(true);
                 };
                 void audio.start().then(() => clearTimeout(timeout), () => {
                     clearTimeout(timeout); fail();

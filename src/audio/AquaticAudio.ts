@@ -17,6 +17,16 @@ export class AquaticAudio {
     private disposed = false;
     private started = false;
     private master = this.context.createGain();
+    private musicBus = this.context.createGain();
+    private hidden = document.hidden;
+    private recovering = false;
+    private recoveryAttempt = 0;
+    private recoveryTimeout?: ReturnType<typeof setTimeout>;
+    private readonly stateChanged = () => {
+        if (this.started && !this.disposed && !this.hidden && !this.recovering && this.context.state !== 'running') {
+            this.onPlaybackLost();
+        }
+    };
     private timer?: ReturnType<typeof setInterval>;
     private lastFx = -Infinity;
     private chord = 0;
@@ -28,15 +38,17 @@ export class AquaticAudio {
     private tapeFeedback = this.context.createGain();
     private wow = this.context.createOscillator();
 
-    constructor(private music: boolean, private effects = true) {
+    constructor(private music: boolean, private effects = true, private onPlaybackLost: () => void = () => {}) {
         const ctx = this.context;
         this.master.gain.value = .55;
         this.master.connect(ctx.destination);
+        this.musicBus.connect(this.master);
+        ctx.addEventListener('statechange', this.stateChanged);
         this.filter.type = 'lowpass';
         this.filter.frequency.value = 1300;
         const dry = ctx.createGain();
         dry.gain.value = .68;
-        this.filter.connect(dry).connect(this.master);
+        this.filter.connect(dry).connect(this.musicBus);
         this.echo.delayTime.value = .48;
         this.feedback.gain.value = .25;
         this.echo.connect(this.feedback).connect(this.echo);
@@ -62,7 +74,7 @@ export class AquaticAudio {
         roomLow.type = 'lowpass'; roomLow.frequency.value = 2400;
         roomHigh.type = 'highpass'; roomHigh.frequency.value = 180;
         wet.gain.value = .82;
-        this.filter.connect(predelay).connect(reverb).connect(roomHigh).connect(roomLow).connect(wet).connect(this.master);
+        this.filter.connect(predelay).connect(reverb).connect(roomHigh).connect(roomLow).connect(wet).connect(this.musicBus);
 
         // Every effect shares the same softened top end and low, drifting tape send.
         this.fx.type = 'lowpass'; this.fx.frequency.value = 2800; this.fx.Q.value = .5;
@@ -96,10 +108,17 @@ export class AquaticAudio {
             this.effect();
         }
     }
-    private driftTape() {
+    private duckMusic(accent = false) {
+        if (!this.music) return;
+        const now = this.context.currentTime, gain = this.musicBus.gain;
+        gain.cancelScheduledValues(now);
+        gain.setTargetAtTime(accent ? .58 : .78, now, .025);
+        gain.setTargetAtTime(1, now + (accent ? .4 : .16), .3);
+    }
+    private driftTape(accent = false) {
         const now = this.context.currentTime;
-        this.tape.delayTime.setTargetAtTime(.22 + Math.random() * .05, now, .6);
-        this.tapeFeedback.gain.setTargetAtTime(.14 + Math.random() * .06, now, .5);
+        this.tape.delayTime.setTargetAtTime(accent ? .38 + Math.random() * .25 : .25 + Math.random() * .1, now, .6);
+        this.tapeFeedback.gain.setTargetAtTime(accent ? .24 + Math.random() * .08 : .16 + Math.random() * .06, now, .5);
     }
     private tone(midi: number, duration: number, volume: number, attack: number, delay = 0, watery = false) {
         const ctx = this.context, start = ctx.currentTime + delay;
@@ -150,25 +169,28 @@ export class AquaticAudio {
         const now = this.context.currentTime;
         if (!this.effects || this.context.state !== 'running' || now - this.lastFx < .12) return;
         this.lastFx = now;
-        this.driftTape();
+        this.driftTape(aquatic);
+        this.duckMusic(aquatic);
         if (aquatic) {
-            const base = 70 + Math.random()*10;
-            [0,.07,.16].forEach((delay,i) => this.bubble(base*9*(1+i*.35), .2+Math.random()*.15, .018, delay));
-        } else this.bubble(380+Math.random()*250,.09,.008);
+            // Loose water droplets, without a repeated interval or pitched motif.
+            const base = 480 + Math.random() * 220;
+            [0, .06 + Math.random() * .08, .18 + Math.random() * .12].forEach((delay, i) =>
+                this.bubble(base * (.8 + Math.random() * .9), .22 + Math.random() * .2, .032 - i * .004, delay));
+        } else this.bubble(300 + Math.random() * 240, .1 + Math.random() * .04, .02);
     }
     private bubble(frequency: number, duration: number, volume: number, delay=0, wrong=false) {
         const ctx=this.context, start=ctx.currentTime+delay;
         const oscillator=ctx.createOscillator(), overtone=ctx.createOscillator();
         const overtoneGain=ctx.createGain(), gain=ctx.createGain(), filter=ctx.createBiquadFilter();
         oscillator.type=wrong ? 'triangle' : 'sine';
-        overtone.type='sine'; overtoneGain.gain.value=.09;
+        overtone.type='sine'; overtoneGain.gain.value=wrong ? .28 : .22;
         for (const [voice, multiple] of [[oscillator,1],[overtone,2]] as const) {
             voice.frequency.setValueAtTime(frequency*multiple,start);
             voice.frequency.exponentialRampToValueAtTime(frequency*multiple*(wrong ? .28 : 2.4),start+duration*.22);
             voice.frequency.exponentialRampToValueAtTime(Math.max(40,frequency*.35)*multiple,start+duration);
             voice.start(start); voice.stop(start+duration+.02);
         }
-        filter.type='bandpass'; filter.frequency.value=wrong ? 850 : 1700; filter.Q.value=.9;
+        filter.type='lowpass'; filter.frequency.value=wrong ? 1600 : 2300; filter.Q.value=.5;
         gain.gain.setValueAtTime(0,start); gain.gain.linearRampToValueAtTime(volume,start+.005);
         gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
         oscillator.connect(filter);
@@ -181,23 +203,49 @@ export class AquaticAudio {
         if(!this.effects || this.context.state!=='running' || now-this.lastFx<.06)return;
         this.lastFx=now;
         this.driftTape();
-        this.bubble((wrong ? 240 : 490)+Math.random()*250, wrong ? .22 : .12,.018,0,wrong);
-        if(wrong)this.bubble(190+Math.random()*100,.12,.01,.06,true);
+        this.duckMusic();
+        this.bubble((wrong ? 240 : 420) + Math.random() * 220, wrong ? .24 : .13, .032, 0, wrong);
+        if (wrong) this.bubble(190 + Math.random() * 100, .14, .017, .06, true);
     }
     completionSweep() {
         if (!this.effects || this.context.state !== 'running') return;
         this.lastFx = this.context.currentTime;
-        this.driftTape();
-        [62, 69, 74, 76, 81, 86].forEach((note, i) =>
-            this.tone(note, 1.5 - i * .1, .022 - i * .002, .12, i * .085, true));
+        this.driftTape(true);
+        this.duckMusic(true);
+        const base = 500 + Math.random() * 250;
+        for (let i = 0; i < 5; i++) {
+            this.bubble(base * (.7 + Math.random()), .35 + Math.random() * .35,
+                .035 - i * .004, i * (.09 + Math.random() * .05));
+        }
     }
     setHidden(hidden: boolean) {
-        if (hidden) void this.context.suspend().catch(() => {});
-        else void this.context.resume().catch(() => {});
+        this.hidden = hidden;
+        const attempt = ++this.recoveryAttempt;
+        clearTimeout(this.recoveryTimeout);
+        if (this.disposed) return;
+        if (hidden) {
+            this.recovering = false;
+            void this.context.suspend().catch(() => {});
+            return;
+        }
+        if (!this.started || this.context.state === 'running') return;
+        // Some iOS interruptions leave resume pending until a new user gesture.
+        // Observe the context, then turn the control off if playback cannot recover.
+        this.recovering = true;
+        const check = () => {
+            if (attempt !== this.recoveryAttempt) return;
+            clearTimeout(this.recoveryTimeout);
+            this.recovering = false;
+            if (!this.disposed && !this.hidden && this.context.state !== 'running') this.onPlaybackLost();
+        };
+        this.recoveryTimeout = setTimeout(check, 1200);
+        void this.context.resume().then(check, check);
     }
     dispose() {
         if (this.disposed) return;
         this.disposed = true;
+        clearTimeout(this.recoveryTimeout);
+        this.context.removeEventListener('statechange', this.stateChanged);
         clearInterval(this.timer);
         if (this.started) this.wow.stop();
         this.master.gain.cancelScheduledValues(this.context.currentTime);
