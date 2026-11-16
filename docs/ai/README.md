@@ -4,10 +4,13 @@
   an interactive essay on symmetries, trades, unavoidable sets, the 17-clue proof,
   and possible generator improvements.
 
-Open `sudoku-proof-and-generator-lab/index.html` directly in a browser, or serve
+Open the [overview](index.html) or `sudoku-proof-and-generator-lab/index.html` directly in a browser, or serve
 this directory with any static HTTP server. No build, package installation or
 external runtime dependencies are needed. Keep the HTML, CSS and three JavaScript
-files together. These docs are independent of the application build.
+files together. The app build copies this directory to `dist/docs/ai/`, so both GitHub Pages and
+the own-server deployment serve the essay at
+`docs/ai/sudoku-proof-and-generator-lab/` below the app URL. The source remains
+standalone and can also be served independently.
 
 The archived essay reviews repository revision
 `f9682f9315f5af4bd56af9b939b59d13d1b13f4a`; its observations and proposed
