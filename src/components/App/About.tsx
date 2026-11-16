@@ -30,6 +30,15 @@ export default () => {
                     I started Ksuduo in 2021 as my first project to learn React and TypeScript.
                     In 2026, I picked it up again, using AI-assisted coding to improve it.
                 </p>
+                <h3>Install Ksuduo</h3>
+                <p>
+                    In Safari on iPhone or iPad, open Share and choose Add to Home Screen.
+                    If offered, enable Open as Web App. On Mac (macOS Sonoma or later), use
+                    File → Add to Dock, or Share → Add to Dock.
+                    Safari uses these menu actions to install the app.
+                    On Android, use your browser’s Install app or Add to Home screen action.
+                    A network connection is needed to load the app; your saved game stays on this device.
+                </p>
                 <h3>How to play?</h3>
                 <p>
                     See <a href="https://en.wikipedia.org/wiki/Sudoku" target="_blank">Wikipedia on Sudoku</a>

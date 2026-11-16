@@ -29,7 +29,9 @@ are undone or cleared. Annotate again to populate all currently allowed digits. 
 **Add Hint** takes one logical step. It may fill a forced digit or eliminate a
 candidate. Hints choose among only-place-in-a-block, row or column explanations without
 favoring a unit type, before cell-based naked singles. The explanation stays visible so
-you can follow it at your own pace.
+you can follow it at your own pace. Hidden and naked single highlights fade after
+eight seconds. Selecting another cell removes the extra hint-cell emphasis;
+complex proof highlights and their annotations stay visible.
 Solid outlines show the source pattern; dashed outlines and crossed-out digits
 show candidate eliminations. Candidate eliminations are shown only in the cells involved in that hint; your
 other notes remain visible. Notes from elimination steps are kept after the explanation
@@ -60,12 +62,20 @@ animation. The footer sits below gameplay and uses ordinary scrolling.
 
 ## Add to your home screen
 
-On iPhone/iPad, use Safari’s Share → Add to Home Screen. On Android, use your
-browser’s Install app or Add to Home screen action when available. Ksuduo includes
+On iPhone/iPad, use Safari’s **Share → Add to Home Screen** and enable **Open as
+Web App** if offered. On Mac with macOS Sonoma or later, use **File → Add to Dock**
+or **Share → Add to Dock**. Safari installs through these menu actions; the manifest
+does not produce an automatic install prompt. See Apple’s instructions for
+[iPhone](https://support.apple.com/en-az/guide/iphone/iphea86e5236/26/ios/26) and
+[Mac](https://support.apple.com/en-ie/104996).
+On Android, use your browser’s Install app or Add to Home screen action when available. Ksuduo includes
 a manifest and local icons for a standalone window. It requires a network connection
 to load: there is no service worker or offline app cache that can pin an old release.
 Reopening or reloading fetches the current app under the host’s normal HTTP caching.
-Your saved game and notes remain in local storage.
+Your saved game and notes remain in local storage, separately for each origin.
+The manifest’s `id`, `start_url`, `scope` and icons resolve relative to its directory,
+so the same build works at `/ksuduo/` on Pages and on another HTTPS host. Apple touch
+icons and standalone metadata are included. Installing does not require an offline cache.
 
 ## Difficulty and solving techniques
 
@@ -149,6 +159,50 @@ Run `npm test` locally before pushing: the deployment workflow does not run test
 For your own fork, select **GitHub Actions** as the Pages source and allow `master`
 in the `github-pages` deployment environment. No personal access token or committed
 build files are needed. Relative asset paths support hosting below `/ksuduo/`.
+
+### Own server: paperclip-factory.de
+
+Run `./deploy-paperclip-factory.sh` from a clean, committed checkout. The script
+uses the same `netcup` SSH alias and `/paperclip-factory.de/httpdocs` root as
+squeaklite. It assumes an SSH agent with a loaded key and a trusted host in
+`known_hosts`; it never prompts for credentials or changes SSH configuration.
+Run `npm ci` once beforehand. No SSH credentials belong in GitHub Actions.
+
+The script builds locally, uploads the complete `dist/` (including `.htaccess`)
+to a uniquely named `_ksuduo-<UTC timestamp>-<commit>` directory, validates the
+upload, then replaces only `ksuduo/`. The previous directory is kept under
+`.ksuduo-releases/<release>-previous/`; `release.txt` records its Git commit.
+Upload failures leave the live app intact. A failed final rename restores the
+previous directory. The two directory renames can leave a brief gap for requests.
+Previous releases are retained until you remove them manually. To roll back,
+move the current `ksuduo/` aside and rename the desired previous directory to
+`ksuduo/` on the server. An interrupted upload may leave its staging directory;
+an interrupted activation may leave `.ksuduo-deploy-lock`, which must be removed
+before retrying after checking that no deployment is still running.
+
+`public/.htaccess` revalidates unversioned files and gives content-hashed assets
+a year of immutable caching on Apache with `mod_headers` and `AllowOverride
+FileInfo`. Other servers need equivalent response headers. GitHub Pages keeps
+its own cache policy. The second host has its own local-storage game and notes.
+
+### Optional pre-push hook
+
+The versioned `.githooks/pre-push` deploys when pushing a non-deleted `master` ref
+to `origin`. Enable it locally with:
+
+```sh
+git config --local core.hooksPath .githooks
+```
+
+If you already use hooks, integrate its command into your existing pre-push hook
+instead of replacing your hook configuration. The hook checks that the commit
+being pushed is the checked-out HEAD, and deployment requires a clean tree.
+Other branches, other remotes and branch deletion do not deploy. Build, SSH or
+upload failures abort the push. A pre-push hook runs **before** the Git push;
+if the remote later rejects that push, the server copy may already be updated.
+Use the standalone script after a successful push if that ordering is undesirable.
+The hook is opt-in; building, committing and preparing this script do not deploy.
+Disable it with `git config --local --unset core.hooksPath` if you enabled it above.
 
 ## Credits
 
