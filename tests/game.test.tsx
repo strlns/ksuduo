@@ -33,6 +33,14 @@ const confirmIfNeeded = async () => {
  const button=screen.queryByRole('button',{name:/^Confirm /});
  if(button) {fireEvent.click(button); await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());}
 };
+const addHint = async () => {
+    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    if (screen.queryByRole('dialog', {name: 'Add a hint?'})) {
+        fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+        if (vi.isFakeTimers()) act(() => vi.advanceTimersByTime(300));
+        else await waitFor(() => expect(screen.queryByRole('dialog', {name: 'Add a hint?'})).toBeNull());
+    }
+};
 const values = () => {
     const flat = Array<number>(81);
     document.querySelectorAll<HTMLInputElement>('.cell input').forEach(input => {
@@ -66,7 +74,7 @@ describe('gameplay migration baseline', () => {
     it('retains hints, highlight explanations, undo, reset and show-solution behavior', async () => {
         await startGame();
         fireEvent.click(screen.getByRole('switch'));
-        fireEvent.click(screen.getByRole('button', {name: /Add Hint/i}));
+        await addHint();
         await waitFor(() => expect(values().filter(Boolean)).toHaveLength(31));
         expect(document.querySelector('.cell.hint')).toBeTruthy();
         expect(localStorage.getItem('ksuduoState')).toBeTruthy();
@@ -188,7 +196,7 @@ it('placement hints do not annotate all empty cells or hide existing notes', asy
     const input = screen.getByRole('textbox', {name: 'Row 1, column 3'});
     await userEvent.click(input);
     fireEvent.click(screen.getByRole('button', {name: 'Annotate selected cell'}));
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     expect(document.querySelectorAll('.cell-notes').length).toBeLessThanOrEqual(1);
 });
 it('keeps notes in sync with entries, clearing and undo', async () => {
@@ -221,7 +229,7 @@ it('handles mobile input events for notes and values', async () => {
 
 it('selects the visibly highlighted hint cell and explains generation in a dialog', async () => {
     await startGame();
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     await waitFor(() => expect(document.querySelector('.cell.selected-cell.hint')).toBeTruthy());
     expect(document.activeElement?.matches('.cell input')).toBe(false);
     expect(document.querySelector('.cell.selected-cell.hint')).toBeTruthy();
@@ -248,7 +256,7 @@ it('keeps a hint slot mounted before, during and after step explanations', async
  await startGame();
  const slot=screen.getByLabelText('Solving explanation');
  expect(slot.classList.contains('logic-step-empty')).toBe(true);
- fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
+ await addHint();
  expect(screen.getByLabelText('Solving explanation')).toBe(slot);
  expect(slot.classList.contains('logic-step-empty')).toBe(false);
  expect(slot.querySelector('.explainer-text')!.textContent).toContain(slot.querySelector('.explainer-summary')!.textContent);
@@ -308,7 +316,7 @@ it('expands and collapses the explanation without replacing the board or hint sl
  expect(explain.getAttribute('aria-expanded')).toBe('false');
  fireEvent.click(explain);
  expect(screen.getByRole('button',{name:'Collapse'}).getAttribute('aria-expanded')).toBe('true');
- fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
+ await addHint();
  expect(screen.getByLabelText('Solving explanation')).toBe(slot);
  expect(document.querySelector('.board')).toBe(board);
  fireEvent.click(screen.getByRole('button',{name:'Collapse'}));
@@ -381,7 +389,7 @@ it('plays arrival visuals only for successful generation, keeping the board moun
  await startGame();
  const arrival=document.querySelector('.board-arrival');
  expect(arrival).toBeTruthy();
- fireEvent.click(screen.getByRole('button',{name:/^Add Hint$/}));
+ await addHint();
  expect(document.querySelector('.board-arrival')).toBe(arrival);
  fireEvent.click(screen.getByRole('button',{name:/^Generate sudoku$/}));
  await confirmIfNeeded();
@@ -390,7 +398,7 @@ it('plays arrival visuals only for successful generation, keeping the board moun
 
 it('celebrates a manual final entry after hints filled every other empty cell', async () => {
  await startGame();
- for(let i=0;i<50;i++)fireEvent.click(screen.getByRole('button',{name:'Add Hint'}));
+ for(let i=0;i<50;i++)await addHint();
  expect(values().filter(Boolean)).toHaveLength(80);
  const remaining=values().findIndex(value=>!value);
  const {solution}=await import('./fixtures');
@@ -423,23 +431,23 @@ it('replays several undone hints with the same placements and explanations, coun
     try {
         const path: {values: number[]; explanation: string}[] = [];
         for (let i=0; i<3; i++) {
-            fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+            await addHint();
             path.push({values: values(), explanation: document.getElementById('step-explanation')!.textContent!});
-            expect(screen.getByText(`Hints: ${31+i}`)).toBeTruthy();
+            expect(screen.getByText(`Clues: ${31+i}`)).toBeTruthy();
         }
         for (let i=0; i<3; i++) fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
         expect(values()).toEqual(puzzle);
-        expect(screen.getByText('Hints: 30')).toBeTruthy();
+        expect(screen.getByText('Clues: 30')).toBeTruthy();
         random.mockReturnValue(.9999);
         for (let i=0; i<3; i++) {
-            fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+            await addHint();
             expect(values()).toEqual(path[i].values);
             expect(document.getElementById('step-explanation')!.textContent).toBe(path[i].explanation);
-            expect(screen.getByText(`Hints: ${31+i}`)).toBeTruthy();
+            expect(screen.getByText(`Clues: ${31+i}`)).toBeTruthy();
         }
         fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
         await confirmIfNeeded();
-        expect(screen.getByText('Hints: 30')).toBeTruthy();
+        expect(screen.getByText('Clues: 30')).toBeTruthy();
         expect(values()).toEqual(puzzle);
     } finally {random.mockRestore();}
 });
@@ -448,16 +456,16 @@ it('discards hint replay when the player makes a new move, even if that move is 
     await startGame();
     const random = vi.spyOn(Math, 'random').mockReturnValue(0);
     try {
-        fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+        await addHint();
         const explanation = document.getElementById('step-explanation')!.textContent;
         fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
         const cell = screen.getByRole('textbox', {name: 'Row 1, column 3'});
         fireEvent.input(cell, {target: {value: '4'}, data: '4', inputType: 'insertText'});
         expect(values()[2]).toBe(4);
-        expect(screen.getByText('Hints: 30')).toBeTruthy();
+        expect(screen.getByText('Clues: 30')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', {name: /Undo/i}));
         random.mockReturnValue(.9999);
-        fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
+        await addHint();
         expect(document.getElementById('step-explanation')!.textContent).not.toBe(explanation);
     } finally {random.mockRestore();}
 });
@@ -467,7 +475,7 @@ it('expires single highlights while retaining the explanation and does not reviv
     await startGame();
     vi.useFakeTimers();
     try {
-        fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+        await addHint();
         const explanation = document.getElementById('step-explanation')!.textContent;
         expect(document.querySelector('.hint-added')).toBeTruthy();
         act(() => {vi.advanceTimersByTime(8000);});
@@ -484,10 +492,10 @@ it('expires single highlights while retaining the explanation and does not reviv
 it('browses immutable hint snapshots, returns to the current board and keeps undo on the live path', async () => {
     await startGame();
     fireEvent.click(screen.getByRole('button', {name: 'Explain'}));
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     const first = values();
     const explanation = document.getElementById('step-explanation')!.textContent;
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     const second = values();
     const saved = localStorage.getItem('ksuduoState');
     const notes = localStorage.getItem('ksuduo-notes');
@@ -508,13 +516,13 @@ it('browses immutable hint snapshots, returns to the current board and keeps und
     expect(screen.queryByRole('button', {name: 'Current board'})).toBeNull();
     expect(screen.queryByText('Hint 1 of 2')).toBeNull();
     expect(document.getElementById('step-explanation')!.textContent).toBe(explanation);
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     expect(values()).toEqual(second);
 });
 
 it('offers three assistant states without keeping a Details dialog or losing the current hint', async () => {
     await startGame();
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     expect(screen.queryByRole('button', {name: 'Details'})).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: 'Hide hint assistant'}));
     expect(screen.queryByLabelText('Solving explanation')).toBeNull();
@@ -527,7 +535,7 @@ it('offers three assistant states without keeping a Details dialog or losing the
 it('annotates missing explanation cells and reports when the same action would add nothing', async () => {
     await startGame();
     fireEvent.click(screen.getByRole('button', {name: 'Explain'}));
-    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    await addHint();
     const annotate = screen.getByRole('button', {name: 'Annotate these cells'});
     expect(annotate.hasAttribute('disabled')).toBe(false);
     fireEvent.click(annotate);
@@ -536,4 +544,43 @@ it('annotates missing explanation cells and reports when the same action would a
     fireEvent.click(screen.getByRole('button', {name: 'Clear all notes'}));
     await confirmIfNeeded();
     expect(screen.getByRole('button', {name: 'Annotate these cells'}).hasAttribute('disabled')).toBe(false);
+});
+
+it('shares hint confirmation dismissal for this session and keeps cancellation harmless', async () => {
+    await startGame();
+    const before = values();
+    fireEvent.click(screen.getByRole('button', {name: 'Next Hint'}));
+    expect(screen.getByRole('checkbox').hasAttribute('checked')).toBe(true);
+    fireEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    expect(values()).toEqual(before);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await addHint();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(screen.getByRole('button', {name: 'Next Hint'}));
+    expect(screen.queryByRole('dialog', {name: 'Add a hint?'})).toBeNull();
+    expect(values()).not.toEqual(before);
+});
+
+it('offers step-by-step mode after two mobile holds and permits the next hint by tap', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = query => ({matches: query === '(pointer: coarse)', media: query, onchange: null,
+        addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true});
+    try {
+        await startGame();
+        vi.useFakeTimers();
+        for (let i = 0; i < 2; i++) {
+            const button = screen.getByRole('button', {name: 'Next Hint (hold for 2 seconds)'});
+            fireEvent.pointerDown(button);
+            act(() => vi.advanceTimersByTime(2000));
+            fireEvent.pointerUp(button);
+            fireEvent.click(button, {detail: 1});
+        }
+        expect(screen.getByRole('dialog', {name: 'Enable step-by-step mode?'})).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', {name: 'Enable'}));
+        act(() => vi.advanceTimersByTime(300));
+        const before = values();
+        fireEvent.click(screen.getByRole('button', {name: 'Next Hint'}), {detail: 1});
+        expect(values()).not.toEqual(before);
+        expect(screen.queryByRole('dialog')).toBeNull();
+    } finally {vi.useRealTimers(); window.matchMedia = original;}
 });

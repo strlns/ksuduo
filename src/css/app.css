@@ -589,3 +589,12 @@ a { color: #62d7e5; }
     .board-celebrating .cell { animation: none; }
     .board-celebrating.MuiPaper-root { box-shadow: 0 0 0 3px #a7f5d833; }
 }
+
+.next-hint-control { position: relative; display: inline-flex; flex-shrink: 0; }
+.next-hint-button { font: inherit; font-size: .8rem; color: var(--mint, #8de0c7); background: none; border: 0; padding: 6px 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; touch-action: none; user-select: none; -webkit-touch-callout: none; }
+.next-hint-button:disabled { opacity: .4; cursor: default; }
+.next-hint-button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.next-hint-button.holding { background: linear-gradient(90deg, #8de0c7 0%, #fff 45%, #8de0c7 65%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: hint-shimmer 2s linear forwards; }
+.next-hint-feedback { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .65rem; pointer-events: none; }
+@keyframes hint-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .next-hint-button.holding { animation: none; color: #fff; } }

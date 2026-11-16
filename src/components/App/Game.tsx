@@ -1,9 +1,10 @@
 import {playAquaticCue, playCompletionSweep} from '../../audio/AquaticAudio';
+import {NextHintButton} from './NextHintButton';
 import {AudioControl} from './AudioControl';
 import type {AnnotationRequest, AnnotationScope} from '../Board/annotations';
 import {Menu, MenuItem, Tooltip, useMediaQuery} from '@mui/material';
 import {MoreHorizRounded} from '@mui/icons-material';
-import {Dialog, DialogTitle, DialogContent, DialogActions} from "@mui/material";
+import {Checkbox, FormControlLabel, Dialog, DialogTitle, DialogContent, DialogActions} from "@mui/material";
 import {MessageQueue} from "../Message/MessageQueue";
 import {Candidates, candidatesFor, nextHintStep, applyLogicStep, LogicStep, techniqueExplanation, rateLogical, logicLevelNames, LogicLevel} from "../../algorithm/solver/logical";
 import { ThemeProvider } from "@mui/material/styles";
@@ -168,6 +169,21 @@ export const Game = (props: GameProps) => {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [boardCelebrating, setBoardCelebrating] = useState(false);
   const [winnerModalOpen, setWinnerModalOpen] = React.useState(false);
+  const mobileHints = useMediaQuery('(pointer: coarse)');
+  // UI session preferences deliberately stay outside GameState and persistence.
+  const [skipHintConfirmation, setSkipHintConfirmation] = useState(false);
+  const [hintConfirmationOpen, setHintConfirmationOpen] = useState(false);
+  const [dontAskAgain, setDontAskAgain] = useState(true);
+  const [stepByStep, setStepByStep] = useState(false);
+  const [stepByStepOffer, setStepByStepOffer] = useState(false);
+  const consecutiveHolds = useRef(0);
+  const resetHintMode = () => {
+    consecutiveHolds.current = 0;
+    setStepByStep(false);
+    setStepByStepOffer(false);
+    setHintConfirmationOpen(false);
+  };
+
 
   const pageIsVisible = usePageVisibility();
 
@@ -202,6 +218,7 @@ export const Game = (props: GameProps) => {
   };
 
   const generateSudokuThen = (callback: () => void) => {
+    resetHintMode();
     if (IS_DEVELOPMENT) {
       console.log(
         useWebWorker
@@ -293,6 +310,7 @@ export const Game = (props: GameProps) => {
   };
 
   const resetSudoku = () => {
+    resetHintMode();
     hintHistory.current.clear();
     setReviewIndex(undefined);
     setCompletedCells([]);
@@ -636,6 +654,18 @@ export const Game = (props: GameProps) => {
     }));
   };
 
+  const hintDisabled = state.isWorking || state.isPaused || state.sudoku.isSolved() || reviewIndex !== undefined;
+  function requestHint() {
+    if (hintDisabled) return;
+    if (skipHintConfirmation) giveHint();
+    else {setDontAskAgain(true); setHintConfirmationOpen(true);}
+  }
+  function heldHint() {
+    if (hintDisabled) return;
+    giveHint();
+    if (++consecutiveHolds.current === 2) setStepByStepOffer(true);
+  }
+
   const percentFilled = () =>
     (state.sudoku.getNumberOfCorrectlyFilledCells() / BOARD_SIZE) * 100;
   const difficultyLabel = () => state.achievedRating === undefined ? 'Unrated' : logicLevelNames[state.achievedRating];
@@ -671,6 +701,7 @@ export const Game = (props: GameProps) => {
             <span className="explainer-summary">{shownStep?.explanation ?? idleHintText}</span>
           </div>
           <div className="explainer-actions">
+            <NextHintButton guarded={mobileHints && !stepByStep} disabled={hintDisabled} onHint={mobileHints && stepByStep ? giveHint : requestHint} onHold={heldHint}/>
             <Button size="small" aria-label="Hide hint assistant" onClick={() => setExplainerHidden(true)}>Hide</Button>
             <Button className="explainer-toggle" size="small" aria-expanded={explainerExpanded} aria-controls="step-explanation" onClick={() => setExplainerExpanded(expanded => !expanded)}>{explainerExpanded ? 'Collapse' : 'Explain'}</Button>
             <span className="explainer-menu"><Tooltip title="Annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip></span>
@@ -732,6 +763,7 @@ export const Game = (props: GameProps) => {
                 completionVersion={completionVersion}
                 patternReplayKey={patternReplayKey}
                 onHintAnnotationAvailable={setCanAnnotateHint}
+                onSolveAttempt={() => {consecutiveHolds.current = 0;}}
                 onNotesPresent={setHasNotes}
                 onAnnotateAll={() => annotate('all')}
                 confirmAction={confirmAction}
@@ -748,6 +780,7 @@ export const Game = (props: GameProps) => {
               solutionIsFromApp={state.solutionShown}
               sudoku={state.sudoku}
               cellCallback={() => {
+                consecutiveHolds.current = 0;
                 hintHistory.current.clear();
                 setReviewIndex(undefined);
                 logicRef.current = undefined;
@@ -768,7 +801,7 @@ export const Game = (props: GameProps) => {
                 Difficulty: {difficultyLabel()}
               </Typography>
               <Typography component={"small"} className={smallTextClass}>
-                Hints: {(preview?.board ?? state.sudoku).getNumberOfHints()}
+                Clues: {(preview?.board ?? state.sudoku).getNumberOfHints()}
               </Typography>
             </Box>
           </PaperBox>
@@ -842,7 +875,8 @@ export const Game = (props: GameProps) => {
                   endIcon={<EmojiObjectsRounded />}
                   color="secondary"
                   data-aquatic-cue
-                  onClick={giveHint}
+                  onClick={requestHint}
+                  disabled={hintDisabled}
                   variant="outlined"
                 >
                   Add Hint
@@ -895,6 +929,18 @@ export const Game = (props: GameProps) => {
             </PaperBox>
 
       </footer>
+      <Dialog open={hintConfirmationOpen} onClose={() => setHintConfirmationOpen(false)} aria-labelledby="hint-confirm-title" maxWidth="xs" fullWidth>
+        <DialogTitle id="hint-confirm-title">Add a hint?</DialogTitle>
+        <DialogContent>This reveals and applies the next solving step.
+          <FormControlLabel control={<Checkbox checked={dontAskAgain} onChange={event => setDontAskAgain(event.target.checked)}/>} label="Don't ask again this session"/>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setHintConfirmationOpen(false)}>Cancel</Button><Button disabled={hintDisabled} onClick={() => {setSkipHintConfirmation(dontAskAgain); setHintConfirmationOpen(false); giveHint();}}>Add Hint</Button></DialogActions>
+      </Dialog>
+      <Dialog open={stepByStepOffer} onClose={() => setStepByStepOffer(false)} aria-labelledby="step-mode-title" maxWidth="xs" fullWidth>
+        <DialogTitle id="step-mode-title">Enable step-by-step mode?</DialogTitle>
+        <DialogContent>Follow the hints for this game with a single tap on Next Hint, without holding.</DialogContent>
+        <DialogActions><Button onClick={() => setStepByStepOffer(false)}>Keep holding</Button><Button onClick={() => {setStepByStep(true); setStepByStepOffer(false);}}>Enable</Button></DialogActions>
+      </Dialog>
       <Dialog open={!!confirmation} onClose={() => setConfirmation(null)} aria-labelledby="confirm-action-title" maxWidth="xs" fullWidth>
         <DialogTitle id="confirm-action-title">{confirmation?.title}?</DialogTitle>
         <DialogContent>{confirmation?.description}</DialogContent>

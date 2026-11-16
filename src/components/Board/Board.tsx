@@ -23,6 +23,7 @@ interface BoardProps {
     completionVersion?: number,
     patternReplayKey?: number,
     onHintAnnotationAvailable?: (available: boolean) => void,
+    onSolveAttempt?: () => void,
     onNotesPresent?: (present: boolean) => void,
     onAnnotateAll?: () => void,
     confirmAction?: (title: string, description: string, action: () => void) => void,
@@ -81,7 +82,8 @@ export const Board = React.memo(
          onSelectionChange,
          onInvalidNote,
          notesHistoryRef,
-         onNotesHistoryChange
+         onNotesHistoryChange,
+         onSolveAttempt
      }: BoardProps) => {
 
         const presentedStep = preview?.step ?? logicStep;
@@ -139,6 +141,7 @@ export const Board = React.memo(
                     after: Object.fromEntries(changed.map(key => [key, next[key]]))});
                 onNotesHistoryChange?.(true);
             }
+            if (!solutionStep) onSolveAttempt?.();
             persistNotes(next);
         };
         React.useImperativeHandle(notesHistoryRef, () => ({
