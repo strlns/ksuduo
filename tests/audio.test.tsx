@@ -6,13 +6,15 @@ import {AquaticAudio} from '../src/audio/AquaticAudio';
 
 class Parameter {
     value = 0;
-    setValueAtTime(value: number) {this.value = value;}
+    events: number[] = [];
+    setValueAtTime(value: number) {this.value = value; this.events.push(value);}
     linearRampToValueAtTime() {}
-    exponentialRampToValueAtTime() {}
+    exponentialRampToValueAtTime(value: number) {this.events.push(value);}
     setTargetAtTime(value: number) {this.value = value;}
     cancelScheduledValues() {}
 }
 class AudioNode {
+    type = '';
     gain = new Parameter(); frequency = new Parameter(); Q = new Parameter(); delayTime = new Parameter();
     connect(target: unknown) {return target as AudioNode;}
     disconnect() {}
@@ -27,7 +29,8 @@ class Context extends EventTarget {
     createGain = () => new AudioNode();
     createDelay = () => new AudioNode();
     createBiquadFilter = () => new AudioNode();
-    createOscillator = () => new AudioNode();
+    oscillators: AudioNode[] = [];
+    createOscillator = () => {const node = new AudioNode(); this.oscillators.push(node); return node;};
     createConvolver = () => new AudioNode();
     createBuffer = (_channels: number, length: number) => ({getChannelData: () => new Float32Array(length)});
     change(state: string) {this.state = state; this.dispatchEvent(new Event('statechange'));}
@@ -111,4 +114,43 @@ it('cancels pending foreground recovery when the engine is disposed', async () =
     audio.dispose();
     await vi.advanceTimersByTimeAsync(2000);
     expect(lost).not.toHaveBeenCalled();
+});
+
+
+it('keeps a wrong-entry zap in the mids with a separate short bass underlay', async () => {
+    const audio=new AquaticAudio(false,true); await audio.start();
+    const ctx=contexts[0], before=ctx.oscillators.length;
+    ctx.currentTime=1;audio.entry(true);
+    const [main,body]=ctx.oscillators.slice(before);
+    expect(main.type).toBe('triangle');
+    expect(main.frequency.events.every(f=>f>=300&&f<=1000)).toBe(true);
+    expect(body.frequency.events.every(f=>f<200)).toBe(true);
+    audio.dispose();
+});
+
+it('uses the sustained six-voice aquatic contour for completion instead of bubble pairs', async () => {
+    const audio=new AquaticAudio(false,true); await audio.start();
+    const ctx=contexts[0], before=ctx.oscillators.length;
+    ctx.currentTime=1;audio.completionSweep();
+    const sweep=ctx.oscillators.slice(before);
+    expect(sweep).toHaveLength(6);
+    expect(sweep.every(voice=>voice.type==='triangle')).toBe(true);
+    const arrivals=sweep.map(voice=>voice.frequency.events.at(-1)!);
+    expect(arrivals.every((frequency,i)=>i===0||frequency>arrivals[i-1])).toBe(true);
+    audio.dispose();
+});
+
+it('spaces rare melodic additions and only plays them with music enabled', async () => {
+    const audio=new AquaticAudio(true,true);await audio.start();
+    const ctx=contexts[0];
+    const voicesAt=(time:number)=>{ctx.currentTime=time;const before=ctx.oscillators.length;audio.entry(true);return ctx.oscillators.length-before;};
+    expect(voicesAt(1)).toBe(4);
+    expect(voicesAt(2)).toBe(2);
+    expect(voicesAt(14)).toBe(4);
+    audio.dispose();
+    const fxOnly=new AquaticAudio(false,true);await fxOnly.start();
+    const fx=contexts.at(-1)!,before=fx.oscillators.length;
+    fx.currentTime=20;fxOnly.entry(true);
+    expect(fx.oscillators.length-before).toBe(2);
+    fxOnly.dispose();
 });

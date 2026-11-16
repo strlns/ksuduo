@@ -17,7 +17,6 @@ export class AquaticAudio {
     private disposed = false;
     private started = false;
     private master = this.context.createGain();
-    private musicBus = this.context.createGain();
     private hidden = document.hidden;
     private recovering = false;
     private recoveryAttempt = 0;
@@ -30,6 +29,8 @@ export class AquaticAudio {
     private timer?: ReturnType<typeof setInterval>;
     private lastFx = -Infinity;
     private chord = 0;
+    private motif = 0;
+    private lastMotif = -Infinity;
     private echo = this.context.createDelay(2);
     private feedback = this.context.createGain();
     private filter = this.context.createBiquadFilter();
@@ -42,13 +43,12 @@ export class AquaticAudio {
         const ctx = this.context;
         this.master.gain.value = .55;
         this.master.connect(ctx.destination);
-        this.musicBus.connect(this.master);
         ctx.addEventListener('statechange', this.stateChanged);
         this.filter.type = 'lowpass';
         this.filter.frequency.value = 1300;
         const dry = ctx.createGain();
         dry.gain.value = .68;
-        this.filter.connect(dry).connect(this.musicBus);
+        this.filter.connect(dry).connect(this.master);
         this.echo.delayTime.value = .48;
         this.feedback.gain.value = .25;
         this.echo.connect(this.feedback).connect(this.echo);
@@ -56,25 +56,14 @@ export class AquaticAudio {
 
         // A stereo, dark hall tail. No recordings, downloads or external assets.
         const reverb = ctx.createConvolver();
-        const impulse = ctx.createBuffer(2, Math.ceil(ctx.sampleRate * 5.5), ctx.sampleRate);
-        let seed = 0x51d00;
-        for (let channel = 0; channel < 2; channel++) {
-            const samples = impulse.getChannelData(channel);
-            let smooth = 0;
-            for (let i = 0; i < samples.length; i++) {
-                seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-                smooth += ((seed / 2 ** 31 - 1) - smooth) * .24;
-                samples[i] = smooth * Math.exp(-i / (ctx.sampleRate * 1.1));
-            }
-        }
-        reverb.buffer = impulse;
+        reverb.buffer = this.impulse(5.5, 1.1, 0x51d00);
         const predelay = ctx.createDelay(.1), wet = ctx.createGain();
         const roomLow = ctx.createBiquadFilter(), roomHigh = ctx.createBiquadFilter();
         predelay.delayTime.value = .035;
         roomLow.type = 'lowpass'; roomLow.frequency.value = 2400;
         roomHigh.type = 'highpass'; roomHigh.frequency.value = 180;
         wet.gain.value = .82;
-        this.filter.connect(predelay).connect(reverb).connect(roomHigh).connect(roomLow).connect(wet).connect(this.musicBus);
+        this.filter.connect(predelay).connect(reverb).connect(roomHigh).connect(roomLow).connect(wet).connect(this.master);
 
         // Every effect shares the same softened top end and low, drifting tape send.
         this.fx.type = 'lowpass'; this.fx.frequency.value = 2800; this.fx.Q.value = .5;
@@ -89,6 +78,15 @@ export class AquaticAudio {
         this.fx.connect(send).connect(this.tape).connect(tapeHigh).connect(tapeLow);
         tapeLow.connect(repeats).connect(this.master);
         tapeLow.connect(this.tapeFeedback).connect(this.tape);
+        // A separate, long dark FX hall. The music signal and its gain stay untouched.
+        const fxRoom = ctx.createConvolver(), roomSend = ctx.createGain();
+        const fxPredelay = ctx.createDelay(.2), fxRoomLow = ctx.createBiquadFilter(), fxRoomHigh = ctx.createBiquadFilter();
+        fxRoom.buffer = this.impulse(7, 2, 0xa91c);
+        fxPredelay.delayTime.value = .06;
+        fxRoomHigh.type = 'highpass'; fxRoomHigh.frequency.value = 240;
+        fxRoomLow.type = 'lowpass'; fxRoomLow.frequency.value = 1900;
+        roomSend.gain.value = .36;
+        this.fx.connect(fxPredelay).connect(fxRoom).connect(fxRoomHigh).connect(fxRoomLow).connect(roomSend).connect(this.master);
         // Slow, shallow wow: under two milliseconds, with no sharp time jumps.
         const depth = ctx.createGain(); depth.gain.value = .0012;
         this.wow.frequency.value = .17;
@@ -108,12 +106,19 @@ export class AquaticAudio {
             this.effect();
         }
     }
-    private duckMusic(accent = false) {
-        if (!this.music) return;
-        const now = this.context.currentTime, gain = this.musicBus.gain;
-        gain.cancelScheduledValues(now);
-        gain.setTargetAtTime(accent ? .58 : .78, now, .025);
-        gain.setTargetAtTime(1, now + (accent ? .4 : .16), .3);
+    private impulse(duration: number, decay: number, seed: number) {
+        const ctx = this.context;
+        const impulse = ctx.createBuffer(2, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+        for (let channel = 0; channel < 2; channel++) {
+            const samples = impulse.getChannelData(channel);
+            let smooth = 0;
+            for (let i = 0; i < samples.length; i++) {
+                seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+                smooth += ((seed / 2 ** 31 - 1) - smooth) * .24;
+                samples[i] = smooth * Math.exp(-i / (ctx.sampleRate * decay));
+            }
+        }
+        return impulse;
     }
     private driftTape(accent = false) {
         const now = this.context.currentTime;
@@ -170,53 +175,64 @@ export class AquaticAudio {
         if (!this.effects || this.context.state !== 'running' || now - this.lastFx < .12) return;
         this.lastFx = now;
         this.driftTape(aquatic);
-        this.duckMusic(aquatic);
         if (aquatic) {
-            // Loose water droplets, without a repeated interval or pitched motif.
-            const base = 480 + Math.random() * 220;
-            [0, .06 + Math.random() * .08, .18 + Math.random() * .12].forEach((delay, i) =>
-                this.bubble(base * (.8 + Math.random() * .9), .22 + Math.random() * .2, .032 - i * .004, delay));
-        } else this.bubble(300 + Math.random() * 240, .1 + Math.random() * .04, .02);
+            // A loose pair of midrange droplets; no upward squeal or repeated tune.
+            const base = 540 + Math.random() * 140;
+            this.zap(base, .22, .034);
+            this.zap(base * (.82 + Math.random() * .12), .28, .019, .11 + Math.random() * .08);
+        } else this.zap(500 + Math.random() * 130, .13, .023);
     }
-    private bubble(frequency: number, duration: number, volume: number, delay=0, wrong=false) {
-        const ctx=this.context, start=ctx.currentTime+delay;
-        const oscillator=ctx.createOscillator(), overtone=ctx.createOscillator();
-        const overtoneGain=ctx.createGain(), gain=ctx.createGain(), filter=ctx.createBiquadFilter();
-        oscillator.type=wrong ? 'triangle' : 'sine';
-        overtone.type='sine'; overtoneGain.gain.value=wrong ? .28 : .22;
-        for (const [voice, multiple] of [[oscillator,1],[overtone,2]] as const) {
-            voice.frequency.setValueAtTime(frequency*multiple,start);
-            voice.frequency.exponentialRampToValueAtTime(frequency*multiple*(wrong ? .28 : 2.4),start+duration*.22);
-            voice.frequency.exponentialRampToValueAtTime(Math.max(40,frequency*.35)*multiple,start+duration);
-            voice.start(start); voice.stop(start+duration+.02);
-        }
-        filter.type='lowpass'; filter.frequency.value=wrong ? 1600 : 2300; filter.Q.value=.5;
-        gain.gain.setValueAtTime(0,start); gain.gain.linearRampToValueAtTime(volume,start+.005);
-        gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+    private zap(frequency: number, duration: number, volume: number, delay = 0, low = false) {
+        const ctx = this.context, start = ctx.currentTime + delay;
+        const oscillator = ctx.createOscillator(), body = ctx.createOscillator();
+        const bodyGain = ctx.createGain(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
+        oscillator.type = 'triangle';
+        // The identity lives in the mids. Only a quiet, short underlay reaches the bass.
+        oscillator.frequency.setValueAtTime(frequency * 1.65, start);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency, start + .035);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * .78, start + duration);
+        body.type = 'sine';
+        body.frequency.setValueAtTime(low ? 160 : frequency * .5, start);
+        body.frequency.exponentialRampToValueAtTime(low ? 85 : frequency * .38, start + duration);
+        bodyGain.gain.setValueAtTime(low ? .3 : .13, start);
+        bodyGain.gain.exponentialRampToValueAtTime(.0001, start + Math.min(.09, duration));
+        filter.type = 'lowpass'; filter.Q.value = 1.15;
+        filter.frequency.setValueAtTime(low ? 2100 : 2400, start);
+        filter.frequency.exponentialRampToValueAtTime(low ? 700 : 950, start + duration);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(volume, start + .008);
+        gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
         oscillator.connect(filter);
-        overtone.connect(overtoneGain).connect(filter);
+        body.connect(bodyGain).connect(filter);
         filter.connect(gain).connect(this.fx);
-        oscillator.onended=()=>{oscillator.disconnect();overtone.disconnect();overtoneGain.disconnect();filter.disconnect();gain.disconnect();};
+        for (const voice of [oscillator, body]) {voice.start(start); voice.stop(start + duration + .02);}
+        oscillator.onended = () => {oscillator.disconnect(); body.disconnect(); bodyGain.disconnect(); filter.disconnect(); gain.disconnect();};
     }
     entry(wrong: boolean) {
-        const now=this.context.currentTime;
-        if(!this.effects || this.context.state!=='running' || now-this.lastFx<.06)return;
-        this.lastFx=now;
-        this.driftTape();
-        this.duckMusic();
-        this.bubble((wrong ? 240 : 420) + Math.random() * 220, wrong ? .24 : .13, .032, 0, wrong);
-        if (wrong) this.bubble(190 + Math.random() * 100, .14, .017, .06, true);
+        const now = this.context.currentTime;
+        if (!this.effects || this.context.state !== 'running' || now - this.lastFx < .06) return;
+        this.lastFx = now;
+        this.driftTape(wrong);
+        this.zap((wrong ? 430 : 570) + Math.random() * 110, wrong ? .25 : .16, wrong ? .046 : .035, 0, wrong);
+        if (wrong && this.music && now - this.lastMotif > 12) {
+            this.lastMotif = now;
+            // Sparse, rotating open intervals follow the current pad's root.
+            const root = [38, 34, 31, 33][Math.max(0, this.chord - 1) % 4] + 24;
+            const phrases = [[0, 7], [7, 12], [12, 2]];
+            const phrase = phrases[this.motif++ % phrases.length];
+            phrase.forEach((offset, i) => this.tone(root + offset, 2.4, .011, .16, .13 + i * .22, true));
+        }
     }
     completionSweep() {
         if (!this.effects || this.context.state !== 'running') return;
         this.lastFx = this.context.currentTime;
         this.driftTape(true);
-        this.duckMusic(true);
-        const base = 500 + Math.random() * 250;
-        for (let i = 0; i < 5; i++) {
-            this.bubble(base * (.7 + Math.random()), .35 + Math.random() * .35,
-                .035 - i * .004, i * (.09 + Math.random() * .05));
-        }
+        // Restore the recognisable, legato aquatic sweep instead of a bubble cluster.
+        // Tiny timing/detuning variations keep its contour without making a new jingle.
+        const detune = (Math.random() - .5) * .12;
+        const spacing = .082 + Math.random() * .012;
+        [62, 69, 74, 76, 81, 86].forEach((note, i) =>
+            this.tone(note + detune, 1.5 - i * .1, .024 - i * .002, .12, i * spacing, true));
     }
     setHidden(hidden: boolean) {
         this.hidden = hidden;

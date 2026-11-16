@@ -234,11 +234,13 @@ The footer sound button cycles **Off → Music + FX → FX only → Music only �
 only when you enable it and defaults to Off on each visit. The music is a slow,
 original D-minor ambient progression with soft synth tones, long dark stereo reverb,
 sparse upper notes and very soft filtered harmonic sweeps;
-hints and completed units use loose watery accents with variable, longer filtered echoes.
+hints use soft midrange zaps, while completed units use a legato aquatic sweep with small variations.
 Effects have a gently brighter, softened top end and a quiet filtered tape delay
 with slow, randomized drift. Frequent interactions stay softer than occasional accents,
-but have more body and overtones. A short, gentle reduction of the music bus keeps
-FX audible without changing the progression. Music only disables all interaction
+but have a clear midrange body and a short bass underlay. FX have a separate, long,
+dark stereo hall; their level does not modulate the music. Occasional wrong entries
+can add one of three quiet open intervals matching the current chord, spaced at
+least twelve seconds apart and only when music and FX are both enabled. Music only disables all interaction
 and activation effects. Audio pauses when the tab is hidden. The control observes
 the real AudioContext: successful foreground recovery keeps the mode; failed,
 interrupted or stalled recovery returns to Off so one tap can start again. Everything is synthesized locally with Web Audio: no external
