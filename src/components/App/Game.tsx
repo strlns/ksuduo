@@ -149,6 +149,8 @@ export const Game = (props: GameProps) => {
   const resetStateCommons = {
     solutionShown: false,
     highlightedCell: undefined,
+    secondaryHighlight: [],
+    forceFocus: undefined,
     isWorking: false,
     isPaused: false,
     generatorMessage: "",
@@ -507,7 +509,6 @@ export const Game = (props: GameProps) => {
     ? Object.fromEntries([...logicRef.current.candidates].map(([i, values]) => [`${i % 9},${Math.floor(i / 9)}`, values])) : undefined, [currentSignature, logicStep]);
   const [generationInfoOpen, setGenerationInfoOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const hintTimeoutRef: { current: undefined | number } = useRef(undefined);
 
   /**
    * Fix a wrongly filled cell and tell the user about it.
@@ -515,6 +516,8 @@ export const Game = (props: GameProps) => {
    */
   const fixError = (cell: CellData, choice: HintChoice, candidates: Candidates): void => {
     const sudoku = cloneDeep(state.sudoku);
+    setLogicStep(undefined);
+    setHintCandidates(undefined);
 
     const before = hintHistory.current.begin(sudoku, candidates, choice);
     sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
@@ -524,6 +527,7 @@ export const Game = (props: GameProps) => {
       ...prevState,
       sudoku,
       highlightedCell: sudoku.getCell(cell.x, cell.y),
+      secondaryHighlight: [],
     }));
 
     addGameMessage({
@@ -532,17 +536,6 @@ export const Game = (props: GameProps) => {
       } was cleared for you. Hit 'Add Hint' again to get another hint.`,
       duration: 6000,
     });
-
-    if (hintTimeoutRef.current !== undefined) {
-      clearTimeout(hintTimeoutRef.current);
-    }
-
-    hintTimeoutRef.current = window.setTimeout(() => {
-      setState((prevState) => ({
-        ...prevState,
-        highlightedCell: undefined,
-      }));
-    }, 5000);
   };
 
   /**
@@ -581,7 +574,6 @@ export const Game = (props: GameProps) => {
         return;
       }
       const {step} = choice;
-      if (hintTimeoutRef.current !== undefined) clearTimeout(hintTimeoutRef.current);
       const before = hintHistory.current.begin(sudoku, candidates, choice);
       applyLogicStep(sudoku, candidates, step, true);
       if (step.placement) sudoku.getCell(step.targets[0].x, step.targets[0].y).isHint = true;
@@ -710,6 +702,7 @@ export const Game = (props: GameProps) => {
                 logicRef.current = undefined;
                 setLogicStep(undefined);
                 setHintCandidates(undefined);
+                setState(prev => ({...prev, highlightedCell: undefined, secondaryHighlight: [], forceFocus: undefined}));
                 checkCompletedUnits(); updateCallback();
               }}
               highlightedCell={state.highlightedCell}

@@ -42,7 +42,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     const matches = (c: CellData) => c.x === props.cell.x && c.y === props.cell.y;
     const source = step?.sources.some(matches);
     const target = !step?.placement && step?.targets.some(matches);
-    const added = !!props.cell.value && (props.isHighlighted || (step?.placement && step.targets.some(matches)));
+    const added = !!props.cell.value && props.isHighlighted;
     const removed = target ? step?.value : undefined;
     const pivot = step?.technique === 'XY-Wing' && matches(step.sources[0]);
     const className = `cell${pivot ? " logic-pivot" : ""}${added ? " hint-added" : ""}${selected ? " selected-cell" : ""}${source ? " logic-source" : ""}${target ? " logic-target" : ""}${props.cell.isInitial ? ' fixed' : ''}\

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {App} from '../src/components/App/App';
 import {GenerateButton} from '../src/components/Generator/GenerateButton';
@@ -460,4 +460,22 @@ it('discards hint replay when the player makes a new move, even if that move is 
         fireEvent.click(screen.getByRole('button', {name: /Add hint/i}));
         expect(document.getElementById('step-explanation')!.textContent).not.toBe(explanation);
     } finally {random.mockRestore();}
+});
+
+
+it('expires single highlights while retaining the explanation and does not revive emphasis on entry', async () => {
+    await startGame();
+    vi.useFakeTimers();
+    try {
+        fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+        const explanation = document.getElementById('step-explanation')!.textContent;
+        expect(document.querySelector('.hint-added')).toBeTruthy();
+        act(() => {vi.advanceTimersByTime(8000);});
+        expect(document.querySelector('.hint,.hint-added,.hint-origin,.logic-source')).toBeNull();
+        expect(document.getElementById('step-explanation')!.textContent).toBe(explanation);
+        const input = Array.from(document.querySelectorAll<HTMLInputElement>('.cell input')).find(input => !input.value)!;
+        act(() => {input.focus();});
+        fireEvent.input(input, {target: {value: '1'}});
+        expect(document.querySelector('.hint,.hint-added,.hint-origin')).toBeNull();
+    } finally {vi.useRealTimers();}
 });

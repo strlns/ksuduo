@@ -78,6 +78,22 @@ export const Board = React.memo(
          onNotesHistoryChange
      }: BoardProps) => {
 
+        // Input selection, primary hint emphasis and the proof have separate lifetimes.
+        const [primaryHighlightVisible, setPrimaryHighlightVisible] = useState(true);
+        const [singleHighlightsVisible, setSingleHighlightsVisible] = useState(true);
+        const isSingle = logicStep?.technique === 'Hidden single' || logicStep?.technique === 'Naked single';
+        useEffect(() => {
+            setPrimaryHighlightVisible(true);
+            setSingleHighlightsVisible(true);
+            if (!isSingle && (logicStep || !highlightedCell)) return;
+            const timeout = window.setTimeout(() => {
+                setPrimaryHighlightVisible(false);
+                setSingleHighlightsVisible(false);
+            }, 8000);
+            return () => window.clearTimeout(timeout);
+        }, [logicStep, hintActivationKey, highlightedCell]);
+        const visibleLogicStep = isSingle && !singleHighlightsVisible ? undefined : logicStep;
+
         const notesHistory = React.useRef<{depth: number; before: Record<string, number[] | undefined>; after: Record<string, number[]>}[]>([]);
         const [notes, setNotes] = useState<Record<string, number[]>>({});
         useEffect(() => { onNotesPresent?.(Object.values(notes).some(values => values.length > 0)); }, [notes, onNotesPresent]);
@@ -187,6 +203,13 @@ export const Board = React.memo(
             setFocusedCellState(next);
             setSelectionVisible(true);
         };
+        const selectCell: React.Dispatch<React.SetStateAction<CellData>> = next => {
+            const cell = typeof next === 'function' ? next(focusedCell) : next;
+            if (highlightedCell && (cell.x !== highlightedCell.x || cell.y !== highlightedCell.y)) {
+                setPrimaryHighlightVisible(false);
+            }
+            setFocusedCell(cell);
+        };
         useEffect(() => {
             if (!selectionResetKey) return;
             setSelectionVisible(false);
@@ -216,8 +239,9 @@ export const Board = React.memo(
                 newX = Math.max(focusedCell.x - 1, 0) as CellIndex;
                 newCell = sudoku.getCell(newX, focusedCell.y);
                 break;
+            default: return;
         }
-        setFocusedCell(newCell);
+        selectCell(newCell);
     }
 
     useEffect(() => {
@@ -244,7 +268,7 @@ export const Board = React.memo(
     };
     const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
     const key = `${selected.x},${selected.y}`;
-    return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={logicStep}><NotesContext.Provider value={Object.fromEntries(Object.entries({...visibleNotes, ...hintCandidates}).filter(([key]) =>
+    return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={visibleLogicStep}><NotesContext.Provider value={Object.fromEntries(Object.entries({...visibleNotes, ...hintCandidates}).filter(([key]) =>
         !focusHint || !logicStep || [...logicStep.sources,...logicStep.targets].some(c => `${c.x},${c.y}` === key)))}><div className="board-panel">
         <div className={`board-frame${showCoordinates ? ' coordinates-visible' : ''}`}>
         <div className="coordinate-columns" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('columns', i)}>c{i+1}</span>)}</div>
@@ -261,9 +285,9 @@ export const Board = React.memo(
                         key={index}
                         cellValidityChecker={sudoku.isCellValid.bind(sudoku)}
                         updateCellValue={updateCellValue}
-                        setFocusedCell={setFocusedCell}
-                        highlightedCell={highlightedCell}
-                        secondaryHighlight={secondaryHighlight}
+                        setFocusedCell={selectCell}
+                        highlightedCell={primaryHighlightVisible ? highlightedCell : undefined}
+                        secondaryHighlight={!isSingle || singleHighlightsVisible ? secondaryHighlight : []}
                         supportsInputMode={supportsInputMode}
                     />
                 }
