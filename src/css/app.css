@@ -419,99 +419,65 @@ a { color: #62d7e5; }
     .gameplay-area { min-height: 100svh; }
 }
 
-/* One header, full-width reading area, and a separate status line. Keep text
-   out of the action column and use explicit line heights on mobile Safari. */
-.logic-step {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: .35rem;
-    background: #102e39;
-    color: #edf9fc;
-    overflow-anchor: none;
-}
-.explainer-header { display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-width: 0; }
-.explainer-header strong { min-width: 0; font-size: .875rem; line-height: 1.4; }
-.explainer-actions { flex-shrink: 0; }
-.explainer-actions .MuiButton-root { min-width: 0; width: auto; margin: 0; padding: .25rem .35rem; font-size: .7rem; text-transform: none; }
+/* The assistant changes content inside a stable summary or reading panel. */
+.explainer-slot { min-width: 0; margin: .35rem 0; }
+.logic-step { display: grid; gap: .4rem; min-width: 0; min-height: 3.5rem; margin: 0; padding: .45rem .6rem; background: #102e39; color: #edf9fc; overflow-anchor: none; }
+.explainer-header { display: flex; align-items: center; justify-content: space-between; gap: .3rem; min-width: 0; }
+.explainer-heading { min-width: 0; flex: 1; }
+.explainer-heading strong { display: block; font-size: .8rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.explainer-summary { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; line-height: 1.5; }
+.explainer-actions { flex-shrink: 0; display: flex; align-items: center; }
+.explainer-actions .MuiButton-root { min-width: 0; width: auto; margin: 0; padding: .25rem .3rem; font-size: .7rem; text-transform: none; }
 .explainer-actions .MuiIconButton-root { padding: .2rem; }
-.logic-step .explainer-text { margin: 0; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.45; scrollbar-width: thin; }
+.logic-step .explainer-text, .logic-step .explainer-status, .logic-step .hint-tools { display: none; }
+.logic-step.explainer-expanded { height: 13rem; grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.explainer-expanded .explainer-summary { display: none; }
+.logic-step.explainer-expanded .explainer-text { display: block; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; font-size: .8125rem; line-height: 1.45; scrollbar-width: thin; }
+.explainer-text p { margin: 0 0 .5rem; }
+.explainer-text p:last-child { margin-bottom: 0; }
 .explainer-text:focus-visible { outline: 1px solid #9af0e8; outline-offset: 2px; }
-.explainer-status { color: #b7d1d7; font-size: .7rem; line-height: 1.4; }
-@media (max-width: 599px) {
-    .logic-step { height: 9rem; padding: .5rem .6rem; margin: .25rem 0; }
-    .logic-step .explainer-text { font-size: .8125rem; }
-    .explainer-header { min-height: 1.8rem; }
-    .explainer-header strong { font-size: .8125rem; }
-    .explainer-status { font-size: .65rem; }
-}
+.logic-step.explainer-expanded .explainer-status { display: block; color: #b7d1d7; font-size: .65rem; line-height: 1.4; }
+.logic-step.explainer-expanded .hint-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; }
+.hint-tools .MuiButton-root { width: auto; min-width: 0; padding: .25rem .4rem; font-size: .7rem; text-transform: none; }
+.hint-tools span { font-size: .65rem; color: #b7d1d7; }
+.hint-history { display: inline-flex; align-items: center; }
+.hint-history .MuiButton-root { font-size: 1rem; padding: .1rem .4rem; }
+.show-assistant.MuiButton-root { width: auto; text-transform: none; }
+.notes-toolbar { min-width: 0; margin: 0; }
+.notes-toolbar:disabled { opacity: .55; }
 
-.explainer-heading { min-width: 0; }
-.explainer-summary, .explainer-toggle.MuiButton-root { display: none; }
-@media (max-width: 599px) {
-    /* Small viewport units reserve browser chrome space and stay stable when
-       Safari's bars retract. The keyboard does not drive board sizing. */
-    .board-frame { width: min(100%, max(15rem, calc(100svh - 310px))); margin-inline: auto; }
-    .gameplay-area { min-height: calc(100svh - .8rem); }
-    .explainer-slot { position: relative; height: 3rem; margin: .25rem 0; z-index: 10; }
-    .logic-step { position: absolute; inset: 0 0 auto; height: 3rem; margin: 0; padding: .35rem .5rem; display: block; }
-    .explainer-header { height: 100%; }
-    .explainer-heading { flex: 1; overflow: hidden; }
-    .explainer-header strong { display: none; }
-    .explainer-summary { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; line-height: 1.5; }
-    .explainer-toggle.MuiButton-root { display: inline-flex; }
-    .explainer-details.MuiButton-root { display: none; }
-    .logic-step .explainer-text, .logic-step .explainer-status { display: none; }
-    .logic-step.explainer-expanded { height: 10rem; display: grid; box-shadow: 0 8px 24px #00131ddd; }
-    .explainer-expanded .explainer-header { height: auto; }
-    .explainer-expanded .explainer-summary { display: none; }
-    .explainer-expanded .explainer-heading strong { display: block; }
-    .logic-step.explainer-expanded .explainer-text, .logic-step.explainer-expanded .explainer-status { display: block; }
-}
+/* Stable footer geometry in every audio mode. About and sound share a row. */
+.game-footer .about-card.MuiPaper-root { display: grid; grid-template-columns: minmax(0, 1fr) auto 9rem; align-items: center; gap: .5rem; width: min(100%, 32rem); }
+.game-footer .about-card > * { min-width: 0; }
+.game-footer .audio-control.MuiButton-root { width: 9rem; min-width: 9rem; margin: 0; font-size: .7rem; text-transform: none; white-space: nowrap; }
 
-.game-footer .about-card.MuiPaper-root { flex-wrap: wrap; justify-content: center; }
-.game-footer .audio-control.MuiButton-root { font-size: .7rem; text-transform: none; white-space: nowrap; }
-
-/* Four peer actions with room for both their labels and focus outlines. */
 .play-actions.MuiPaper-root { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .play-actions .MuiButton-root { width: 100%; min-width: 0; min-height: 2.5rem; margin: 0; padding: .5rem .65rem; font-size: .75rem; line-height: 1.35; letter-spacing: 0; white-space: normal; text-transform: none; }
 .play-actions .MuiButton-endIcon { margin-left: .35rem; flex-shrink: 0; }
-.inline-settings { width: 100%; margin-top: .75rem; }
+.play-actions .annotate-all-action { grid-column: 1 / -1; }
+.inline-settings { width: 100%; margin-top: .25rem; }
 .inline-settings .MuiFormHelperText-root { line-height: 1.4 !important; }
 .settings-trigger.MuiButton-root { width: 100%; justify-content: space-between; text-transform: none; }
-@media (max-width: 599px) {
-    .game-controls > .MuiGrid-root:has(.play-actions) { grid-column: 1 / -1; }
-    .play-actions.MuiPaper-root { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .3rem; }
-    .play-actions .MuiButton-root { min-height: 2.4rem; padding: .4rem .45rem; font-size: .7rem; white-space: normal; }
-    .play-actions .MuiButton-endIcon { display: none; }
-    .settings-trigger.MuiButton-root { padding: .45rem .65rem; font-size: .75rem; }
-    .logic-step.explainer-expanded { height: 12rem; max-height: 45svh; }
-}
-@media (max-width: 599px) {
-    .generation-card > .settings-trigger.MuiButton-root { grid-column: 1 / -1; }
-}
-
-/* Fish: solid mint base-line labels and dashed amber crossing-line labels. */
 .fish-base-label { color: #b0ffe9; font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; }
 .fish-cover-label { color: #ffe0ad; font-weight: 700; text-decoration: underline dashed; text-decoration-thickness: 2px; }
-
 .cell.logic-pivot { outline: 4px double #b0ffe9; outline-offset: -5px; }
 
-/* Intermediate windows use a compact two-column play area instead of stacking. */
-@media (min-width: 760px) {
-    .game.MuiGrid-root { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 1rem; padding-top: .75rem !important; align-items: start; }
-    .board-column.MuiGrid-root, .game-controls.MuiGrid-root { width: 100%; min-width: 0; }
-    .board-card.MuiPaper-root { padding: .5rem; }
-    .board-frame { width: min(100%, max(16rem, calc(100svh - 330px))); margin-inline: auto; }
-    .board { display: grid; width: 100%; min-width: 0; aspect-ratio: 1; grid-template-rows: repeat(3, minmax(0,1fr)); }
-    .board .block { display: grid; grid-template-rows: repeat(3,minmax(0,1fr)); min-width: 0; min-height: 0; }
-    .block .row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); min-height: 0; }
-    .board .cell { display: block; width: 100%; height: 100%; min-height: 0; min-width: 0; font-size: clamp(1rem,2.3vw,1.7rem); }
-    .board .cell .value, .board .cell input { width: 100%; height: 100%; min-height: 0; }
-    .game-controls .MuiPaper-root { margin-top: 0; padding: .65rem; }
-    .game-controls.MuiGrid-root { gap: .65rem; }
-    .timer-card { flex-direction: row !important; align-items: center; justify-content: space-between; }
-    .timer-card label { flex-direction: row !important; font-size: .65rem; }
-    .inline-settings { margin-top: .25rem; }
+@media (max-width: 599px) {
+    .board-frame { width: min(100%, max(15rem, calc(100svh - 310px))); margin-inline: auto; }
+    .gameplay-area { min-height: calc(100svh - .8rem); }
+    .logic-step.explainer-expanded { height: auto; }
+    .logic-step.explainer-expanded .explainer-text { max-height: 10rem; }
+    .explainer-heading strong { display: none; }
+    .explainer-expanded .explainer-heading strong { display: block; white-space: normal; }
+    .game-footer .about-card.MuiPaper-root { grid-template-columns: minmax(0, 1fr) 9rem; }
+    .game-footer .app-identity { grid-column: 1 / -1; justify-self: center; }
+    .game-controls > .MuiGrid-root:has(.play-actions) { grid-column: 1 / -1; }
+    .play-actions.MuiPaper-root { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .3rem; }
+    .play-actions .MuiButton-root { min-height: 2.4rem; padding: .4rem .45rem; font-size: .7rem; }
+    .play-actions .MuiButton-endIcon { display: none; }
+    .settings-trigger.MuiButton-root { padding: .45rem .65rem; font-size: .75rem; }
+    .generation-card > .settings-trigger.MuiButton-root { grid-column: 1 / -1; }
+    .notes-actions { flex-wrap: wrap; }
 }
 @media (min-width:600px) and (max-width:759px) {
     .game-controls.MuiGrid-root { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; width: 100%; }
@@ -519,27 +485,48 @@ a { color: #62d7e5; }
     .game-controls > .MuiGrid-root:has(.generation-card) { grid-column: 1/-1; }
     .game-controls .MuiPaper-root { margin-top: 0; }
 }
-@media (min-width:760px) and (max-height:760px) {
-    .logic-step { margin: .25rem 0; padding: .4rem .6rem; }
-    .logic-step .explainer-text { max-height: 4rem; }
-    .inline-settings .MuiFormHelperText-root { font-size: .65rem; }
-    .inline-settings .MuiSlider-root { margin-bottom: 1rem; }
+@media (min-width:760px) {
+    /* The assistant and controls occupy the right column. Hint text never moves
+       the board, even when the reading panel is opened or hidden. */
+    .gameplay-area { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); grid-template-rows: auto 1fr; gap: .65rem 1rem; align-items: start; }
+    .gameplay-area > .game.MuiGrid-root { display: contents; }
+    .board-column.MuiGrid-root { grid-column: 1; grid-row: 1 / span 2; align-self: start; }
+    .explainer-slot { grid-column: 2; grid-row: 1; margin: 0; }
+    .game-controls.MuiGrid-root { grid-column: 2; grid-row: 2; display: grid; gap: .65rem; }
+    .board-column.MuiGrid-root, .game-controls.MuiGrid-root, .game-controls > .MuiGrid-root { width: 100%; min-width: 0; }
+    .board-card.MuiPaper-root { padding: .5rem; }
+    .board-frame { width: min(100%, max(16rem, calc(100svh - 300px))); margin-inline: auto; }
+    .board { display: grid; width: 100%; min-width: 0; aspect-ratio: 1; grid-template-rows: repeat(3, minmax(0,1fr)); }
+    .board .block { display: grid; grid-template-rows: repeat(3,minmax(0,1fr)); min-width: 0; min-height: 0; }
+    .block .row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); min-height: 0; }
+    .board .cell { display: block; width: 100%; height: 100%; min-height: 0; min-width: 0; font-size: clamp(1rem,2.3vw,1.7rem); }
+    .board .cell .value, .board .cell input { width: 100%; height: 100%; min-height: 0; }
+    .game-controls .MuiPaper-root { margin-top: 0; padding: .65rem; }
+    .timer-card { flex-direction: row !important; align-items: center; justify-content: space-between; }
+    .timer-card label { flex-direction: row !important; font-size: .65rem; }
+    .game-controls .MuiPaper-root { padding: .4rem; }
+    .game-controls .play-actions .MuiButton-root { min-height: 2.2rem; padding-block: .35rem; }
+    .generation-card > .MuiButton-root { margin-bottom: 0; min-height: 2.2rem; }
+    .game-footer { padding: .5rem 0 .25rem; }
+    .game-footer .about-card.MuiPaper-root { padding: .4rem .6rem; margin-top: 0; }
+    .game-footer .app-identity { padding: 0; gap: .1rem; }
+    .game-footer .app-identity strong { font-size: 1.1rem; padding-bottom: .15rem; }
+    #app > .MuiContainer-root { padding-bottom: .5rem; }
+    #app > .MuiContainer-root > .MuiBox-root { margin-top: .5rem; }
 }
 
-.hint-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem; }
-.hint-tools .MuiButton-root { width: auto; min-width: 0; padding: .3rem .5rem; font-size: .75rem; text-transform: none; }
-.hint-tools [aria-pressed="true"] { background: #236572; }
-.hint-tools span { font-size: .65rem; color: #b7d1d7; }
-.logic-step { grid-template-rows: auto minmax(0,1fr) auto auto; }
-.play-actions .annotate-all-action { grid-column: 1 / -1; }
-@media (max-width:599px) {
-    .explainer-slot { height: auto; }
-    .logic-step { position: relative; inset: auto; height: auto; min-height: 3rem; }
-    .logic-step .hint-tools { display: none; }
-    .logic-step.explainer-expanded { height: auto; max-height: none; display: grid; box-shadow: none; }
-    .logic-step.explainer-expanded .hint-tools { display: flex; }
-    .logic-step.explainer-expanded .explainer-text { max-height: 8rem; }
-    .notes-actions { flex-wrap: wrap; }
+/* A brief source-then-elimination cue sits on top of the persistent proof. */
+.pattern-replay .logic-source::after, .pattern-replay .logic-target::after {
+    content: ''; position: absolute; inset: 2px; border-radius: 2px; pointer-events: none; z-index: 3;
+    border: 2px solid #b0ffe9; opacity: 0; animation: pattern-attention 1800ms ease-out both;
+}
+.pattern-replay .logic-target::after { border-color: #ffe0ad; animation-delay: 650ms; }
+@keyframes pattern-attention { 0% { opacity: 0; } 15%,45% { opacity: .9; } 100% { opacity: 0; } }
+.unit-celebration { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.unit-celebration rect { fill: #a5ffdd18; stroke: #b0ffe9; stroke-width: .035; opacity: 0; animation: unit-glow 1900ms ease-out both; }
+@keyframes unit-glow { 0% { opacity: 0; } 15%,35% { opacity: .9; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .pattern-replay .logic-source::after, .pattern-replay .logic-target::after, .unit-celebration { display: none; animation: none; }
 }
 
 /* One-shot water rings on arrival; the board and its inputs remain stationary. */
@@ -549,7 +536,7 @@ a { color: #62d7e5; }
     content: ''; position: absolute; left: 50%; top: 45%; width: 40%; aspect-ratio: 1;
     border: 2px solid #a2fff099; border-radius: 50%; opacity: 0;
     box-shadow: 0 0 20px #73e5e633, inset 0 0 12px #73e5e622;
-    animation: board-ripple 950ms ease-out both;
+    animation: board-ripple 1800ms ease-out both;
 }
 .board-arrival::after { animation-delay: 120ms; border-width: 1px; }
 @keyframes board-ripple {
@@ -580,7 +567,7 @@ a { color: #62d7e5; }
 .victory-panel { background: radial-gradient(ellipse at 50% 0%, #246b70, #102734 70%) !important; border-color: #9ff7dc !important; }
 .victory-crown { display: grid; place-items: center; margin: 0 auto 1rem; width: 5rem; height: 5rem; position: relative; }
 .victory-crown span { display: grid; place-items: center; width: 100%; height: 100%; border: 2px solid #b0ffe9; border-radius: 50%; color: #d9fff5; background: #163f45; font: 3rem/1 sans-serif; box-shadow: 0 0 35px #79f2cd55; animation: victory-bloom 650ms cubic-bezier(.2,.7,.2,1) both; }
-.victory-crown::after { content: ''; position: absolute; inset: -.5rem; border: 2px solid #b0ffe9; border-radius: 50%; animation: victory-halo 1800ms ease-out both; pointer-events: none; }
+.victory-crown::after { content: ''; position: absolute; inset: -.5rem; border: 2px solid #b0ffe9; border-radius: 50%; animation: victory-halo 2200ms ease-out 2 both; pointer-events: none; }
 .victory-bubbles span { animation-duration: 3800ms; border-width: 2px; box-shadow: inset -3px -3px 10px #64d7df66, 0 0 18px #88eee944; }
 @keyframes victory-bloom { from { opacity: 0; transform: scale(.35) rotate(-20deg); } 70% { opacity: 1; transform: scale(1.12) rotate(4deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 @keyframes victory-halo { from { opacity: .9; transform: scale(.7); } to { opacity: 0; transform: scale(2.6); } }

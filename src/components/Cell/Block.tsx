@@ -16,6 +16,7 @@ interface BlockProps {
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
     highlightedCell: OptionalCell,
     secondaryHighlight: CellData[],
+    readOnly?: boolean,
     supportsInputMode: boolean
 }
 
@@ -44,6 +45,7 @@ export const Block = (props: BlockProps) => {
                             setFocusedCell={state.setFocusedCell}
                             isHighlighted={cell === state.highlightedCell}
                             isSecondarilyHighlighted={state.secondaryHighlight.includes(cell)}
+                            readOnly={props.readOnly}
                             supportsInputMode={props.supportsInputMode}
                         />
                     })

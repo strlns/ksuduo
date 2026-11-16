@@ -9,6 +9,7 @@ export interface LogicStep {
     targets: CellData[];
     value: CellValue;
     placement: boolean;
+    priorEliminations?: string[];
     fish?: {orientation: 'rows' | 'columns'; bases: number[]; covers: number[]};
 }
 export type Candidates = Map<number, CellValue[]>;
@@ -117,8 +118,8 @@ export function nextHintStep(board: Sudoku, candidates: Candidates): LogicStep |
 /** Two short teaching sentences, alongside the concrete deduction. */
 export function techniqueExplanation(step: LogicStep): string {
     switch (step.technique) {
-        case 'Naked single': return 'A naked single leaves just one possible digit in a cell after its row, column and block are checked. The highlighted cell can therefore take the remaining candidate.';
-        case 'Hidden single': return 'A hidden single is the only place for a digit in one row, column or block, even if that cell has other candidates. The highlighted unit rules out every other position for this digit.';
+        case 'Naked single': if (step.priorEliminations?.length) return 'Earlier candidate eliminations leave just one digit in this cell. The final placement is a naked single, and the earlier steps are part of its reasoning.'; return 'A naked single leaves just one possible digit in a cell after its row, column and block are checked. The highlighted cell can therefore take the remaining candidate.';
+        case 'Hidden single': if (step.priorEliminations?.length) return 'After earlier candidate eliminations, this digit has only one remaining place in the highlighted row, column or block. The final placement is a hidden single that uses those earlier deductions.'; return 'A hidden single is the only place for a digit in one row, column or block, even if that cell has other candidates. The highlighted unit rules out every other position for this digit.';
         case 'Locked candidates': return 'When all positions for a digit in a block lie on one line, that digit is reserved on their intersection; the same reasoning works from a line into a block. The highlighted source cells therefore exclude the crossed-out digit from the rest of the intersecting unit.';
         case 'Naked pair': return 'Two cells with the same two candidates reserve both digits between them, whichever order they take. Other cells in their shared unit cannot use either digit, so the marked candidate is removed.';
         case 'XY-Wing': return 'The double-outlined pivot has two candidates; each choice forces one of its two wings to contain the eliminated digit. Any cell that sees both wings cannot contain that digit, even when it does not see the pivot.';

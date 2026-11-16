@@ -36,11 +36,26 @@ Solid outlines show the source pattern; dashed outlines and crossed-out digits
 show candidate eliminations. Candidate eliminations are shown only in the cells involved in that hint; your
 other notes remain visible. Notes from elimination steps are kept after the explanation
 is hidden and saved with your other annotations. Placement hints do not annotate the board.
-On phones, the explainer starts as a compact one-line deduction, with ellipsis for
-long explanations. **Explain** opens the
-reading panel over the board; **Collapse** returns to the status bar without moving
-the board. Long explanations scroll inside the panel. The **⋯** menu (or desktop
-**Details** button) opens the full explanation and a plain-language color legend.
+The assistant starts as a compact summary. **Explain** expands the explanation;
+**Collapse** returns to the summary, and **Hide** reduces it to a **Hints** button.
+On desktops and wide tablets the assistant sits beside the board, so changing
+hints never moves the grid. Its reading panel scrolls at a fixed height. On
+phones, expanding it takes space in the layout above the board.
+**Show pattern** briefly emphasizes sources, then eliminations, while retaining
+the proof underneath. **Annotate these cells** fills missing notes in explanation
+cells; it reports **Notes already shown** when Add Hint already populated them.
+It does not restore eliminated candidates. The **⋯** menu holds other annotation
+scopes. Color guidance appears only for elimination techniques.
+
+The expanded panel can browse this session's earlier hints. Each historical view
+uses a saved board and candidate snapshot and is read-only. **Current board**
+returns to live play. Browsing never applies a hint, writes notes or changes undo.
+**Undo** always changes the live game, returns to its newest surviving explanation,
+and removes undone hints from the browser. New entries, reset, reveal and
+generation clear this session history. Easiest guarantees a naked-single solve,
+while the assistant deliberately prefers row/column/block (hidden-single)
+explanations. Singles that still depend on prior candidate eliminations identify
+the techniques used; this describes direct prerequisites rather than a full proof graph.
 
 Subtle row/column labels are off by default and turn on when you request a hint.
 Use the tiny grid icon beside the pencil to toggle them: **r2c6 means row 2, column 6**.
@@ -149,7 +164,10 @@ percentage for its own sake.
 
 [Sudoku: the shape of uniqueness](docs/ai/sudoku-proof-and-generator-lab/index.html)
 is a standalone interactive essay on unavoidable sets and generator search.
-See [docs/ai](docs/ai/README.md) for opening and verifying it; no build is needed.
+The build copies `docs/ai/` into `dist/docs/ai/`, including the
+[overview](docs/ai/index.html), so it is available under `/ksuduo/docs/ai/` in
+both deployments. See [docs/ai](docs/ai/README.md) for opening and verifying it;
+the source can also be opened without a build.
 
 ## Deploying
 
@@ -216,9 +234,12 @@ The footer sound button cycles **Off → Music + FX → FX only → Music only �
 only when you enable it and defaults to Off on each visit. The music is a slow,
 original D-minor ambient progression with soft synth tones, long dark stereo reverb,
 sparse upper notes and very soft filtered harmonic sweeps;
-hints and completed generation use quiet watery tones with a filtered echo.
+hints and completed units use loose watery accents with variable, longer filtered echoes.
 Effects have a gently brighter, softened top end and a quiet filtered tape delay
-with slow, randomized drift. Other interactions use a much softer, short filtered glide. Music only disables all
-interaction and activation effects. Audio pauses when
-the tab is hidden. Everything is synthesized locally with Web Audio: no external
+with slow, randomized drift. Frequent interactions stay softer than occasional accents,
+but have more body and overtones. A short, gentle reduction of the music bus keeps
+FX audible without changing the progression. Music only disables all interaction
+and activation effects. Audio pauses when the tab is hidden. The control observes
+the real AudioContext: successful foreground recovery keeps the mode; failed,
+interrupted or stalled recovery returns to Off so one tap can start again. Everything is synthesized locally with Web Audio: no external
 music, tracking, downloads or cached audio files.

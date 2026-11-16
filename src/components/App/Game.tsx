@@ -72,6 +72,7 @@ import { pickRandomArrayValue } from "../../utility/pickRandom";
 import type {GameMessage} from "../Message/GameMessageBox";
 import { hashCode } from "../../utility/stringHash";
 import {HintHistory, type HintChoice} from '../../gameplay/HintHistory';
+import {explainHintDependencies} from '../../gameplay/explainHintDependencies';
 
 let sudokuWorker: Worker;
 let useWebWorker = false;
@@ -162,7 +163,7 @@ export const Game = (props: GameProps) => {
   const [supportsInputModeAttribute, setSupportsInputModeAttribute] =
     useState(false);
 
-  const desktopSettings = useMediaQuery("(min-width:900px)");
+  const desktopSettings = useMediaQuery("(min-width:900px) and (min-height:850px)");
   const [arrivalVersion, setArrivalVersion] = useState(0);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [boardCelebrating, setBoardCelebrating] = useState(false);
@@ -265,6 +266,8 @@ export const Game = (props: GameProps) => {
 
   const generateSudoku = () => {
     hintHistory.current.clear();
+    setReviewIndex(undefined);
+    setCompletedCells([]);
     logicRef.current = undefined;
     setLogicStep(undefined);
     setHintCandidates(undefined);
@@ -291,6 +294,8 @@ export const Game = (props: GameProps) => {
 
   const resetSudoku = () => {
     hintHistory.current.clear();
+    setReviewIndex(undefined);
+    setCompletedCells([]);
     notesHistoryRef.current?.clear();
     setLogicStep(undefined);
     setHintCandidates(undefined);
@@ -312,6 +317,8 @@ export const Game = (props: GameProps) => {
 
   const showSolution = () => {
     hintHistory.current.clear();
+    setReviewIndex(undefined);
+    setCompletedCells([]);
     const sudoku = cloneDeep(state.sudoku);
     sudoku.showSolution();
     setState((prevState) => ({
@@ -368,16 +375,27 @@ export const Game = (props: GameProps) => {
     }
   }, [pageIsVisible]);
 
+  const [completedCells, setCompletedCells] = useState<string[]>([]);
+  const [completionVersion, setCompletionVersion] = useState(0);
+  useEffect(() => {
+    if (!completedCells.length) return;
+    const timeout = window.setTimeout(() => setCompletedCells([]), 2300);
+    return () => window.clearTimeout(timeout);
+  }, [completedCells]);
   const previousValues = useRef(state.sudoku.getFlatValues());
   const checkCompletedUnits = (board = state.sudoku) => {
     const before = previousValues.current;
     const after = board.getFlatValues();
     const units = [...board.getRows(), ...board.getColumns(), ...board.getBlocks().map(block => block.cells)];
     const solution = board.getSolution();
-    const newlyCompleted = units.some(unit =>
+    const newlyCompleted = units.filter(unit =>
       unit.every(c => c.value && c.value === solution[c.y * 9 + c.x]) &&
       unit.some(c => before[c.y * 9 + c.x] !== solution[c.y * 9 + c.x]));
-    if (!state.solutionShown && newlyCompleted) playCompletionSweep();
+    if (!state.solutionShown && newlyCompleted.length) {
+      playCompletionSweep();
+      setCompletedCells([...new Set(newlyCompleted.flatMap(unit => unit.map(c => `${c.x},${c.y}`)))]);
+      setCompletionVersion(version => version + 1);
+    }
     previousValues.current = after;
   };
   // New puzzles, reset, undo and reveal establish a baseline without celebrating.
@@ -455,7 +473,7 @@ export const Game = (props: GameProps) => {
     const timeout = window.setTimeout(() => {
       setBoardCelebrating(false);
       setWinnerModalOpen(true);
-    }, reducedMotion ? 1000 : 1800);
+    }, reducedMotion ? 1000 : 2400);
     return () => window.clearTimeout(timeout);
   }, [state.sudoku.isSolved(), state.solutionShown, state.initialBoardIsSolved, state.isWorking, reducedMotion]);
 
@@ -488,10 +506,11 @@ export const Game = (props: GameProps) => {
   const [annotationRequest, setAnnotationRequest] = useState<AnnotationRequest | undefined>(undefined);
   const [hintMenuAnchor, setHintMenuAnchor] = useState<HTMLElement | null>(null);
   const [explainerExpanded, setExplainerExpanded] = useState(false);
-  const [hintDetailsOpen, setHintDetailsOpen] = useState(false);
+  const [explainerHidden, setExplainerHidden] = useState(false);
+  const [reviewIndex, setReviewIndex] = useState<number | undefined>(undefined);
+  const [patternReplayKey, setPatternReplayKey] = useState(0);
+  const [canAnnotateHint, setCanAnnotateHint] = useState(false);
   const [hasNotes, setHasNotes] = useState(false);
-  const [focusHint, setFocusHint] = useState(false);
-  useEffect(() => {setFocusHint(false);}, [logicStep]);
   const [confirmation, setConfirmation] = useState<{title: string; description: string; action: () => void} | null>(null);
   const hasProgress = hasNotes || hasNotesHistory || !state.sudoku.isHistoryEmpty() ||
     state.sudoku.getFlatCells().some(c => !c.isInitial && !!c.value);
@@ -521,7 +540,7 @@ export const Game = (props: GameProps) => {
 
     const before = hintHistory.current.begin(sudoku, candidates, choice);
     sudoku.setValue(cell.x, cell.y, CellValue.EMPTY);
-    hintHistory.current.commit(before, sudoku);
+    hintHistory.current.commit(before, sudoku, candidates);
 
     setState((prevState) => ({
       ...prevState,
@@ -545,6 +564,7 @@ export const Game = (props: GameProps) => {
     if (!(state.isWorking || state.sudoku.isSolved())) {
       playAquaticCue();
       setHintActivationKey(key => key + 1);
+      setReviewIndex(undefined);
       const sudoku = cloneDeep(state.sudoku);
 
       const signature = sudoku.getFlatValues().join('');
@@ -562,6 +582,7 @@ export const Game = (props: GameProps) => {
               explanation: `Value ${fallback[1]} at r${fallback[0].y + 1}c${fallback[0].x + 1} was filled in from the saved solution.`,
             };
           }
+          if (step) step = explainHintDependencies(sudoku, candidates, step, hintHistory.current.hints.map(hint => hint.step));
           if (step) choice = {kind: 'step', step};
         }
       }
@@ -577,7 +598,7 @@ export const Game = (props: GameProps) => {
       const before = hintHistory.current.begin(sudoku, candidates, choice);
       applyLogicStep(sudoku, candidates, step, true);
       if (step.placement) sudoku.getCell(step.targets[0].x, step.targets[0].y).isHint = true;
-      hintHistory.current.commit(before, sudoku);
+      hintHistory.current.commit(before, sudoku, candidates);
       checkCompletedUnits(sudoku);
       logicRef.current = {signature: sudoku.getFlatValues().join(''), candidates};
       setLogicStep(step);
@@ -594,6 +615,8 @@ export const Game = (props: GameProps) => {
   };
 
   const undo = () => {
+    setReviewIndex(undefined);
+    setCompletedCells([]);
     setSelectionResetKey(key => key + 1);
     setLogicStep(undefined);
     setHintCandidates(undefined);
@@ -601,6 +624,7 @@ export const Game = (props: GameProps) => {
     const notesUndone = notesHistoryRef.current?.undo() ?? false;
     const candidates = hintHistory.current.undo(state.sudoku, notesUndone);
     if (!notesUndone && !sudoku.isHistoryEmpty()) sudoku.undo();
+    setLogicStep(hintHistory.current.hints.at(-1)?.step);
     logicRef.current = candidates ? {signature: sudoku.getFlatValues().join(''), candidates} : undefined;
     setState((prevState) => ({
       ...prevState,
@@ -625,33 +649,52 @@ export const Game = (props: GameProps) => {
                 numberOfFilledCellsInCurrentPuzzle={state.sudoku.getNumberOfFilledCells()}
               />);
 
+  const showInlineSettings = desktopSettings && !explainerExpanded;
+  const hints = hintHistory.current.hints;
+  const shownHintIndex = Math.min(reviewIndex ?? hints.length - 1, hints.length - 1);
+  const preview = reviewIndex !== undefined ? hints[shownHintIndex] : undefined;
+  const shownStep = preview?.step ?? logicStep;
+  const hasEmptyHintCells = shownStep && [...shownStep.sources, ...shownStep.targets].some(c => !state.sudoku.getCell(c.x, c.y).value);
+  const idleHintText = hintActivationKey ? 'Hint undone or board changed. Add Hint continues from here.' : 'Add Hint explains one solving step at a time.';
   const smallTextClass = "small-text";
 
   return (
     <Container style={{ padding: 0 }}>
       <MessageQueue messages={state.gameMessages}/>
       <div className="gameplay-area">
-      <div className="explainer-slot">
-      <section className={`logic-step${explainerExpanded ? ' explainer-expanded' : ''}${logicStep ? '' : ' logic-step-empty'}`} aria-label="Solving explanation" aria-live="polite">
+      <div className={`explainer-slot${explainerHidden ? ' explainer-hidden' : ''}`}>
+      {explainerHidden ? <Button className="show-assistant" size="small" aria-label="Show hint assistant" onClick={() => setExplainerHidden(false)}>Hints</Button> :
+      <section className={`logic-step${explainerExpanded ? ' explainer-expanded' : ''}${shownStep ? '' : ' logic-step-empty'}`} aria-label="Solving explanation" aria-live="polite">
         <header className="explainer-header">
           <div className="explainer-heading">
-            <strong>{logicStep?.technique ?? 'Step-by-step hints'}</strong>
-            <span className="explainer-summary">{logicStep?.explanation ?? 'Add Hint to take the next solving step'}</span>
+            <strong>{shownStep ? `${shownStep.technique}${shownStep.priorEliminations?.length ? ' · after eliminations' : ''}` : 'Step-by-step hints'}</strong>
+            <span className="explainer-summary">{shownStep?.explanation ?? idleHintText}</span>
           </div>
           <div className="explainer-actions">
             <Button className="explainer-toggle" size="small" aria-expanded={explainerExpanded} aria-controls="step-explanation" onClick={() => setExplainerExpanded(expanded => !expanded)}>{explainerExpanded ? 'Collapse' : 'Explain'}</Button>
-            <Button className="explainer-details" size="small" disabled={!logicStep} onClick={() => setHintDetailsOpen(true)}>Details</Button>
-            <Tooltip title="Hint details and annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip>
+            <Tooltip title="Annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip>
+            <Button size="small" aria-label="Hide hint assistant" onClick={() => setExplainerHidden(true)}>Hide</Button>
           </div>
         </header>
-        <p id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">{logicStep ? `${logicStep.explanation} ${techniqueExplanation(logicStep)}` : 'Add Hint explains one solving step at a time.'}</p>
-        {logicStep && <div className="hint-tools">
-          <Button size="small" disabled={state.isPaused || state.isWorking} onClick={() => annotate('explanation')}>Note hint cells</Button>
-          <Button size="small" aria-pressed={focusHint} onClick={() => setFocusHint(value => !value)}>{focusHint ? 'Show all notes' : 'Focus hint'}</Button>
-          <span>{focusHint ? 'Other notes hidden, not erased' : 'Mint: pattern · Amber: elimination'}</span>
-        </div>}
-        <small className="explainer-status">{logicStep ? (logicStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : 'Follow the highlighted cells and candidates.'}</small>
-      </section>
+        <div id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">
+          <p>{shownStep?.explanation ?? idleHintText}</p>
+          {shownStep && <p>{techniqueExplanation(shownStep)}</p>}
+          {!!shownStep?.priorEliminations?.length && <p>This single is available because earlier {shownStep.priorEliminations.join(' and ')} steps removed candidates that the current row, column and block alone would still allow.</p>}
+          {shownStep && !shownStep.placement && <p>Solid mint outlines mark the pattern; dashed amber outlines and crossed-out digits mark eliminations. The remaining notes are kept.</p>}
+          {preview && <p>Saved board after this hint · read-only. Return to the current board to enter numbers or notes.</p>}
+        </div>
+        <div className="hint-tools">
+          {shownStep && <Button size="small" onClick={() => setPatternReplayKey(key => key + 1)}>Show pattern</Button>}
+          {hasEmptyHintCells && !preview && <Tooltip title={canAnnotateHint ? 'Add missing candidate notes in the cells used by this explanation' : 'These cells already show all remaining candidates'}><span><Button size="small" disabled={!canAnnotateHint || state.isPaused || state.isWorking} onClick={() => annotate('explanation')}>{canAnnotateHint ? 'Annotate these cells' : 'Notes already shown'}</Button></span></Tooltip>}
+          {hints.length > 1 && <nav className="hint-history" aria-label="Hint history">
+            <Button size="small" aria-label="Previous hint" disabled={shownHintIndex <= 0} onClick={() => setReviewIndex(shownHintIndex - 1)}>‹</Button>
+            <span>Hint {shownHintIndex + 1} of {hints.length}</span>
+            <Button size="small" aria-label="Next hint" disabled={shownHintIndex >= hints.length - 1} onClick={() => setReviewIndex(shownHintIndex + 1 === hints.length - 1 && logicStep ? undefined : shownHintIndex + 1)}>›</Button>
+          </nav>}
+          {preview && <Button size="small" onClick={() => setReviewIndex(undefined)}>Current board</Button>}
+        </div>
+        <small className="explainer-status">{preview ? 'Reviewing a saved hint · Undo always acts on the current game' : shownStep ? (shownStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : hintActivationKey ? 'Add Hint continues from the current board.' : 'Follow the highlighted cells and candidates.'}</small>
+      </section>}
       </div>
       <Grid
         container
@@ -664,7 +707,7 @@ export const Game = (props: GameProps) => {
             {arrivalVersion > 0 && <span key={arrivalVersion} className="board-arrival" aria-hidden="true"/>}
             <Box sx={{p: 1}}>
               <LinearProgress
-                value={percentFilled()}
+                value={preview ? preview.board.getNumberOfCorrectlyFilledCells() / BOARD_SIZE * 100 : percentFilled()}
                 variant={"determinate"}
                 style={{ marginTop: "12px" }}
               />
@@ -677,11 +720,15 @@ export const Game = (props: GameProps) => {
                 }}
                 className={smallTextClass}
               >
-                {boardCelebrating ? '✓ Puzzle complete · ' : ''}{state.sudoku.getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
+                {preview ? 'Review · saved board · ' : boardCelebrating ? '✓ Puzzle complete · ' : ''}{(preview?.board ?? state.sudoku).getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
               </Typography>
             </Box>
             <Board
-                focusHint={focusHint}
+                preview={preview}
+                completedCells={preview ? [] : completedCells}
+                completionVersion={completionVersion}
+                patternReplayKey={patternReplayKey}
+                onHintAnnotationAvailable={setCanAnnotateHint}
                 onNotesPresent={setHasNotes}
                 onAnnotateAll={() => annotate('all')}
                 confirmAction={confirmAction}
@@ -699,6 +746,7 @@ export const Game = (props: GameProps) => {
               sudoku={state.sudoku}
               cellCallback={() => {
                 hintHistory.current.clear();
+                setReviewIndex(undefined);
                 logicRef.current = undefined;
                 setLogicStep(undefined);
                 setHintCandidates(undefined);
@@ -717,7 +765,7 @@ export const Game = (props: GameProps) => {
                 Difficulty: {difficultyLabel()}
               </Typography>
               <Typography component={"small"} className={smallTextClass}>
-                Hints: {state.sudoku.getNumberOfHints()}
+                Hints: {(preview?.board ?? state.sudoku).getNumberOfHints()}
               </Typography>
             </Box>
           </PaperBox>
@@ -806,7 +854,7 @@ export const Game = (props: GameProps) => {
               >
                 Show Solution
               </Button>
-              <Button className="annotate-all-action" disabled={state.isWorking || state.isPaused || state.sudoku.isSolved()} onClick={() => annotate('all')}>Annotate all</Button>
+              <Button className="annotate-all-action" disabled={state.isWorking || state.isPaused || state.sudoku.isSolved() || !!preview} onClick={() => annotate('all')}>Annotate all</Button>
               </ThemeProvider>
             </PaperBox>
           </Grid>
@@ -820,7 +868,7 @@ export const Game = (props: GameProps) => {
               <Button className="generation-info" size="small" startIcon={<InfoOutlined/>} onClick={() => setGenerationInfoOpen(true)} aria-label="About puzzle generation">
                 {state.generatorMessage || "How puzzles are generated"}
               </Button>
-              {desktopSettings ? <section className="inline-settings" aria-label="Puzzle settings">
+              {showInlineSettings ? <section className="inline-settings" aria-label="Puzzle settings">
                 <Typography component="h2" variant="subtitle2">Puzzle settings</Typography>
                 {settingsConfiguration}
               </section> : <Button className="settings-trigger" variant="outlined" endIcon={<ExpandMoreRounded/>} aria-label="Puzzle settings" aria-haspopup="dialog" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(true)}>
@@ -853,27 +901,13 @@ export const Game = (props: GameProps) => {
         </DialogActions>
       </Dialog>
       <Menu anchorEl={hintMenuAnchor} open={!!hintMenuAnchor} onClose={() => setHintMenuAnchor(null)} slotProps={{list: {'aria-label': 'Hint and annotation options'}}}>
-        <MenuItem disabled={!logicStep} onClick={() => {setHintDetailsOpen(true); setHintMenuAnchor(null);}}>Read the full explanation</MenuItem>
-        <MenuItem disabled={state.isPaused || state.isWorking || !logicStep} onClick={() => annotate('explanation')}>Annotate explanation cells</MenuItem>
-        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection} onClick={() => annotate('row')}>Annotate selected row</MenuItem>
-        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection} onClick={() => annotate('column')}>Annotate selected column</MenuItem>
-        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection} onClick={() => annotate('block')}>Annotate selected block</MenuItem>
-        <MenuItem disabled={state.isPaused || state.isWorking} onClick={() => annotate('all')}>Annotate all empty cells</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !canAnnotateHint || !!preview} onClick={() => annotate('explanation')}>Annotate explanation cells</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection || !!preview} onClick={() => annotate('row')}>Annotate selected row</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection || !!preview} onClick={() => annotate('column')}>Annotate selected column</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !hasSelection || !!preview} onClick={() => annotate('block')}>Annotate selected block</MenuItem>
+        <MenuItem disabled={state.isPaused || state.isWorking || !!preview} onClick={() => annotate('all')}>Annotate all empty cells</MenuItem>
       </Menu>
-      <Dialog open={hintDetailsOpen} onClose={() => setHintDetailsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="hint-details-title">
-        <DialogTitle id="hint-details-title">{logicStep?.technique ?? 'Solving hints'}</DialogTitle>
-        <DialogContent>
-          <p>{logicStep && techniqueExplanation(logicStep)}</p>
-          <p>{logicStep?.explanation ?? 'Press Add Hint for the next logical step.'}</p>
-          <p>{logicStep?.placement ? 'The blue cell with a gold border is the digit just filled.' : 'This step removes impossible candidates without filling a digit. The remaining notes are kept on the board. Press Add Hint to continue from these deductions.'}</p>
-          <p>Mint outlines and highlighted digits show the source pattern. Warm dashed outlines and crossed-out digits show what was eliminated. Row and column labels run top to bottom and left to right: r2c6 means row 2, column 6.</p>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={state.isPaused || state.isWorking || !logicStep} onClick={() => annotate('explanation')}>Annotate these cells</Button>
-          <Button onClick={() => setHintDetailsOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog open={settingsOpen && !desktopSettings} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="puzzle-settings-title">
+      <Dialog open={settingsOpen && !showInlineSettings} onClose={() => setSettingsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="puzzle-settings-title">
         <DialogTitle id="puzzle-settings-title">Puzzle settings</DialogTitle>
         <DialogContent>              {settingsConfiguration}</DialogContent>
         <DialogActions><Button onClick={() => setSettingsOpen(false)}>Done</Button></DialogActions>
@@ -889,6 +923,7 @@ export const Game = (props: GameProps) => {
             <li><strong>Hard:</strong> also naked pairs — two cells reserve the same two candidates in a unit.</li>
             <li><strong>Extra Hard:</strong> also X-Wing and Swordfish (patterns across parallel lines), and XY-Wing (a pivot and two wings force a candidate elimination).</li>
           </ul>
+          <p>Easiest guarantees a solve using naked singles alone. The hint assistant still prefers row, column and block explanations (hidden singles), so the same forced digit may be explained in a different way.</p>
           <p>The generator first tries up to three puzzles to match your requested grade. If Hard or Extra Hard is still missed, it can explore up to four additional minimal unique puzzles and restore clues until the permitted techniques solve them. For Medium, Hard and Extra Hard, a bounded extra pass can remove more clues and then restore those that preserve the need for the requested technique. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
           <p>If the search returns an easier puzzle, the game tells you; you can generate again. It may retain extra clues to stay within the technique limit. Fewer clues do not necessarily mean a harder puzzle.</p>
           {state.generatorMessage && <p><strong>This puzzle:</strong> {state.generatorMessage}</p>}

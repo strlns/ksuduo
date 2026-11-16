@@ -1,6 +1,7 @@
 import {playEntryCue} from '../../audio/AquaticAudio';
 import {annotationsFor, AnnotationRequest} from './annotations';
 import * as React from "react";
+import type {HintView} from '../../gameplay/HintHistory';
 import type {LogicStep} from "../../algorithm/solver/logical";
 import {NotesContext, LogicStepContext, SelectedCellContext} from "./NotesContext";
 import {Button} from "../Controls/Button";
@@ -17,6 +18,11 @@ export interface NotesHistoryControls { undo: () => boolean; clear: () => void }
 
 interface BoardProps {
     focusHint?: boolean,
+    preview?: HintView,
+    completedCells?: string[],
+    completionVersion?: number,
+    patternReplayKey?: number,
+    onHintAnnotationAvailable?: (available: boolean) => void,
     onNotesPresent?: (present: boolean) => void,
     onAnnotateAll?: () => void,
     confirmAction?: (title: string, description: string, action: () => void) => void,
@@ -57,7 +63,7 @@ export type OptionalCell = CellData | undefined;
 
 export const Board = React.memo(
     ({
-         focusHint, onNotesPresent, onAnnotateAll, confirmAction,
+         focusHint, preview, completedCells = [], completionVersion, patternReplayKey, onHintAnnotationAvailable, onNotesPresent, onAnnotateAll, confirmAction,
          isPaused,
          forceFocus,
          highlightedCell,
@@ -78,21 +84,30 @@ export const Board = React.memo(
          onNotesHistoryChange
      }: BoardProps) => {
 
+        const presentedStep = preview?.step ?? logicStep;
+        const renderedBoard = preview?.board ?? sudoku;
+        const emphasizedCell = preview ? renderedBoard.getCell(preview.step.targets[0].x, preview.step.targets[0].y) : highlightedCell;
         // Input selection, primary hint emphasis and the proof have separate lifetimes.
         const [primaryHighlightVisible, setPrimaryHighlightVisible] = useState(true);
         const [singleHighlightsVisible, setSingleHighlightsVisible] = useState(true);
-        const isSingle = logicStep?.technique === 'Hidden single' || logicStep?.technique === 'Naked single';
+        const isSingle = presentedStep?.technique === 'Hidden single' || presentedStep?.technique === 'Naked single';
         useEffect(() => {
             setPrimaryHighlightVisible(true);
             setSingleHighlightsVisible(true);
-            if (!isSingle && (logicStep || !highlightedCell)) return;
+            if (!isSingle && (presentedStep || !emphasizedCell)) return;
             const timeout = window.setTimeout(() => {
                 setPrimaryHighlightVisible(false);
                 setSingleHighlightsVisible(false);
             }, 8000);
             return () => window.clearTimeout(timeout);
-        }, [logicStep, hintActivationKey, highlightedCell]);
-        const visibleLogicStep = isSingle && !singleHighlightsVisible ? undefined : logicStep;
+        }, [presentedStep, hintActivationKey, highlightedCell, patternReplayKey]);
+        const visibleLogicStep = isSingle && !singleHighlightsVisible ? undefined : presentedStep;
+        const [patternVisible, setPatternVisible] = useState(false);
+        useEffect(() => {
+            setPatternVisible(!!presentedStep && !presentedStep.placement);
+            const timeout = window.setTimeout(() => setPatternVisible(false), 3400);
+            return () => window.clearTimeout(timeout);
+        }, [presentedStep, hintActivationKey, patternReplayKey]);
 
         const notesHistory = React.useRef<{depth: number; before: Record<string, number[] | undefined>; after: Record<string, number[]>}[]>([]);
         const [notes, setNotes] = useState<Record<string, number[]>>({});
@@ -155,7 +170,7 @@ export const Board = React.memo(
             if (hintCandidates && !logicStep?.placement) saveNotes({...notes, ...hintCandidates}, true);
         }, [hintCandidates, logicStep]);
         useEffect(() => {
-            if (annotationRequest && !isPaused && (selectionVisible || annotationRequest.scope === 'all' || annotationRequest.scope === 'explanation')) {
+            if (annotationRequest && !preview && !isPaused && (selectionVisible || annotationRequest.scope === 'all' || annotationRequest.scope === 'explanation')) {
                 const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
                 saveNotes({...notes, ...annotationsFor(sudoku, selected, annotationRequest.scope, logicStep, solverCandidates)});
             }
@@ -166,8 +181,11 @@ export const Board = React.memo(
             const allowed = sudoku.getAllowedCellValues(cell);
             return [key, (notes[key] ?? []).filter(n => allowed.includes(n))];
         }));
+        const canAnnotateHint = !preview && !!logicStep && Object.entries(annotationsFor(sudoku, sudoku.getFirstEmptyCell(), 'explanation', logicStep, solverCandidates))
+            .some(([key, values]) => values.some(value => !visibleNotes[key]?.includes(value)));
+        useEffect(() => {onHintAnnotationAvailable?.(canAnnotateHint);}, [canAnnotateHint, onHintAnnotationAvailable]);
         const updateCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
-            if (isPaused || sudoku.getCell(x, y).isInitial) return;
+            if (preview || isPaused || sudoku.getCell(x, y).isInitial) return;
             if (noteMode && !sudoku.getCell(x, y).value && CellValues.includes(v)) {
                 const key = `${x},${y}`;
                 const current = visibleNotes[key] ?? [];
@@ -205,7 +223,7 @@ export const Board = React.memo(
         };
         const selectCell: React.Dispatch<React.SetStateAction<CellData>> = next => {
             const cell = typeof next === 'function' ? next(focusedCell) : next;
-            if (highlightedCell && (cell.x !== highlightedCell.x || cell.y !== highlightedCell.y)) {
+            if (emphasizedCell && (cell.x !== emphasizedCell.x || cell.y !== emphasizedCell.y)) {
                 setPrimaryHighlightVisible(false);
             }
             setFocusedCell(cell);
@@ -260,7 +278,7 @@ export const Board = React.memo(
     }
 
     const fishLineClass = (axis: 'rows' | 'columns', index: number) => {
-        const fish = logicStep?.fish;
+        const fish = presentedStep?.fish;
         if (!fish) return undefined;
         return fish.orientation === axis
             ? (fish.bases.includes(index) ? 'fish-base-label' : undefined)
@@ -268,8 +286,8 @@ export const Board = React.memo(
     };
     const selected = sudoku.getCell(focusedCell.x, focusedCell.y);
     const key = `${selected.x},${selected.y}`;
-    return <SelectedCellContext.Provider value={selectionVisible ? key : undefined}><LogicStepContext.Provider value={visibleLogicStep}><NotesContext.Provider value={Object.fromEntries(Object.entries({...visibleNotes, ...hintCandidates}).filter(([key]) =>
-        !focusHint || !logicStep || [...logicStep.sources,...logicStep.targets].some(c => `${c.x},${c.y}` === key)))}><div className="board-panel">
+    return <SelectedCellContext.Provider value={!preview && selectionVisible ? key : undefined}><LogicStepContext.Provider value={visibleLogicStep}><NotesContext.Provider value={Object.fromEntries(Object.entries(preview?.notes ?? visibleNotes).filter(([key]) =>
+        !focusHint || !logicStep || [...logicStep.sources,...logicStep.targets].some(c => `${c.x},${c.y}` === key)))}><div className={`board-panel${patternVisible ? ' pattern-replay' : ''}`}>
         <div className={`board-frame${showCoordinates ? ' coordinates-visible' : ''}`}>
         <div className="coordinate-columns" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('columns', i)}>c{i+1}</span>)}</div>
         <div className="coordinate-rows" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('rows', i)}>r{i+1}</span>)}</div>
@@ -278,21 +296,25 @@ export const Board = React.memo(
                      onKeyUp={onKeyUp}
                      style={{position: 'relative', margin: 'auto'}}>
         {
-            sudoku.getBlocks().map(
+            renderedBoard.getBlocks().map(
                 (block, index) => {
                     return <Block
                         block={block}
                         key={index}
-                        cellValidityChecker={sudoku.isCellValid.bind(sudoku)}
+                        cellValidityChecker={renderedBoard.isCellValid.bind(renderedBoard)}
                         updateCellValue={updateCellValue}
                         setFocusedCell={selectCell}
-                        highlightedCell={primaryHighlightVisible ? highlightedCell : undefined}
-                        secondaryHighlight={!isSingle || singleHighlightsVisible ? secondaryHighlight : []}
+                        highlightedCell={primaryHighlightVisible ? emphasizedCell : undefined}
+                        secondaryHighlight={!isSingle || singleHighlightsVisible ? (preview ? [...preview.step.sources, ...preview.step.targets].map(c => renderedBoard.getCell(c.x, c.y)) : secondaryHighlight) : []}
+                        readOnly={!!preview}
                         supportsInputMode={supportsInputMode}
                     />
                 }
             )
         }
+        {!!completedCells.length && <svg key={completionVersion} className="unit-celebration" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">
+            {completedCells.map(key => {const [x, y] = key.split(',').map(Number); return <rect key={key} x={x + .05} y={y + .05} width=".9" height=".9" style={{animationDelay: `${(x + y) * 35}ms`}}/>;})}
+        </svg>}
         {isPaused ? <IconButton onClick={togglePaused} style={{
                 zIndex: 999, position: 'absolute',
                 left: '50%', top: '50%', transform: 'translate(-50%, -50%)'
@@ -304,7 +326,7 @@ export const Board = React.memo(
             : null}
     </PaperBox>
         </div>
-        <section className="notes-toolbar" aria-label="Pencil notes" onPointerDown={event => {
+        <fieldset disabled={!!preview} className="notes-toolbar" aria-label="Pencil notes" onPointerDown={event => {
             // Keep an already-open keyboard stable while toggling notes or digits.
             if (document.activeElement?.matches('.cell input')) event.preventDefault();
         }}>
@@ -318,7 +340,7 @@ export const Board = React.memo(
                     <IconButton className="coordinate-toggle" size="small" aria-label="Coordinate labels" aria-pressed={showCoordinates} onClick={() => setShowCoordinates(!showCoordinates)}><GridOnRounded fontSize="inherit"/></IconButton>
                 </Tooltip>
                 {onAnnotateAll && <Button size="small" aria-label="Annotate all empty cells" disabled={isPaused || sudoku.isSolved()} onClick={onAnnotateAll}>Note all</Button>}
-                <span className="notes-selection">{selectionVisible ? `r${selected.y + 1}c${selected.x + 1}` : 'Select cell'}</span>
+                <span className="notes-selection">{preview ? 'Review' : selectionVisible ? `r${selected.y + 1}c${selected.x + 1}` : 'Select cell'}</span>
                 <Button size="small" aria-label="Annotate selected cell" title="Annotate the currently selected cell with its allowed digits" disabled={isPaused || !selectionVisible || !!selected.value} onClick={() => saveNotes({...notes, [key]: solverCandidates?.[key] ?? sudoku.getAllowedCellValues(selected)})}>Annotate</Button>
                 <Button size="small" aria-label="Clear cell notes" disabled={isPaused || !selectionVisible || !(notes[key]?.length)} onClick={() => saveNotes({...notes, [key]: []})}>Clear cell</Button>
                 <Button size="small" aria-label="Clear all notes" disabled={isPaused || !Object.values(notes).some(values => values.length)} onClick={() => confirmAction ? confirmAction("Clear all notes", "Remove all pencil annotations? Your entered numbers will stay.", () => saveNotes({})) : saveNotes({})}>Clear all</Button>
@@ -326,6 +348,6 @@ export const Board = React.memo(
             {noteMode && <div className="note-digits" role="group" aria-label="Note digits">
                 {[1,2,3,4,5,6,7,8,9].map(n => <Button key={n} size="small" disabled={isPaused || !selectionVisible || !!selected.value} aria-label={`Toggle note ${n}`} aria-pressed={(visibleNotes[key] ?? []).includes(n)} onClick={() => updateCellValue(selected.x, selected.y, n)}>{n}</Button>)}
             </div>}
-        </section>
+        </fieldset>
     </div></NotesContext.Provider></LogicStepContext.Provider></SelectedCellContext.Provider>
     });

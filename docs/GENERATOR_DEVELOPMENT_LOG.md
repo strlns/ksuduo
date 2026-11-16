@@ -221,3 +221,57 @@ and raw observations for the development samples and timing limitations.
 Final cosmetic automorphisms are accepted only after equal-rating and independent
 uniqueness checks. Clue exchanges preserve correctness only with the uniqueness
 checks; no predictable monotone difficulty transformation has been established.
+
+## 2026-11-16: search-budget and exploration ideas (notes only)
+
+These are questions for a controlled experiment, not changes to the production
+search, time limits or difficulty definitions. Read them alongside the archived
+[uniqueness and generator essay](ai/sudoku-proof-and-generator-lab/index.html),
+especially its current-code audit and witness-aware search proposal. That essay
+reviews an earlier revision; its 4×4 demonstrations are not evidence of improved
+9×9 generation hit rates.
+
+- **Spend time deliberately.** Instrument elapsed time and probe/node counts for
+  full-grid construction, ordinary digging, grading, lower-tier-stall refinement,
+  uniqueness-only digging and repair. Current deadlines limit extra phases and
+  are checked between operations; a long exact solve can overrun them. Increasing
+  a deadline before identifying the expensive phase may simply increase latency.
+- **Device adaptation is a hypothesis.** Compare actual worker throughput and
+  observed median/tail latency on phones, tablets and laptops. Core count or a
+  desktop user-agent is not a Sudoku benchmark. Keep the synchronous fallback
+  conservative. Consider cooperative cancellation/yielding and an explicit
+  unknown/budget-exhausted result before raising budgets; never treat unknown as
+  unique or discard the best previously verified puzzle on timeout.
+- **Restarts versus branching.** Existing retries do vary full solutions and
+  shuffled deletion trajectories; they are not identical deterministic repeats.
+  Still compare more independent restarts with bounded backtracking, a small
+  beam/archive of distinct clue masks, and targeted restore/delete exchanges for
+  Hard and Extra Hard at equal elapsed-time budgets. Preserve multiple useful
+  intermediate frontiers rather than only the last path. The earlier random-walk
+  exchange experiment did not beat restart controls; do not revive it without a
+  better hypothesis and held-out evaluation.
+- **Broader exploration already has a foothold.** Uniqueness-only digging followed
+  by repair can cross states rejected by the logical ceiling. Reuse that fact
+  rather than proposing the same mechanism as new. Witness supports from an
+  alternative completion could guide sibling branches and exchanges for the
+  same completed grid. In one irreversible deletion pass, failed removals are
+  already locked by monotonicity, so a witness cache alone adds little there.
+- **Transformations are not automatically new territory.** Digit relabelling,
+  legal row/column permutations and transpose stay within a grid's symmetry orbit
+  and preserve the supported technique patterns. They vary presentation, not
+  difficulty. New completed grids and genuinely different clue masks may explore
+  new structures; a different serialized board is not proof of a new orbit.
+- **Keep claims separate.** Unavoidable-set coverage is a necessary uniqueness
+  filter, not a human-difficulty score. Logical failure is not a proof that an
+  entire search subtree is useless. Keep independent final uniqueness and ceiling
+  checks, honest achieved grades and clue counts. Measure held-out requested-grade
+  hits, clue-goal hits, distinct states, technique-chain lengths, median/tail time,
+  cancellation and budget exhaustion, against equal-time restart controls.
+
+Assistant presentation is a separate concern: unit-first explanations remain
+intentional even for Easiest puzzles. A naked single reached after earlier
+eliminations is still the final local deduction; its explanation should preserve
+those prerequisites instead of implying that row/column/block checking alone
+established the placement. Direct prerequisites are now identified from retained
+candidate exclusions; a complete causal proof graph remains a possible later
+extension, with replay and undo consistency required.

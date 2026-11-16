@@ -479,3 +479,61 @@ it('expires single highlights while retaining the explanation and does not reviv
         expect(document.querySelector('.hint,.hint-added,.hint-origin')).toBeNull();
     } finally {vi.useRealTimers();}
 });
+
+
+it('browses immutable hint snapshots, returns to the current board and keeps undo on the live path', async () => {
+    await startGame();
+    fireEvent.click(screen.getByRole('button', {name: 'Explain'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    const first = values();
+    const explanation = document.getElementById('step-explanation')!.textContent;
+    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    const second = values();
+    const saved = localStorage.getItem('ksuduoState');
+    const notes = localStorage.getItem('ksuduo-notes');
+    fireEvent.click(screen.getByRole('button', {name: 'Previous hint'}));
+    expect(values()).toEqual(first);
+    expect(document.getElementById('step-explanation')!.textContent).toContain(explanation);
+    const input = Array.from(document.querySelectorAll<HTMLInputElement>('.cell input')).find(input => !input.value)!;
+    expect(input.readOnly).toBe(true);
+    fireEvent.input(input, {target: {value: '1'}});
+    expect(values()).toEqual(first);
+    expect(localStorage.getItem('ksuduoState')).toBe(saved);
+    expect(localStorage.getItem('ksuduo-notes')).toBe(notes);
+    fireEvent.click(screen.getByRole('button', {name: 'Current board'}));
+    expect(values()).toEqual(second);
+    fireEvent.click(screen.getByRole('button', {name: 'Previous hint'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Undo'}));
+    expect(values()).toEqual(first);
+    expect(screen.queryByRole('button', {name: 'Current board'})).toBeNull();
+    expect(screen.queryByText('Hint 1 of 2')).toBeNull();
+    expect(document.getElementById('step-explanation')!.textContent).toBe(explanation);
+    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    expect(values()).toEqual(second);
+});
+
+it('offers three assistant states without keeping a Details dialog or losing the current hint', async () => {
+    await startGame();
+    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    expect(screen.queryByRole('button', {name: 'Details'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: 'Hide hint assistant'}));
+    expect(screen.queryByLabelText('Solving explanation')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: 'Show hint assistant'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Explain'}));
+    expect(screen.getByRole('button', {name: 'Collapse'})).toBeTruthy();
+    expect(document.getElementById('step-explanation')!.textContent).toContain('hidden single');
+});
+
+it('annotates missing explanation cells and reports when the same action would add nothing', async () => {
+    await startGame();
+    fireEvent.click(screen.getByRole('button', {name: 'Explain'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Add Hint'}));
+    const annotate = screen.getByRole('button', {name: 'Annotate these cells'});
+    expect(annotate.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(annotate);
+    expect(document.querySelectorAll('.cell-notes').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', {name: 'Notes already shown'}).hasAttribute('disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', {name: 'Clear all notes'}));
+    await confirmIfNeeded();
+    expect(screen.getByRole('button', {name: 'Annotate these cells'}).hasAttribute('disabled')).toBe(false);
+});

@@ -55,3 +55,23 @@ it('does not replay a stale hint on a different board or after discarding the pa
     history.clear();
     expect(history.undo(board, false)).toBeUndefined();
 });
+
+it('retains detached board and candidate snapshots and hides undone future hints from review', () => {
+    const board=makeBoard(), candidates=candidatesFor(board), history=new HintHistory();
+    for (let i=0;i<2;i++) {
+        const step=nextLogicStep(board,candidates)!;
+        const before=history.begin(board,candidates,{kind:'step',step});
+        applyLogicStep(board,candidates,step,true); history.commit(before,board,candidates);
+    }
+    expect(history.hints).toHaveLength(2);
+    const first=history.hints[0], saved=first.board.getFlatValues();
+    expect(first.board.history).toHaveLength(0);
+    expect(saved).not.toEqual(board.getFlatValues());
+    history.undo(board,false);board.undo();
+    expect(history.hints).toHaveLength(1);
+    expect(history.hints[0]).toBe(first);
+    expect(first.board.getFlatValues()).toEqual(saved);
+    board.setValue(2,0,1);
+    expect(first.board.getFlatValues()).toEqual(saved);
+    history.clear();expect(history.hints).toHaveLength(0);
+});

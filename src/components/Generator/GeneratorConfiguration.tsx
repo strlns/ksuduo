@@ -104,7 +104,7 @@ export default (props: GeneratorConfigurationProps) => {
                     <option value={DIFFICULTY_LEVEL.EXTRA_HARD}>Extra Hard</option>
                 </NativeSelect>
                 <FormHelperText style={{lineHeight: 1, marginBottom: ksuduoThemeNormal.spacing(2)}}>
-                    {props.difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 'Naked singles only.' : props.difficulty === DIFFICULTY_LEVEL.EASY ? 'Naked and hidden singles only.' : props.difficulty === DIFFICULTY_LEVEL.MEDIUM ? 'Singles and locked candidates (pointing / claiming).' : props.difficulty === DIFFICULTY_LEVEL.HARD ? 'Singles, locked candidates and naked pairs.' : 'All Hard techniques, plus X-Wing, XY-Wing and Swordfish.'}
+                    {props.difficulty === DIFFICULTY_LEVEL.EASY_NEW ? 'Solvable with naked singles alone. Hints prefer row, column or block explanations (hidden singles) for the same forced digits.' : props.difficulty === DIFFICULTY_LEVEL.EASY ? 'Naked and hidden singles only.' : props.difficulty === DIFFICULTY_LEVEL.MEDIUM ? 'Singles and locked candidates (pointing / claiming).' : props.difficulty === DIFFICULTY_LEVEL.HARD ? 'Singles, locked candidates and naked pairs.' : 'All Hard techniques, plus X-Wing, XY-Wing and Swordfish.'}
                     {' These are technique limits; a puzzle may be easier. More clues may be kept to respect the limit.'}
                 </FormHelperText>
             </FormControl>

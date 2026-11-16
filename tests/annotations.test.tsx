@@ -93,3 +93,22 @@ it('focuses hint notes without deleting unrelated annotations', () => {
  rerender(<Board {...props(board)} logicStep={step} focusHint={false}/>);
  expect(unrelated().getAttribute('aria-description')).toContain('Notes:');
 });
+
+it('keeps live elimination undo intact while showing a historical board with no history', () => {
+ const board=makeBoard();board.setValue(2,0,4);
+ const controls={current:null as import('../src/components/Board/Board').NotesHistoryControls|null};
+ const step:LogicStep={technique:'Locked candidates',explanation:'test',sources:[board.getCell(3,0)],targets:[board.getCell(5,0)],value:2,placement:false};
+ const hintCandidates={'3,0':[6], '5,0':[8]};
+ const {rerender}=render(<Board {...props(board)} notesHistoryRef={controls} logicStep={step} hintCandidates={hintCandidates}/>);
+ const saved=localStorage.getItem('ksuduo-notes');
+ const historical=board.constructor as typeof import('../src/model/Sudoku').Sudoku;
+ const preview={step,board:historical.cloneWithoutHistory(board),notes:{'3,0':[1,6]}};
+ rerender(<Board {...props(board)} notesHistoryRef={controls} logicStep={step} hintCandidates={hintCandidates} preview={preview}/>);
+ expect(localStorage.getItem('ksuduo-notes')).toBe(saved);
+ expect(preview.board.history).toHaveLength(0);
+ expect(board.history).toHaveLength(1);
+ act(()=>{expect(controls.current!.undo()).toBe(true);});
+ rerender(<Board {...props(board)} notesHistoryRef={controls}/>);
+ expect(board.history).toHaveLength(1);
+ expect(JSON.parse(localStorage.getItem('ksuduo-notes')!).notes['3,0']).toBeUndefined();
+});

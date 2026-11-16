@@ -13,6 +13,7 @@ interface CellProps {
     setFocusedCell: React.Dispatch<SetStateAction<CellData>>,
     isHighlighted: boolean,
     isSecondarilyHighlighted: boolean,
+    readOnly?: boolean,
     supportsInputMode: boolean
 }
 
@@ -52,7 +53,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     `;
 
     const onKeyPress: React.KeyboardEventHandler = event => {
-        if (props.cell.isInitial) return;
+        if (props.readOnly || props.cell.isInitial) return;
         const val = Number(event.key) as CellValue;
         if (Number.isInteger(val) && val >= 0 && val <= 9 && event.key.trim()) {
             event.preventDefault();
@@ -61,7 +62,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
     };
 
     const onKeyUp: React.KeyboardEventHandler = (event: React.KeyboardEvent) => {
-        if (["Backspace", "Delete"].includes(event.key)) {
+        if (!props.readOnly && ["Backspace", "Delete"].includes(event.key)) {
             props.setCellValue(CellValue.EMPTY);
         }
     };
@@ -110,14 +111,14 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                       const input = event.target as HTMLInputElement;
                       const data = (event.nativeEvent as InputEvent).data;
                       const text = data ?? input.value;
-                      if (!props.cell.isInitial && /^[1-9]$/.test(text)) props.setCellValue(Number(text));
-                      else if (!props.cell.isInitial && input.value === '') props.setCellValue(CellValue.EMPTY);
+                      if (!props.readOnly && !props.cell.isInitial && /^[1-9]$/.test(text)) props.setCellValue(Number(text));
+                      else if (!props.readOnly && !props.cell.isInitial && input.value === '') props.setCellValue(CellValue.EMPTY);
                       hackyControlledComponentSync();
                   }}
                   onKeyUp={onKeyUp}
                   onFocus={onFocus}
                   disableUnderline={true}
-                  readOnly={props.cell.isInitial}
+                  readOnly={props.readOnly || props.cell.isInitial}
         />
     </div>
 });
