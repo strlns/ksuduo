@@ -671,11 +671,18 @@ export const Game = (props: GameProps) => {
             <span className="explainer-summary">{shownStep?.explanation ?? idleHintText}</span>
           </div>
           <div className="explainer-actions">
-            <Button className="explainer-toggle" size="small" aria-expanded={explainerExpanded} aria-controls="step-explanation" onClick={() => setExplainerExpanded(expanded => !expanded)}>{explainerExpanded ? 'Collapse' : 'Explain'}</Button>
-            <Tooltip title="Annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip>
             <Button size="small" aria-label="Hide hint assistant" onClick={() => setExplainerHidden(true)}>Hide</Button>
+            <Button className="explainer-toggle" size="small" aria-expanded={explainerExpanded} aria-controls="step-explanation" onClick={() => setExplainerExpanded(expanded => !expanded)}>{explainerExpanded ? 'Collapse' : 'Explain'}</Button>
+            <span className="explainer-menu"><Tooltip title="Annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip></span>
           </div>
         </header>
+        <div className="hint-navigation">
+          {hints.length > 0 && <nav className="hint-history" aria-label="Hint history">
+            <Button size="small" aria-label="Previous hint" disabled={shownHintIndex <= 0} onClick={() => setReviewIndex(shownHintIndex - 1)}>‹</Button>
+            <span>Hint {shownHintIndex + 1} of {hints.length}</span>
+            <Button size="small" aria-label="Next hint" disabled={shownHintIndex >= hints.length - 1} onClick={() => setReviewIndex(shownHintIndex + 1 === hints.length - 1 && logicStep ? undefined : shownHintIndex + 1)}>›</Button>
+          </nav>}
+        </div>
         <div id="step-explanation" className="explainer-text" tabIndex={0} aria-label="Step explanation">
           <p>{shownStep?.explanation ?? idleHintText}</p>
           {shownStep && <p>{techniqueExplanation(shownStep)}</p>}
@@ -686,11 +693,7 @@ export const Game = (props: GameProps) => {
         <div className="hint-tools">
           {shownStep && <Button size="small" onClick={() => setPatternReplayKey(key => key + 1)}>Show pattern</Button>}
           {hasEmptyHintCells && !preview && <Tooltip title={canAnnotateHint ? 'Add missing candidate notes in the cells used by this explanation' : 'These cells already show all remaining candidates'}><span><Button size="small" disabled={!canAnnotateHint || state.isPaused || state.isWorking} onClick={() => annotate('explanation')}>{canAnnotateHint ? 'Annotate these cells' : 'Notes already shown'}</Button></span></Tooltip>}
-          {hints.length > 1 && <nav className="hint-history" aria-label="Hint history">
-            <Button size="small" aria-label="Previous hint" disabled={shownHintIndex <= 0} onClick={() => setReviewIndex(shownHintIndex - 1)}>‹</Button>
-            <span>Hint {shownHintIndex + 1} of {hints.length}</span>
-            <Button size="small" aria-label="Next hint" disabled={shownHintIndex >= hints.length - 1} onClick={() => setReviewIndex(shownHintIndex + 1 === hints.length - 1 && logicStep ? undefined : shownHintIndex + 1)}>›</Button>
-          </nav>}
+
           {preview && <Button size="small" onClick={() => setReviewIndex(undefined)}>Current board</Button>}
         </div>
         <small className="explainer-status">{preview ? 'Reviewing a saved hint · Undo always acts on the current game' : shownStep ? (shownStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : hintActivationKey ? 'Add Hint continues from the current board.' : 'Follow the highlighted cells and candidates.'}</small>
