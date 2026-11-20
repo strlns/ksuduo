@@ -2,6 +2,8 @@ import {afterEach, expect, it, vi} from 'vitest';
 import {Sudoku} from '../src/model/Sudoku';
 import {isTriviallySolvable} from '../src/algorithm/transformations';
 import {generateLogical} from '../src/algorithm/generator/generatorLogical';
+import generateSudoku, {DIFFICULTY_LEVEL, GENERATOR_CODE} from '../src/algorithm/generator/generator';
+import {logicalProfile, solveLogical} from '../src/algorithm/solver/logical';
 import {solveCheckUnique, SOLVER_FAILURE} from '../src/algorithm/solver/solverBacktracking';
 import {makeBoard, solution} from './fixtures';
 
@@ -48,8 +50,6 @@ it.each([
     [1, 29, 1], [1, 29, 42],
     [2, 24, 1], [2, 24, 42],
 ])('gameplay difficulty %i with %i clues and seed %i keeps a unique solution', async (difficulty, clues, seed) => {
-    const {default: generateSudoku} = await import('../src/algorithm/generator/generator');
-    const {GENERATOR_CODE} = await import('../src/algorithm/generator/generator');
     let state = seed;
     vi.spyOn(Math, 'random').mockImplementation(() => {
         state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
@@ -100,3 +100,27 @@ it('generates a genuine Extra Hard puzzle with the expanded catalogue (seed 54)'
     expect(solveCheckUnique(board)).toEqual(board.getSolution());
     expect(board.getNumberOfHints()).toBeLessThanOrEqual(28);
 },30000);
+
+it.each([
+    {seed: 4, maxClues: 25, firstNonEasy: 38, firstExtraHard: 42},
+    {seed: 7, maxClues: 26, firstNonEasy: 38, firstExtraHard: 40},
+])('finds an earlier Extra Hard opening at the minimum clue goal (seed $seed)', ({
+    seed, maxClues, firstNonEasy, firstExtraHard,
+}) => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    vi.spyOn(Math, 'random').mockImplementation(() =>
+        (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
+
+    const [code, board] = generateSudoku(21, DIFFICULTY_LEVEL.EXTRA_HARD);
+    expect(code).not.toBe(GENERATOR_CODE.UNKNOWN_ERROR);
+    expect(board!.getNumberOfHints()).toBeGreaterThanOrEqual(21);
+    expect(board!.getNumberOfHints()).toBeLessThanOrEqual(maxClues);
+    expect(solveCheckUnique(board!)).toEqual(board!.getSolution());
+
+    const profile = logicalProfile(board!, 4);
+    expect(profile.rating).toBe(4);
+    expect(profile.beforeNonEasy).toBe(solveLogical(board!, 1, true)?.filter(Boolean).length);
+    expect(profile.beforeTarget).toBe(solveLogical(board!, 3, true)?.filter(Boolean).length);
+    expect(profile.beforeNonEasy).toBeLessThanOrEqual(firstNonEasy);
+    expect(profile.beforeTarget).toBeLessThanOrEqual(firstExtraHard);
+}, 30000);

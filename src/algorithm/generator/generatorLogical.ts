@@ -2,7 +2,8 @@ import {Sudoku} from '../../model/Sudoku';
 import {solveCheckUnique} from '../solver/solverBacktracking';
 import {shuffle} from '../../utility/shuffle';
 import {generateFullSolution} from './generateFullSolution';
-import {LogicLevel, solveLogically, rateLogical, solveLogical} from '../solver/logical';
+import {BOARD_SIZE} from '../../model/Board';
+import {LogicLevel, solveLogically, rateLogical, solveLogical, logicalProfile} from '../solver/logical';
 
 /** Ordinary digging preserves the logical ceiling; exploratory digging preserves uniqueness. */
 function generateAttempt(clues: number, level: LogicLevel, uniqueDigging = false): Sudoku {
@@ -70,8 +71,7 @@ function refineDifficulty(input: Sudoku, clues: number, level: LogicLevel, budge
     return original;
 }
 
-/** Prefer the requested grade; cap work and report an easier grade honestly. */
-export function generateLogical(clues: number, level: LogicLevel, attempts = 3): Sudoku {
+function generateByGrade(clues: number, level: LogicLevel, attempts: number): Sudoku {
     let best: Sudoku | undefined;
     let bestRating = -1;
     for (let i = 0; i < Math.max(1, Math.min(3, attempts)); i++) {
@@ -96,4 +96,66 @@ export function generateLogical(clues: number, level: LogicLevel, attempts = 3):
         if (rating === level) return alternative;
     }
     return result;
+}
+
+/** Revisit the removal order near the clue goal by temporarily restoring a clue. */
+function digForEarlierTechniques(original: Sudoku, clues: number, level: 3 | 4, attempts: number): Sudoku {
+    const deadline = performance.now() + (attempts > 1 ? 1500 : 350);
+    const values = original.getSolution();
+    // Prefer the requested grade. Trade one extra clue against four filled
+    // cells of improvement across the two solve milestones.
+    const openingScore = (profile: ReturnType<typeof logicalProfile>, count: number) =>
+        profile.beforeNonEasy + profile.beforeTarget + 4 * Math.max(0, count - clues)
+        + (level - (profile.rating ?? 0)) * 100;
+    let best = original;
+    let bestScore = openingScore(logicalProfile(original, level), original.getNumberOfHints());
+    let board = Sudoku.cloneWithoutHistory(best);
+    let currentScore = bestScore;
+
+    for (let round = 0; round < (attempts > 1 ? 48 : 12) && performance.now() < deadline; round++) {
+        // Restart from the best known puzzle after exploring lateral moves.
+        if (round && round % 12 === 0) {
+            board = Sudoku.cloneWithoutHistory(best);
+            currentScore = bestScore;
+        }
+
+        const givens = shuffle(board.getFilledCells());
+        const restore = givens.length <= clues || round % 4 !== 0 ? shuffle(board.getEmptyCells())[0] : undefined;
+        if (restore) board.setValue(restore.x, restore.y, values[restore.y * 9 + restore.x], true, false);
+        const count = givens.length - (restore ? 0 : 1);
+        let chosen: typeof givens[number] | undefined;
+        let chosenScore = Infinity;
+
+        for (const cell of givens.slice(0, 10)) {
+            if (performance.now() >= deadline) break;
+            board.clearCell(cell, false);
+            const profile = logicalProfile(board, level);
+            const score = openingScore(profile, count);
+            if (profile.rating !== undefined && score < chosenScore) {
+                chosen = cell;
+                chosenScore = score;
+                if (score < bestScore && profile.rating === level) {
+                    best = Sudoku.cloneWithoutHistory(board);
+                    bestScore = score;
+                }
+            }
+            board.setValueUseCell(cell, false);
+        }
+
+        if (chosen && (chosenScore < currentScore || (restore && round % 3 === 2))) {
+            board.clearCell(chosen, false);
+            currentScore = chosenScore;
+        } else if (restore) {
+            board.clearCell(restore, false);
+        }
+    }
+    return best;
+}
+
+/** Prefer the requested grade; cap work and report an easier grade honestly. */
+export function generateLogical(clues: number, level: LogicLevel, attempts = 3): Sudoku {
+    const board = generateByGrade(clues, level, attempts);
+    return (level === 3 || level === 4) && clues < BOARD_SIZE
+        ? digForEarlierTechniques(board, clues, level, attempts)
+        : board;
 }

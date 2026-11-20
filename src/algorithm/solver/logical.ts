@@ -1,5 +1,6 @@
 import {Sudoku} from '../../model/Sudoku';
 import {CellData, CellValue, NonEmptyCellValues} from '../../model/CellData';
+import {BOARD_SIZE} from '../../model/Board';
 
 export type LogicLevel = 0 | 1 | 2 | 3 | 4;
 export interface LogicStep {
@@ -15,11 +16,25 @@ export interface LogicStep {
 export type Candidates = Map<number, CellValue[]>;
 const key = (c: CellData) => c.y * 9 + c.x;
 export function candidatesFor(board: Sudoku): Candidates {
-    return new Map(board.getEmptyCells().map(c => [key(c), board.getAllowedCellValues(c)]));
+    const cells = board.getFlatCells();
+    const rows = new Uint16Array(9), columns = new Uint16Array(9), blocks = new Uint16Array(9);
+    for (const {value, x, y, blockIndex} of cells) {
+        if (!value) continue;
+        const bit = 1 << value;
+        rows[y] |= bit;
+        columns[x] |= bit;
+        blocks[blockIndex] |= bit;
+    }
+    const candidates: Candidates = new Map();
+    for (const cell of cells) {
+        if (cell.value) continue;
+        const occupied = rows[cell.y] | columns[cell.x] | blocks[cell.blockIndex];
+        candidates.set(key(cell), NonEmptyCellValues.filter(value => !(occupied & (1 << value))));
+    }
+    return candidates;
 }
 export function nextLogicStep(board: Sudoku, candidates: Candidates, level: LogicLevel = 4): LogicStep | undefined {
     const cells = board.getEmptyCells();
-    const units = [...board.getRows(), ...board.getColumns(), ...board.getBlocks().map(b => b.cells)];
     const values = (c: CellData) => candidates.get(key(c)) ?? [];
     const at = (c: CellData) => `r${c.y + 1}c${c.x + 1}`;
     for (const c of cells) if (values(c).length === 1) return {
@@ -30,6 +45,7 @@ export function nextLogicStep(board: Sudoku, candidates: Candidates, level: Logi
     const unitSingle = unitSingleSteps(board, candidates, true)[0];
     if (unitSingle) return unitSingle;
     if (level < 2) return;
+    const units = [...board.getRows(), ...board.getColumns(), ...board.getBlocks().map(b => b.cells)];
     // Unit intersection covers pointing (box -> line) and claiming (line -> box).
     for (const [i, unit] of units.entries()) for (const value of NonEmptyCellValues) {
         const places = unit.filter(c => !c.value && values(c).includes(value));
@@ -63,23 +79,35 @@ export function applyLogicStep(board: Sudoku, candidates: Candidates, step: Logi
         const c = step.targets[0];
         board.setValue(c.x, c.y, step.value, false, recordHistory);
         candidates.delete(key(c));
-        for (const cell of board.getEmptyCells()) {
-            const allowed = board.getAllowedCellValues(cell);
-            candidates.set(key(cell), (candidates.get(key(cell)) ?? allowed).filter(v => allowed.includes(v)));
+        for (const [index, allowed] of candidatesFor(board)) {
+            candidates.set(index, (candidates.get(index) ?? allowed).filter(v => allowed.includes(v)));
         }
     } else for (const c of step.targets) candidates.set(key(c), (candidates.get(key(c)) ?? []).filter(v => v !== step.value));
 }
-export function solveLogical(input: Sudoku, level: LogicLevel, returnPartial = false): CellValue[] | undefined {
+function runLogical(
+    input: Sudoku, ceiling: LogicLevel, returnPartial: boolean,
+    onStall?: (level: LogicLevel, filled: number) => void,
+): CellValue[] | undefined {
     const board = Sudoku.cloneWithoutHistory(input);
     const candidates = candidatesFor(board);
+    let level: LogicLevel = onStall ? 0 : ceiling;
     for (let i = 0; i < 810; i++) {
-        if (board.isSolved()) return board.getFlatValues();
+        if (!candidates.size && board.isSolved()) return board.getFlatValues();
         if ([...candidates.values()].some(v => !v.length)) return;
         const step = nextLogicStep(board, candidates, level);
-        if (!step) return returnPartial ? board.getFlatValues() : undefined;
-        applyLogicStep(board, candidates, step);
+        if (step) {
+            applyLogicStep(board, candidates, step);
+        } else {
+            onStall?.(level, BOARD_SIZE - candidates.size);
+            if (level === ceiling) break;
+            level = (level + 1) as LogicLevel;
+        }
     }
     return returnPartial ? board.getFlatValues() : undefined;
+}
+
+export function solveLogical(input: Sudoku, level: LogicLevel, returnPartial = false): CellValue[] | undefined {
+    return runLogical(input, level, returnPartial);
 }
 
 /** A complete logical solve, preserving the input board. */
@@ -89,8 +117,26 @@ export function solveLogically(input: Sudoku, level: LogicLevel): boolean {
 
 /** Lowest ceiling that completes the puzzle with this app's deterministic techniques. */
 export function rateLogical(board: Sudoku): LogicLevel | undefined {
-    for (const level of [0, 1, 2, 3, 4] as const) if (solveLogically(board, level)) return level;
+    return logicalProfile(board, 4).rating;
 }
+
+/** The tiers share the same deduction order, so continue at each stall to profile one solve. */
+export function logicalProfile(board: Sudoku, target: LogicLevel): {
+    rating: LogicLevel | undefined;
+    beforeNonEasy: number;
+    beforeTarget: number;
+} {
+    let rating: LogicLevel = 0;
+    let beforeNonEasy = BOARD_SIZE;
+    let beforeTarget = BOARD_SIZE;
+    const solved = runLogical(board, target, false, (level, filled) => {
+        if (level === 1) beforeNonEasy = filled;
+        if (level === target - 1) beforeTarget = filled;
+        if (level < target) rating = (level + 1) as LogicLevel;
+    });
+    return {rating: solved ? rating : undefined, beforeNonEasy, beforeTarget};
+}
+
 export const logicLevelNames = ['Easiest', 'Easy', 'Medium', 'Hard', 'Extra Hard'] as const;
 
 /** All only-place explanations, with equal treatment of blocks, rows and columns. */

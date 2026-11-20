@@ -8,7 +8,7 @@ import { Sudoku } from "../../model/Sudoku";
 import { MINIMUM_CLUES } from "../../model/Board";
 import {generateLogical} from "./generatorLogical";
 import { isError } from "lodash-es";
-import {rateLogical, logicLevelNames} from "../solver/logical";
+import {logicalProfile, logicLevelNames} from "../solver/logical";
 import {solveCheckUnique} from "../solver/solverBacktracking";
 
 export enum DIFFICULTY_LEVEL {
@@ -50,14 +50,17 @@ export default function generateRandomSudoku(
       return [GENERATOR_CODE.UNKNOWN_ERROR, undefined,
         "Generated puzzle failed the final uniqueness check. Please try again."];
     }
-    const rating = rateLogical(board);
-    if (rating === undefined || rating > level) {
+    const original = logicalProfile(board, level);
+    const {rating} = original;
+    if (rating === undefined) {
       return [GENERATOR_CODE.UNKNOWN_ERROR, undefined, "Generated puzzle exceeds its solving-technique limit. Please try again."];
     }
-    // Geometry preserves uniqueness and technique patterns, but deterministic
-    // deduction ordering can affect measured grade. Keep only equal-grade shuffles.
+    // Deduction ordering can affect both grade and when a technique is needed.
     const presented = randomizePresentation(board);
-    if (rateLogical(presented) === rating && Array.isArray(solveCheckUnique(presented))) board = presented;
+    const shuffled = logicalProfile(presented, level);
+    const preservesOpening = level < 3 ||
+      (shuffled.beforeNonEasy <= original.beforeNonEasy && shuffled.beforeTarget <= original.beforeTarget);
+    if (shuffled.rating === rating && preservesOpening && Array.isArray(solveCheckUnique(presented))) board = presented;
     const ratingMessage = `Rated ${logicLevelNames[rating]} by the app's solving techniques.`;
     const details = actual > target ? ` Kept ${actual} clues (requested ${target}).` : '';
     const easier = rating < level ? ` Requested ${logicLevelNames[level]}; try again for a more demanding puzzle.` : '';

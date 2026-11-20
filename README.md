@@ -111,6 +111,8 @@ techniques solve them. A separate backtracking solver checks final uniqueness.
 
 The generator first tries up to three puzzles, with bounded refinement and
 additional minimal-puzzle repair attempts for missed Hard/Extra Hard grades.
+For those two levels, a final search compares clue removals and exchanges to make
+singles run out and the requested techniques become necessary earlier in the solve.
 Hard and Extra Hard clue goals span 21–28. The displayed
 rating is the lowest level that solves the puzzle using **this app's techniques**,
 not a universal measure of human difficulty. If the search returns an easier puzzle,
