@@ -2,6 +2,7 @@ import {Sudoku} from '../../model/Sudoku';
 import {solveCheckUnique} from '../solver/solverBacktracking';
 import {shuffle} from '../../utility/shuffle';
 import {generateFullSolution} from './generateFullSolution';
+import {searchClueGoals} from './searchClueGoals';
 import {BOARD_SIZE} from '../../model/Board';
 import {LogicLevel, solveLogically, rateLogical, solveLogical, logicalProfile} from '../solver/logical';
 
@@ -99,8 +100,10 @@ function generateByGrade(clues: number, level: LogicLevel, attempts: number): Su
 }
 
 /** Revisit the removal order near the clue goal by temporarily restoring a clue. */
-function digForEarlierTechniques(original: Sudoku, clues: number, level: 3 | 4, attempts: number): Sudoku {
-    const deadline = performance.now() + (attempts > 1 ? 1500 : 350);
+function digForEarlierTechniques(
+    original: Sudoku, clues: number, level: 3 | 4, attempts: number, budget = attempts > 1 ? 1500 : 350,
+): Sudoku {
+    const deadline = performance.now() + budget;
     const values = original.getSolution();
     // Prefer the requested grade. Trade one extra clue against four filled
     // cells of improvement across the two solve milestones.
@@ -154,8 +157,16 @@ function digForEarlierTechniques(original: Sudoku, clues: number, level: 3 | 4, 
 
 /** Prefer the requested grade; cap work and report an easier grade honestly. */
 export function generateLogical(clues: number, level: LogicLevel, attempts = 3): Sudoku {
+    // With at most two blanks, each blank has a row or column that forces it.
+    if (clues >= BOARD_SIZE - 2) return generateAttempt(clues, 0);
     const board = generateByGrade(clues, level, attempts);
-    return (level === 3 || level === 4) && clues < BOARD_SIZE
-        ? digForEarlierTechniques(board, clues, level, attempts)
-        : board;
+    const advanced = level === 3 || level === 4;
+    const refined = advanced ? digForEarlierTechniques(board, clues, level, attempts) : board;
+    const result = searchClueGoals(refined, clues, level, attempts <= 1);
+    // When a new route reaches both goals, reconsider its opening at that exact count.
+    if (advanced && attempts > 1 && result !== refined &&
+        result.getNumberOfHints() === clues && rateLogical(result) === level) {
+        return digForEarlierTechniques(result, clues, level, attempts, 500);
+    }
+    return result;
 }

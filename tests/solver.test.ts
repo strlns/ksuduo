@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {almostDailyNightmareSudokus, gnomeGs4HardSudokus} from '../src/examples/validExamples';
 import {invalid2Solutions, invalid3Solutions, invalid4Solutions, invalid10Solutions, invalid125Solutions} from '../src/examples/invalidExamples';
-import {solveCheckUnique, SOLVER_FAILURE} from '../src/algorithm/solver/solverBacktracking';
+import {findAlternativeSolution, solveCheckUnique, SOLVER_FAILURE} from '../src/algorithm/solver/solverBacktracking';
 import {solverResultIsError} from '../src/algorithm/solver/solver';
 import {solveLogical} from '../src/algorithm/solver/logical';
 import {puzzleToSudoku} from '../src/model/Sudoku';
@@ -20,6 +20,21 @@ it('solves a fixed puzzle exactly without changing the input', () => {
     const before = puzzle.slice();
     expect(solveCheckUnique(puzzle)).toEqual(solution);
     expect(puzzle).toEqual(before);
+});
+
+it('finds a second completion and verifies when a repaired clue rules it out', () => {
+    const board = solution.slice();
+    const removed = [3, 4, 30, 31];
+    for (const index of removed) board[index] = 0;
+    const before = board.slice();
+    const alternative = findAlternativeSolution(board, solution);
+    expect(alternative).toBeDefined();
+    expect(removed.every(index => alternative![index] !== solution[index])).toBe(true);
+    expect(solutionRespectsHints(board, alternative!)).toBe(true);
+    expect(board).toEqual(before);
+    board[removed[0]] = solution[removed[0]];
+    expect(findAlternativeSolution(board, solution)).toBeUndefined();
+    expect(solveCheckUnique(board)).toEqual(solution);
 });
 
 describe('original fixed valid fixtures', () => {

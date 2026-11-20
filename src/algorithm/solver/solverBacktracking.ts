@@ -1,128 +1,130 @@
 /**
- * Backtracking Sudoku algorithm that also detects non-uniqueness of the solution.
- *
- * Based on
- * @mattflow/sudoku-algorithm and
+ * Backtracking Sudoku solver that searches for a second completion.
+ * Earlier implementation based on @mattflow/sudoku-algorithm and
  * https://stackoverflow.com/questions/24343214/determine-whether-a-sudoku-has-a-unique-solution
  */
-import {CellValue, NonEmptyCellValues} from "../../model/CellData";
-import {Solution} from "./solver";
-import {BOARD_SIZE, BOARD_WIDTH, MINIMUM_CLUES} from "../../model/Board";
-import {Puzzle, Sudoku} from "../../model/Sudoku";
-import {LOGLEVEL_VERBOSE} from "../../loglevels";
-import {getBlockValuesForIndexInFlatPuzzle} from "../transformations";
+import {CellValue, NonEmptyCellValues} from '../../model/CellData';
+import {
+    BLOCK_HEIGHT, BLOCK_WIDTH, BLOCKS_PER_BAND, BOARD_SIZE, BOARD_WIDTH, flatIndexToCoords, MINIMUM_CLUES,
+} from '../../model/Board';
+import {Puzzle, Sudoku} from '../../model/Sudoku';
+import type {Solution} from './solver';
 
 export enum SOLVER_FAILURE {
     NO_SOLUTION_FOUND = 0,
     MULTIPLE_SOLUTIONS = 1
 }
 
-function checkRow(flatPuzzle: CellValue[], candidate: CellValue, flatIndex: number) {
-    const start = Math.floor(flatIndex / BOARD_WIDTH) * BOARD_WIDTH;
-    for (let i = 0; i < BOARD_WIDTH; i++) {
-        if (flatPuzzle[start + i] === candidate) {
-            return false;
+const allDigits = NonEmptyCellValues.reduce((mask, digit) => mask | (1 << digit), 0);
+const digitCount = new Uint8Array(allDigits + 1);
+for (let mask = 1; mask <= allDigits; mask++) {
+    digitCount[mask] = 1 + digitCount[mask & (mask - 1)];
+}
+const locations = Array.from({length: BOARD_SIZE}, (_, index) => {
+    const [column, row] = flatIndexToCoords(index);
+    const block = Math.floor(row / BLOCK_HEIGHT) * BLOCKS_PER_BAND + Math.floor(column / BLOCK_WIDTH);
+    return {row, column, block};
+});
+
+/** Return false on an exhausted budget. The visitor can stop after a witness. */
+function searchCompletions(
+    input: CellValue[], visit: (solution: CellValue[]) => boolean, minimumClues = 0, maxIterations = 0,
+): boolean {
+    if (input.length !== BOARD_SIZE) throw new Error('Puzzle has invalid size.');
+    const puzzle = input.slice();
+
+    const rows = new Uint16Array(BOARD_WIDTH);
+    const columns = new Uint16Array(BOARD_WIDTH);
+    const blocks = new Uint16Array(BOARD_WIDTH);
+    const empty: number[] = [];
+    for (let index = 0; index < BOARD_SIZE; index++) {
+        const digit = puzzle[index];
+        if (!Number.isInteger(digit) || digit < 0 || digit > 9) return true;
+        if (!digit) {
+            empty.push(index);
+            continue;
         }
+        const {row, column, block} = locations[index];
+        const bit = 1 << digit;
+        if ((rows[row] | columns[column] | blocks[block]) & bit) return true;
+        rows[row] |= bit;
+        columns[column] |= bit;
+        blocks[block] |= bit;
     }
-    return true;
-}
-
-function checkCol(flatPuzzle: CellValue[], candidate: CellValue, flatIndex: number) {
-    const start = flatIndex % BOARD_WIDTH;
-    for (let i = 0; i < BOARD_WIDTH; i += 1) {
-        if (flatPuzzle[start + (i * BOARD_WIDTH)] === candidate) {
-            return false;
-        }
+    if (BOARD_SIZE - empty.length < minimumClues) {
+        throw new Error(`Puzzle has less than the minimum required number of hints (${minimumClues})`);
     }
-    return true;
-}
+    let iterations = 0;
+    let stopped = false;
+    return search(0);
 
-function checkBlock(flatPuzzle: CellValue[], candidate: CellValue, index: number) {
-    if (IS_DEVELOPMENT && LOG_LEVEL >= LOGLEVEL_VERBOSE) {
-        const values = getBlockValuesForIndexInFlatPuzzle(flatPuzzle, index);
-        return !values.includes(candidate);
-    }
-    return !getBlockValuesForIndexInFlatPuzzle(flatPuzzle, index).includes(candidate);
-}
-
-function check(flatPuzzle: CellValue[], candidate: CellValue, index: number) {
-    return checkRow(flatPuzzle, candidate, index) &&
-        checkCol(flatPuzzle, candidate, index) &&
-        checkBlock(flatPuzzle, candidate, index);
-}
-
-const solveWithBacktrackingCheckUnique = (flatPuzzle: CellValue[], maxIterations: number): Solution | SOLVER_FAILURE => {
-    let iteration = 0;
-    let exhausted = false;
-    const puzzle = flatPuzzle.slice(); //recursive inner function works in-place. outer function preserves argument.
-    /*
-      because we continue backtracking in search of a 2nd solution,
-      the solution must be assigned to a temporary variable when finishing
-      the first backtracking run.
-     */
-    let solution: Solution | undefined;
-
-    /*
-     * inspired by https://stackoverflow.com/questions/24343214/determine-whether-a-sudoku-has-a-unique-solution
-     * NOT a pure function, this mutates the argument `puzzle` and works in-place.
-     */
-    function recursiveSolveWithCount(puzzle: CellValue[], index: number, solutionCount: number = 0): number {
-        if (exhausted || (maxIterations !== 0 && ++iteration > maxIterations)) {
-            exhausted = true;
-            return solutionCount;
-        }
-        if (index >= BOARD_SIZE) {
-            solution = puzzle.slice();
-            return solutionCount + 1;
-        }
-        if (puzzle[index] !== CellValue.EMPTY) {
-            return recursiveSolveWithCount(puzzle, index + 1, solutionCount);
+    function search(depth: number): boolean {
+        if (maxIterations !== 0 && ++iterations > maxIterations) return false;
+        if (depth === empty.length) {
+            stopped = visit(puzzle);
+            return true;
         }
 
-        for (let value of NonEmptyCellValues) {
-            if (solutionCount > 1) {
-                //we are not interested in the actual solutions if there is more than one.
-                break;
-            }
-            if (check(puzzle, value, index)) {
-                puzzle[index] = value;
-                solutionCount = recursiveSolveWithCount(puzzle, index, solutionCount);
+        // Branch on the blank with the fewest legal digits.
+        let best = depth;
+        let candidates = allDigits;
+        for (let i = depth; i < empty.length; i++) {
+            const {row, column, block} = locations[empty[i]];
+            const available = allDigits & ~(rows[row] | columns[column] | blocks[block]);
+            if (!available) return true;
+            if (digitCount[available] < digitCount[candidates]) {
+                best = i;
+                candidates = available;
+                if (digitCount[candidates] === 1) break;
             }
         }
-        //Backtracking
+
+        const index = empty[best];
+        empty[best] = empty[depth];
+        empty[depth] = index;
+        const {row, column, block} = locations[index];
+        while (candidates && !stopped) {
+            const bit = candidates & -candidates;
+            candidates ^= bit;
+            puzzle[index] = 31 - Math.clz32(bit);
+            rows[row] |= bit;
+            columns[column] |= bit;
+            blocks[block] |= bit;
+            if (!search(depth + 1)) return false;
+            rows[row] ^= bit;
+            columns[column] ^= bit;
+            blocks[block] ^= bit;
+        }
         puzzle[index] = CellValue.EMPTY;
-        return solutionCount;
+        empty[depth] = empty[best];
+        empty[best] = index;
+        return true;
     }
-
-    const solutionCount = recursiveSolveWithCount(puzzle, 0);
-    if (exhausted) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
-    if (solutionCount === 1 && solution !== undefined) {
-        return solution as Solution;
-    } else if (solutionCount > 1) {
-        return SOLVER_FAILURE.MULTIPLE_SOLUTIONS;
-    }
-    return SOLVER_FAILURE.NO_SOLUTION_FOUND;
-
 }
 
-export function solveCheckUnique(puzzle: Puzzle, maxIterations: number = 0): Solution | SOLVER_FAILURE {
-    const flatPuzzle = puzzle instanceof Sudoku ? puzzle.getFlatValues() : puzzle as CellValue[];
-    if (flatPuzzle.length !== BOARD_SIZE) {
-        throw new Error('Puzzle has invalid size.');
-    }
-
-    for (let i = 0; i < flatPuzzle.length; i++) {
-        const value = flatPuzzle[i];
-        if (!Number.isInteger(value) || value < 0 || value > 9) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
-        if (value) {
-            const copy = flatPuzzle.slice(); copy[i] = CellValue.EMPTY;
-            if (!check(copy, value, i)) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
+export function solveCheckUnique(input: Puzzle, maxIterations = 0): Solution | SOLVER_FAILURE {
+    const puzzle = input instanceof Sudoku ? input.getFlatValues() : input;
+    let solution: Solution | undefined;
+    let multiple = false;
+    const finished = searchCompletions(puzzle, completion => {
+        if (solution) {
+            multiple = true;
+            return true;
         }
-    }
-    const hints = flatPuzzle.filter(cellValue => cellValue !== CellValue.EMPTY).length;
+        solution = completion.slice();
+        return false;
+    }, MINIMUM_CLUES, maxIterations);
+    if (!finished) return SOLVER_FAILURE.NO_SOLUTION_FOUND;
+    return multiple ? SOLVER_FAILURE.MULTIPLE_SOLUTIONS : solution ?? SOLVER_FAILURE.NO_SOLUTION_FOUND;
+}
 
-    if (hints < MINIMUM_CLUES) {
-        throw new Error(`Puzzle has less than the minimum required number of hints (${MINIMUM_CLUES})`);
-    }
-    return solveWithBacktrackingCheckUnique(flatPuzzle, maxIterations);
+/** Find a completion that a clue exchange must rule out. The known solution fits the givens. */
+export function findAlternativeSolution(puzzle: CellValue[], known: CellValue[]): Solution | undefined {
+    let alternative: Solution | undefined;
+    searchCompletions(puzzle, completion => {
+        if (!completion.some((value, index) => value !== known[index])) return false;
+        alternative = completion.slice();
+        return true;
+    });
+    return alternative;
 }

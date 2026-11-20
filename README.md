@@ -113,11 +113,13 @@ The generator first tries up to three puzzles, with bounded refinement and
 additional minimal-puzzle repair attempts for missed Hard/Extra Hard grades.
 For those two levels, a final search compares clue removals and exchanges to make
 singles run out and the requested techniques become necessary earlier in the solve.
+When either goal is missed, the generator samples sparse unique puzzles and uses
+alternative solutions to guide exchanges. It can also restore clues to a smaller
+puzzle while checking that the requested techniques are still needed.
 Hard and Extra Hard clue goals span 21–28. The displayed
 rating is the lowest level that solves the puzzle using **this app's techniques**,
 not a universal measure of human difficulty. If the search returns an easier puzzle,
-the game tells you; you can generate again. It may also retain extra clues to stay
-within the technique limit. Fewer clues do not necessarily mean a harder puzzle.
+the game tells you; you can generate again. It reports the actual count when it misses the clue goal. Fewer clues do not necessarily mean a harder puzzle.
 
 ## Run locally
 

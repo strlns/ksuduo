@@ -3,7 +3,7 @@ import {Sudoku} from '../src/model/Sudoku';
 import {isTriviallySolvable} from '../src/algorithm/transformations';
 import {generateLogical} from '../src/algorithm/generator/generatorLogical';
 import generateSudoku, {DIFFICULTY_LEVEL, GENERATOR_CODE} from '../src/algorithm/generator/generator';
-import {logicalProfile, solveLogical} from '../src/algorithm/solver/logical';
+import {applyLogicStep, candidatesFor, logicalProfile, nextHintStep, solveLogical} from '../src/algorithm/solver/logical';
 import {solveCheckUnique, SOLVER_FAILURE} from '../src/algorithm/solver/solverBacktracking';
 import {makeBoard, solution} from './fixtures';
 
@@ -76,6 +76,47 @@ it('uses the lower-tier stall to retain a Hard puzzle at 28 clues (seed 18)', as
     expect(solveLogically(board, 2)).toBe(false);
     expect(solveCheckUnique(board)).toEqual(board.getSolution());
 }, 30000);
+
+it.each([
+    [DIFFICULTY_LEVEL.EASY_NEW, 0, 23, 1],
+    [DIFFICULTY_LEVEL.EASY, 1, 21, 4],
+    [DIFFICULTY_LEVEL.MEDIUM, 2, 29, 2],
+    [DIFFICULTY_LEVEL.HARD, 3, 23, 2],
+    [DIFFICULTY_LEVEL.EXTRA_HARD, 4, 23, 3],
+] as const)('hits both goals and supports hint replay for mode %i, grade %i, %i clues, seed %i', (
+    difficulty, level, clues, seed,
+) => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    let state: number = seed;
+    vi.spyOn(Math, 'random').mockImplementation(() =>
+        (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 2 ** 32);
+
+    const [code, board] = generateSudoku(clues, difficulty);
+    expect(code).toBe(GENERATOR_CODE.OK);
+    expect(board!.getNumberOfHints()).toBe(clues);
+    expect(logicalProfile(board!, level).rating).toBe(level);
+    const solution = board!.getSolution();
+    expect(solveCheckUnique(board!)).toEqual(solution);
+
+    const candidates = candidatesFor(board!);
+    for (let i = 0; i < 810 && !board!.isSolved(); i++) {
+        const step = nextHintStep(board!, candidates);
+        expect(step).toBeDefined();
+        for (const cell of step!.targets) {
+            expect(step!.value === solution[cell.y * 9 + cell.x]).toBe(step!.placement);
+        }
+        applyLogicStep(board!, candidates, step!);
+    }
+    expect(board!.getFlatValues()).toEqual(solution);
+}, 30000);
+
+it.each([79, 80, 81])('keeps the count on a nearly full board with %i clues', clues => {
+    const [code, board, details] = generateSudoku(clues, DIFFICULTY_LEVEL.EXTRA_HARD);
+    expect(code).toBe(GENERATOR_CODE.OK);
+    expect(board!.getNumberOfHints()).toBe(clues);
+    expect(logicalProfile(board!, 4).rating).toBe(0);
+    expect(details).toContain('Requested Extra Hard');
+});
 
 it('recovers Hard by repairing a minimal unique leaf after the ordinary search misses (seed 34)', async () => {
     const {rateLogical, solveLogically} = await import('../src/algorithm/solver/logical');

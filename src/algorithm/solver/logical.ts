@@ -84,18 +84,33 @@ export function applyLogicStep(board: Sudoku, candidates: Candidates, step: Logi
         }
     } else for (const c of step.targets) candidates.set(key(c), (candidates.get(key(c)) ?? []).filter(v => v !== step.value));
 }
+
 function runLogical(
     input: Sudoku, ceiling: LogicLevel, returnPartial: boolean,
     onStall?: (level: LogicLevel, filled: number) => void,
 ): CellValue[] | undefined {
-    const board = Sudoku.cloneWithoutHistory(input);
+    const board = new Sudoku();
+    board.initWithNumbers(input.getFlatValues(), false);
+    const cells = board.getFlatCells();
     const candidates = candidatesFor(board);
     let level: LogicLevel = onStall ? 0 : ceiling;
     for (let i = 0; i < 810; i++) {
         if (!candidates.size && board.isSolved()) return board.getFlatValues();
-        if ([...candidates.values()].some(v => !v.length)) return;
+        for (const values of candidates.values()) if (!values.length) return;
         const step = nextLogicStep(board, candidates, level);
-        if (step) {
+        if (step?.placement) {
+            const cell = step.targets[0];
+            board.setValue(cell.x, cell.y, step.value, false, false);
+            candidates.delete(key(cell));
+            // These candidates already reflect all earlier placements and eliminations.
+            for (const [index, values] of candidates) {
+                const peer = cells[index];
+                if ((peer.x === cell.x || peer.y === cell.y || peer.blockIndex === cell.blockIndex) &&
+                    values.includes(step.value)) {
+                    candidates.set(index, values.filter(value => value !== step.value));
+                }
+            }
+        } else if (step) {
             applyLogicStep(board, candidates, step);
         } else {
             onStall?.(level, BOARD_SIZE - candidates.size);
@@ -143,12 +158,20 @@ export const logicLevelNames = ['Easiest', 'Easy', 'Medium', 'Hard', 'Extra Hard
 export function unitSingleSteps(board: Sudoku, candidates: Candidates, firstOnly = false): LogicStep[] {
     const units = [...board.getRows(), ...board.getColumns(), ...board.getBlocks().map(b => b.cells)];
     const steps: LogicStep[] = [];
-    for (const [i, unit] of units.entries()) for (const value of NonEmptyCellValues) {
-        const places = unit.filter(c => !c.value && candidates.get(key(c))?.includes(value));
-        if (places.length === 1) {
-            const c = places[0];
+    for (const [i, unit] of units.entries()) {
+        // A null entry means the digit has more than one possible place in this unit.
+        const places: (CellData | null | undefined)[] = [];
+        for (const cell of unit) {
+            if (cell.value) continue;
+            for (const value of candidates.get(key(cell)) ?? []) {
+                if (places[value] !== cell) places[value] = places[value] === undefined ? cell : null;
+            }
+        }
+        for (const value of NonEmptyCellValues) {
+            const c = places[value];
+            if (!c) continue;
             steps.push({technique: 'Hidden single', explanation: `${value} can only go at r${c.y + 1}c${c.x + 1} in ${i < 9 ? 'row' : i < 18 ? 'column' : 'block'} ${i % 9 + 1}.`,
-                sources: unit, targets: places, value, placement: true});
+                sources: unit, targets: [c], value, placement: true});
             if (firstOnly) return steps;
         }
     }

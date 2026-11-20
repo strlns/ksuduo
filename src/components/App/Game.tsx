@@ -964,7 +964,7 @@ export const Game = (props: GameProps) => {
       <Dialog open={generationInfoOpen} onClose={() => setGenerationInfoOpen(false)} fullWidth maxWidth="sm" aria-labelledby="generation-info-title">
         <DialogTitle id="generation-info-title">How puzzles are generated</DialogTitle>
         <DialogContent>
-          <p>Puzzles are generated from scratch in your browser. Each accepted clue removal leaves a puzzle solvable using the selected techniques. A separate backtracking solver checks final uniqueness.</p>
+          <p>Puzzles are generated from scratch in your browser. Every returned puzzle is solvable using the selected techniques. A separate backtracking solver checks final uniqueness.</p>
           <ul>
             <li><strong>Easiest:</strong> naked singles — only one candidate in a cell.</li>
             <li><strong>Easy:</strong> also hidden singles — only one place for a digit in a row, column or box.</li>
@@ -973,8 +973,8 @@ export const Game = (props: GameProps) => {
             <li><strong>Extra Hard:</strong> also X-Wing and Swordfish (patterns across parallel lines), and XY-Wing (a pivot and two wings force a candidate elimination).</li>
           </ul>
           <p>Easiest guarantees a solve using naked singles alone. The hint assistant still prefers row, column and block explanations (hidden singles), so the same forced digit may be explained in a different way.</p>
-          <p>The generator first tries up to three puzzles to match your requested grade. If Hard or Extra Hard is still missed, it can explore up to four additional minimal unique puzzles and restore clues until the permitted techniques solve them. For Medium, Hard and Extra Hard, a bounded extra pass can remove more clues and restore those that preserve the need for the requested technique. For Hard and Extra Hard, the generator also compares removals and exchanges to see which make advanced techniques necessary earlier. The displayed rating is the lowest level that solves the puzzle using this app’s techniques, not a universal measure of human difficulty.</p>
-          <p>If the search returns an easier puzzle, the game tells you; you can generate again. It may retain extra clues to stay within the technique limit. Fewer clues do not necessarily mean a harder puzzle.</p>
+          <p>The generator first tries up to three puzzles to match your requested grade. If Hard or Extra Hard is still missed, it can explore up to four additional minimal unique puzzles and restore clues until the permitted techniques solve them. For Medium, Hard and Extra Hard, a bounded extra pass can remove more clues and restore those that preserve the need for the requested technique. For Hard and Extra Hard, the generator also compares removals and exchanges to see which make advanced techniques necessary earlier. If either goal is missed, the generator looks for a closer match by exchanging clues or restoring them to a smaller puzzle. The displayed rating is the lowest level that solves the puzzle using this app’s techniques.</p>
+          <p>If the search returns an easier puzzle, the game tells you; you can generate again. The message shows the actual count if the search misses the clue goal. Fewer clues do not necessarily mean a harder puzzle.</p>
           {state.generatorMessage && <p><strong>This puzzle:</strong> {state.generatorMessage}</p>}
         </DialogContent>
         <DialogActions><Button onClick={() => setGenerationInfoOpen(false)}>Close</Button></DialogActions>

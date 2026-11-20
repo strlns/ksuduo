@@ -26,7 +26,7 @@ it.each(modes)('preserves a unique final board and its state in mode %i', mode =
     const board = makeBoard();
     const before = board.getFlatValues();
     supply(board);
-    const result = generateRandomSudoku(81, mode);
+    const result = generateRandomSudoku(board.getNumberOfHints(), mode);
     expect(result[0]).toBe(GENERATOR_CODE.OK);
     expect(result[1]).toBe(board);
     expect(board.getFlatValues()).toEqual(before);
@@ -43,6 +43,13 @@ it('preserves the clue-target warning for a unique best board', () => {
     const board = makeBoard();
     supply(board, GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL);
     expect(generateRandomSudoku(24)).toEqual([GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL, board, expect.stringContaining('Kept 30 clues')]);
+});
+it('reports a missed clue target when the returned board has fewer clues', () => {
+    const board = makeBoard();
+    supply(board);
+    expect(generateRandomSudoku(31)).toEqual([
+        GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL, board, expect.stringContaining('Kept 30 clues (requested 31)'),
+    ]);
 });
 it('preserves existing generation errors', () => {
     vi.mocked(generateLogical).mockImplementation(() => {throw new Error('original error');});

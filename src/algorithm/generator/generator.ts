@@ -43,7 +43,7 @@ export default function generateRandomSudoku(
     const target = Math.max(MINIMUM_CLUES, Math.min(81, Math.floor(numberOfClues)));
     let board = generateLogical(target, level, fewerRetries ? 1 : 3);
     const actual = board.getNumberOfHints();
-    const code = actual > target ? GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL : GENERATOR_CODE.OK;
+    const code = actual !== target ? GENERATOR_CODE.COULD_NOT_ACHIEVE_CLUES_GOAL : GENERATOR_CODE.OK;
     // Check the actual returned board, independently of removal-loop shortcuts.
     // Both worker and synchronous generation pass through this boundary.
     if (!Array.isArray(solveCheckUnique(board))) {
@@ -62,7 +62,7 @@ export default function generateRandomSudoku(
       (shuffled.beforeNonEasy <= original.beforeNonEasy && shuffled.beforeTarget <= original.beforeTarget);
     if (shuffled.rating === rating && preservesOpening && Array.isArray(solveCheckUnique(presented))) board = presented;
     const ratingMessage = `Rated ${logicLevelNames[rating]} by the app's solving techniques.`;
-    const details = actual > target ? ` Kept ${actual} clues (requested ${target}).` : '';
+    const details = actual !== target ? ` Kept ${actual} clues (requested ${target}).` : '';
     const easier = rating < level ? ` Requested ${logicLevelNames[level]}; try again for a more demanding puzzle.` : '';
     return [code, board, ratingMessage + details + easier];
   } catch (e) {
