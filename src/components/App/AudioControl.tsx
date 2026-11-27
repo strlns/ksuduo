@@ -1,11 +1,20 @@
 import {useEffect, useRef, useState} from 'react';
 import {Button, Tooltip} from '@mui/material';
-import {GraphicEqRounded, VolumeOffRounded, WavesRounded} from '@mui/icons-material';
+import {isStyleId, soundscapes, type StyleId} from '../../audio/soundscapes';
+import {ExpandMoreRounded, GraphicEqRounded, VolumeOffRounded, WavesRounded} from '@mui/icons-material';
 import {AquaticAudio, ENTRY_CUE, AQUATIC_CUE, COMPLETION_SWEEP} from '../../audio/AquaticAudio';
 
 const labels = ['Off', 'Music + FX', 'FX only', 'Music only'];
 export function AudioControl() {
     const [mode, setMode] = useState(0);
+    const [style, setStyle] = useState<StyleId>(() => {
+        try {
+            const saved = localStorage.getItem('ksuduo-soundscape');
+            if (isStyleId(saved)) return saved;
+        } catch { /* storage is optional */ }
+        return 'lagoon';
+    });
+    const startupTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const [failed, setFailed] = useState(false);
     const engine = useRef<AquaticAudio | undefined>(undefined);
     useEffect(() => {
@@ -30,10 +39,13 @@ export function AudioControl() {
             window.removeEventListener('pageshow', visibility);
             document.removeEventListener('click', click);
             document.removeEventListener(ENTRY_CUE, input);
+            clearTimeout(startupTimeout.current);
             engine.current?.dispose();
+            engine.current = undefined;
         };
     }, []);
     const cycle = () => {
+        clearTimeout(startupTimeout.current);
         const next = (mode + 1) % labels.length;
         engine.current?.dispose();
         engine.current = undefined;
@@ -44,9 +56,9 @@ export function AudioControl() {
                     audio.dispose(); engine.current = undefined;
                     setMode(0); setFailed(failed);
                 };
-                const audio = new AquaticAudio(next === 1 || next === 3, next !== 3, () => stop(false));
+                const audio = new AquaticAudio(next === 1 || next === 3, next !== 3, () => stop(false), style);
                 engine.current = audio;
-                const timeout = setTimeout(() => fail(), 4000);
+                const timeout = startupTimeout.current = setTimeout(() => fail(), 4000);
                 const fail = () => {
                     if (engine.current !== audio) return;
                     stop(true);
@@ -59,9 +71,22 @@ export function AudioControl() {
             setFailed(false);
         } catch {setMode(0); setFailed(true);}
     };
-    return <Tooltip title={failed ? 'Audio did not start. Tap to retry.' : `Sound: ${labels[mode]}. Switch to ${labels[(mode + 1) % labels.length]}`}>
+    const changeStyle = (value: string) => {
+        if (!isStyleId(value)) return;
+        engine.current?.setStyle(value);
+        setStyle(value);
+        try { localStorage.setItem('ksuduo-soundscape', value); } catch { /* optional */ }
+    };
+    return <div className="audio-controls"><Tooltip title={failed ? 'Audio did not start. Tap to retry.' : `Sound: ${labels[mode]}. Switch to ${labels[(mode + 1) % labels.length]}`}>
         <Button className="audio-control" onClick={cycle} aria-label={`Sound: ${labels[mode]}`} startIcon={mode === 0 ? <VolumeOffRounded/> : mode === 1 || mode === 3 ? <WavesRounded/> : <GraphicEqRounded/>}>
-            {failed ? 'Retry sound' : labels[mode]}
+            <span>{failed ? 'Retry sound' : labels[mode]}{mode > 0 && <small>{soundscapes[style].name}</small>}</span>
         </Button>
-    </Tooltip>;
+    </Tooltip>
+        <label className="soundscape-picker" title="Choose soundscape">
+            <ExpandMoreRounded aria-hidden="true" fontSize="small"/>
+            <select aria-label="Soundscape" value={style} disabled={!mode} onChange={e => changeStyle(e.target.value)}>
+                {Object.entries(soundscapes).map(([id, score]) => <option key={id} value={id}>{score.name}</option>)}
+            </select>
+        </label>
+    </div>;
 }

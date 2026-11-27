@@ -154,3 +154,32 @@ it('spaces rare melodic additions and only plays them with music enabled', async
     expect(fx.oscillators.length-before).toBe(2);
     fxOnly.dispose();
 });
+
+it('changes all five scores in one context and restores the choice with sound off', async () => {
+    localStorage.removeItem('ksuduo-soundscape');
+    const ctx = await enable();
+    const picker = screen.getByRole('combobox', {name: 'Soundscape'}) as HTMLSelectElement;
+    expect(picker.options).toHaveLength(5);
+    for (const id of ['shelf', 'trench', 'kelp', 'grotto', 'lagoon', 'trench']) {
+        const before = ctx.oscillators.length;
+        fireEvent.change(picker, {target: {value: id}});
+        expect(ctx.oscillators.length).toBeGreaterThan(before);
+        expect(contexts).toHaveLength(1);
+    }
+    await act(async () => {fireEvent.click(screen.getByRole('button', {name: 'Sound: Music + FX'}));});
+    const fx = contexts.at(-1)!;
+    const before = fx.oscillators.length;
+    fireEvent.change(picker, {target: {value: 'kelp'}});
+    expect(fx.oscillators.length).toBe(before);
+    fx.currentTime = 1;
+    document.dispatchEvent(new CustomEvent('ksuduo-entry-cue', {detail: {wrong: false}}));
+    const [from, middle, tail] = fx.oscillators[before].frequency.events;
+    expect(from).toBeLessThan(middle);
+    expect(tail).toBeGreaterThan(middle);
+    cleanup();
+    render(<AudioControl/>);
+    const restored = screen.getByRole('combobox', {name: 'Soundscape'}) as HTMLSelectElement;
+    expect(restored.disabled).toBe(true);
+    expect(restored.value).toBe('kelp');
+    localStorage.removeItem('ksuduo-soundscape');
+});

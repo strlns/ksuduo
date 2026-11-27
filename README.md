@@ -235,10 +235,16 @@ Mono are self-hosted through Fontsource; their packages include the font license
 ## Optional sound
 
 The footer sound button cycles **Off → Music + FX → FX only → Music only → Off**. Sound starts
-only when you enable it and defaults to Off on each visit. The music is a slow,
-original D-minor ambient progression with soft synth tones, long dark stereo reverb,
-sparse upper notes and very soft filtered harmonic sweeps;
-hints use soft midrange zaps, while completed units use a legato aquatic sweep with small variations.
+only when you enable it and defaults to Off on each visit. Use the chevron beside
+the sound button to choose a soundscape. The selection is remembered and also
+sets the sound of entries, hints and completions in FX-only mode.
+
+- **Lagoon** is the original slow D-minor progression and its soft midrange zaps.
+- **Ice Shelf** layers high, widely spaced fifths with delicate, lingering drops.
+- **Trench** pairs low drones and dark filter swells with short descending dives.
+- **Kelp Forest** lets voices drift in one at a time, with upward-bending touch sounds.
+- **Glass Grotto** opens and closes its filter over suspended chords and long glassy plonks.
+
 Effects have a gently brighter, softened top end and a quiet filtered tape delay
 with slow, randomized drift. Frequent interactions stay softer than occasional accents,
 but have a clear midrange body and a short bass underlay. FX have a separate, long,

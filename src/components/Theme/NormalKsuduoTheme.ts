@@ -3,8 +3,8 @@ import {createTheme} from '@mui/material/styles';
 export const ksuduoThemeNormal = createTheme({
     palette: {
         mode: 'dark',
-        primary: {main: '#62d7e5', contrastText: '#05202a'},
-        secondary: {main: '#9eafc5', contrastText: '#071b27'},
+        primary: {main: '#76dbcf', contrastText: '#05202a'},
+        secondary: {main: '#b9b3d6', contrastText: '#071b27'},
         background: {default: '#061722', paper: '#102734'},
         text: {primary: '#e4f0f3', secondary: '#adbec7'},
         divider: '#294552',
@@ -21,7 +21,7 @@ export const ksuduoThemeNormal = createTheme({
     },
     components: {
         MuiPaper: {styleOverrides: {root: {
-            backgroundImage: 'none',
+            backgroundImage: 'linear-gradient(145deg, #8ce8d807, transparent 45%, #afa0d505)',
             border: '1px solid #294552',
             boxShadow: '0 12px 36px #00000030',
         }}},
@@ -30,7 +30,7 @@ export const ksuduoThemeNormal = createTheme({
             styleOverrides: {
                 root: {
                     minHeight: 40,
-                    borderRadius: 4,
+                    borderRadius: '9px 4px 9px 4px',
                     letterSpacing: '.055em',
                     fontSize: '.8rem',
                     transition: 'background .18s, box-shadow .18s, transform .18s',

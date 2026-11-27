@@ -1,3 +1,5 @@
+import {soundscapes, type StyleId} from './soundscapes';
+
 export const ENTRY_CUE = 'ksuduo-entry-cue';
 export const playEntryCue = (wrong: boolean) => document.dispatchEvent(new CustomEvent(ENTRY_CUE, {detail: {wrong}}));
 export const COMPLETION_SWEEP = 'ksuduo-completion-sweep';
@@ -39,7 +41,10 @@ export class AquaticAudio {
     private tapeFeedback = this.context.createGain();
     private wow = this.context.createOscillator();
 
-    constructor(private music: boolean, private effects = true, private onPlaybackLost: () => void = () => {}) {
+    private pads = this.context.createGain();
+    private voices = new Set<OscillatorNode>();
+
+    constructor(private music: boolean, private effects = true, private onPlaybackLost: () => void = () => {}, private style: StyleId = 'lagoon') {
         const ctx = this.context;
         this.master.gain.value = .55;
         this.master.connect(ctx.destination);
@@ -49,8 +54,10 @@ export class AquaticAudio {
         const dry = ctx.createGain();
         dry.gain.value = .68;
         this.filter.connect(dry).connect(this.master);
-        this.echo.delayTime.value = .48;
-        this.feedback.gain.value = .25;
+        this.pads.connect(this.filter);
+        this.pads.connect(this.echo);
+        this.echo.delayTime.value = soundscapes[style].echo;
+        this.feedback.gain.value = soundscapes[style].feedback;
         this.echo.connect(this.feedback).connect(this.echo);
         this.echo.connect(this.filter);
 
@@ -100,22 +107,48 @@ export class AquaticAudio {
             this.started = true;
             this.wow.start();
             if (this.music) {
-                this.playChord();
-                this.timer = setInterval(() => this.playChord(), 9000);
+                this.startScore();
             }
             this.effect();
         }
     }
+    setStyle(style: StyleId) {
+        if (this.disposed || style === this.style) return;
+        this.style = style;
+        this.chord = 0;
+        const now = this.context.currentTime;
+        this.echo.delayTime.setTargetAtTime(soundscapes[style].echo, now, .45);
+        this.feedback.gain.setTargetAtTime(soundscapes[style].feedback, now, .3);
+        if (this.started && this.music) {
+            clearInterval(this.timer);
+            // Fade the old voices together. The shared echo and hall keep ringing.
+            const outgoing = this.pads;
+            outgoing.gain.setTargetAtTime(0, now, .035);
+            for (const voice of this.voices) voice.stop(now + .18);
+            this.voices.clear();
+            setTimeout(() => outgoing.disconnect(), 200);
+            this.pads = this.context.createGain();
+            this.pads.connect(this.filter);
+            this.pads.connect(this.echo);
+            this.startScore();
+        }
+    }
+    private startScore() {
+        this.playChord();
+        this.timer = setInterval(() => this.playChord(), soundscapes[this.style].period * 1000);
+    }
     private impulse(duration: number, decay: number, seed: number) {
         const ctx = this.context;
         const impulse = ctx.createBuffer(2, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+        const decayPerSample = Math.exp(-1 / (ctx.sampleRate * decay));
         for (let channel = 0; channel < 2; channel++) {
             const samples = impulse.getChannelData(channel);
-            let smooth = 0;
+            let smooth = 0, amplitude = 1;
             for (let i = 0; i < samples.length; i++) {
                 seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
                 smooth += ((seed / 2 ** 31 - 1) - smooth) * .24;
-                samples[i] = smooth * Math.exp(-i / (ctx.sampleRate * decay));
+                samples[i] = smooth * amplitude;
+                amplitude *= decayPerSample;
             }
         }
         return impulse;
@@ -137,10 +170,10 @@ export class AquaticAudio {
         envelope.gain.exponentialRampToValueAtTime(.0001, start + duration);
         oscillator.connect(envelope);
         if (watery) envelope.connect(this.fx);
-        else { envelope.connect(this.filter); envelope.connect(this.echo); }
+        else { envelope.connect(this.pads); this.voices.add(oscillator); }
         oscillator.start(start);
         oscillator.stop(start + duration + .1);
-        oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
+        oscillator.onended = () => { this.voices.delete(oscillator); oscillator.disconnect(); envelope.disconnect(); };
     }
     private harmonic(midi: number) {
         const ctx = this.context, start = ctx.currentTime + 2;
@@ -154,15 +187,44 @@ export class AquaticAudio {
         envelope.gain.setValueAtTime(0, start);
         envelope.gain.linearRampToValueAtTime(.004, start + 4);
         envelope.gain.exponentialRampToValueAtTime(.0001, start + 12);
-        oscillator.connect(band).connect(envelope).connect(this.filter);
+        this.voices.add(oscillator);
+        oscillator.connect(band).connect(envelope).connect(this.pads);
         oscillator.start(start); oscillator.stop(start + 12.1);
-        oscillator.onended = () => {oscillator.disconnect(); band.disconnect(); envelope.disconnect();};
+        oscillator.onended = () => {this.voices.delete(oscillator); oscillator.disconnect(); band.disconnect(); envelope.disconnect();};
+    }
+    private swell(note: number, index: number) {
+        const ctx = this.context, score = soundscapes[this.style];
+        const start = ctx.currentTime + index * score.spread, length = score.period * 1.16;
+        const voice = ctx.createOscillator(), veil = ctx.createBiquadFilter(), gain = ctx.createGain();
+        const hz = 440 * 2 ** ((note - 69) / 12);
+        voice.type = score.pad;
+        voice.frequency.setValueAtTime(hz * (index % 2 ? .996 : 1.003), start);
+        voice.frequency.exponentialRampToValueAtTime(hz, start + length * .72);
+        veil.type = 'lowpass';
+        veil.Q.value = .58;
+        veil.frequency.setValueAtTime(score.sweep[0], start);
+        veil.frequency.exponentialRampToValueAtTime(score.sweep[1], start + length * .48);
+        veil.frequency.exponentialRampToValueAtTime(score.sweep[2], start + length);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(index === 0 ? .068 : .035, start + length * .36);
+        gain.gain.exponentialRampToValueAtTime(.0001, start + length);
+        voice.connect(veil).connect(gain).connect(this.pads);
+        this.voices.add(voice);
+        voice.onended = () => {
+            this.voices.delete(voice);
+            voice.disconnect(); veil.disconnect(); gain.disconnect();
+        };
+        voice.start(start); voice.stop(start + length);
     }
     private playChord() {
         if (this.context.state !== 'running') return;
-        // Preserve the slow D-minor voice-leading: Dm9, Bbmaj7, Gm9, Am7 suspended.
-        const chords = [[38,53,57,60,64],[34,53,57,62,65],[31,53,57,58,62],[33,55,57,60,64]];
-        const notes = chords[this.chord++ % chords.length];
+        const score = soundscapes[this.style];
+        const notes = score.chords[this.chord++ % score.chords.length];
+        if (this.style !== 'lagoon') {
+            // Stagger individual swells so their partials move through the hall in waves.
+            notes.forEach((note, index) => this.swell(note, index));
+            return;
+        }
         notes.forEach((note, index) => {
             this.tone(note, 13, index === 0 ? .07 : .025, 3.5);
             if (index > 0) this.tone(note + .035, 12, .012, 4);
@@ -186,11 +248,14 @@ export class AquaticAudio {
         const ctx = this.context, start = ctx.currentTime + delay;
         const oscillator = ctx.createOscillator(), body = ctx.createOscillator();
         const bodyGain = ctx.createGain(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
-        oscillator.type = 'triangle';
+        const kit = soundscapes[this.style].fx;
+        frequency *= kit.pitch;
+        duration *= kit.length;
+        oscillator.type = kit.wave;
         // The identity lives in the mids. Only a quiet, short underlay reaches the bass.
-        oscillator.frequency.setValueAtTime(frequency * 1.65, start);
+        oscillator.frequency.setValueAtTime(frequency * kit.bend, start);
         oscillator.frequency.exponentialRampToValueAtTime(frequency, start + .035);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * .78, start + duration);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency * kit.tail, start + duration);
         body.type = 'sine';
         body.frequency.setValueAtTime(low ? 160 : frequency * .5, start);
         body.frequency.exponentialRampToValueAtTime(low ? 85 : frequency * .38, start + duration);
@@ -200,7 +265,7 @@ export class AquaticAudio {
         filter.frequency.setValueAtTime(low ? 2100 : 2400, start);
         filter.frequency.exponentialRampToValueAtTime(low ? 700 : 950, start + duration);
         gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(volume, start + .008);
+        gain.gain.linearRampToValueAtTime(volume, start + kit.attack);
         gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
         oscillator.connect(filter);
         body.connect(bodyGain).connect(filter);
@@ -217,7 +282,8 @@ export class AquaticAudio {
         if (wrong && this.music && now - this.lastMotif > 12) {
             this.lastMotif = now;
             // Sparse, rotating open intervals follow the current pad's root.
-            const root = [38, 34, 31, 33][Math.max(0, this.chord - 1) % 4] + 24;
+            const {chords} = soundscapes[this.style];
+            const root = chords[Math.max(0, this.chord - 1) % chords.length][0] + 24;
             const phrases = [[0, 7], [7, 12], [12, 2]];
             const phrase = phrases[this.motif++ % phrases.length];
             phrase.forEach((offset, i) => this.tone(root + offset, 2.4, .011, .16, .13 + i * .22, true));
@@ -231,7 +297,7 @@ export class AquaticAudio {
         // Tiny timing/detuning variations keep its contour without making a new jingle.
         const detune = (Math.random() - .5) * .12;
         const spacing = .082 + Math.random() * .012;
-        [62, 69, 74, 76, 81, 86].forEach((note, i) =>
+        soundscapes[this.style].finish.forEach((note, i) =>
             this.tone(note + detune, 1.5 - i * .1, .024 - i * .002, .12, i * spacing, true));
     }
     setHidden(hidden: boolean) {
