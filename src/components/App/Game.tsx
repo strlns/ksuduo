@@ -632,7 +632,9 @@ export const Game = (props: GameProps) => {
     }
   };
 
+  const [undoRipple, setUndoRipple] = useState(0);
   const undo = () => {
+    setUndoRipple(version => version + 1);
     setReviewIndex(undefined);
     setCompletedCells([]);
     setSelectionResetKey(key => key + 1);
@@ -862,6 +864,7 @@ export const Game = (props: GameProps) => {
                   onClick={undo}
                 >
                   Undo
+                  {undoRipple > 0 && <span key={undoRipple} aria-hidden="true" className="move-bubbles undo-bubbles"/>}
                 </Button>
                 <Button45Mt
                   endIcon={<HighlightOffRounded />}

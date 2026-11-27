@@ -187,6 +187,7 @@ export const Board = React.memo(
         const canAnnotateHint = !preview && !!logicStep && Object.entries(annotationsFor(sudoku, sudoku.getFirstEmptyCell(), 'explanation', logicStep, solverCandidates))
             .some(([key, values]) => values.some(value => !visibleNotes[key]?.includes(value)));
         useEffect(() => {onHintAnnotationAvailable?.(canAnnotateHint);}, [canAnnotateHint, onHintAnnotationAvailable]);
+        const [entryRipple, setEntryRipple] = useState<{x: number; y: number; version: number}>();
         const updateCellValue = (x: CellIndex, y: CellIndex, v: CellValue) => {
             if (preview || isPaused || sudoku.getCell(x, y).isInitial) return;
             if (noteMode && !sudoku.getCell(x, y).value && CellValues.includes(v)) {
@@ -205,7 +206,10 @@ export const Board = React.memo(
             if (CellValues.includes(v)) {
                 const changed = sudoku.getCell(x,y).value !== v;
                 sudoku.setValue(x, y, v);
-                if (changed && v) playEntryCue(!sudoku.isCellValid(sudoku.getCell(x,y)));
+                if (changed && v) {
+                    playEntryCue(!sudoku.isCellValid(sudoku.getCell(x,y)));
+                    setEntryRipple(last => ({x, y, version: (last?.version ?? 0) + 1}));
+                }
             }
             if (cellCallback) {
                 cellCallback();
@@ -315,6 +319,8 @@ export const Board = React.memo(
                 }
             )
         }
+        {entryRipple && !isPaused && !preview && <span aria-hidden="true" key={`entry-${entryRipple.version}`} className="move-bubbles entry-bubbles"
+            style={{left: `${(entryRipple.x + .72) / 9 * 100}%`, top: `${(entryRipple.y + .58) / 9 * 100}%`}}/>}
         {!!completedCells.length && <svg key={completionVersion} className="unit-celebration" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">
             {completedCells.map(key => {const [x, y] = key.split(',').map(Number); return <rect key={key} x={x + .05} y={y + .05} width=".9" height=".9" style={{animationDelay: `${(x + y) * 35}ms`}}/>;})}
         </svg>}

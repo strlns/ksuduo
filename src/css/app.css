@@ -598,3 +598,33 @@ a { color: #62d7e5; }
 .next-hint-feedback { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .65rem; pointer-events: none; }
 @keyframes hint-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
 @media (prefers-reduced-motion: reduce) { .next-hint-button.holding { animation: none; color: #fff; } }
+
+/* The native picker opens outside layout. Both hit areas keep their footprint in every mode. */
+.audio-controls { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: stretch; height: 44px; }
+.game-footer .audio-controls .audio-control.MuiButton-root {
+    width: 100%; min-width: 0; padding: 0 2px; height: 44px; line-height: 1.15;
+}
+.audio-control .MuiButton-startIcon { margin: 0 4px 0 0; }
+.audio-control small { display: block; font-size: .62rem; color: #bacbcf; font-weight: 400; }
+.soundscape-picker { position: relative; display: grid; place-items: center; color: #91d8d1; }
+.soundscape-picker:has(:disabled) { opacity: .28; }
+.soundscape-picker:focus-within { outline: 2px solid currentColor; outline-offset: -3px; border-radius: 5px; }
+.soundscape-picker select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.board-arrival::after { border-color: #b5b4ee99; }
+.unit-celebration rect:nth-child(3n) { stroke: #bbbedf; }
+.victory-bubbles span:nth-child(3n+1) { border-color: #c8b6ed99; }
+.victory-bubbles span:nth-child(3n+2) { border-color: #f0c6a899; }
+
+.move-bubbles { position: absolute; pointer-events: none; z-index: 4; color: #a9ebe1; }
+.undo-bubbles { right: 20%; top: 65%; color: #ceb9e4; }
+.move-bubbles::before, .move-bubbles::after {
+    content: ''; position: absolute; width: 4px; height: 4px; border: 1px solid currentColor;
+    opacity: 0; border-radius: 50%; animation: move-bubble .58s ease-out;
+}
+.move-bubbles::after { left: 4px; top: 2px; width: 2px; height: 2px; animation-delay: .075s; }
+@keyframes move-bubble {
+    0%, 100% { opacity: 0; }
+    18% { opacity: .78; }
+    100% { transform: translate(3px,-12px); }
+}
+@media (prefers-reduced-motion: reduce) { .move-bubbles { display: none; } }
