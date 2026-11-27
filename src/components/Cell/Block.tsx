@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {SetStateAction, useEffect, useState} from 'react';
+import {SetStateAction} from 'react';
 import Cell from "./Cell";
 import {BlockData} from "../../model/BlockData";
 import {CellData, CellValue} from '../../model/CellData';
@@ -8,6 +8,7 @@ import {BLOCK_WIDTH, BOARD_WIDTH, CellIndex} from "../../model/Board";
 
 interface BlockProps {
     block: BlockData,
+    tabCell?: CellData,
 
     cellValidityChecker(cell: CellData): boolean,
 
@@ -21,17 +22,12 @@ interface BlockProps {
 }
 
 export const Block = (props: BlockProps) => {
-    const [state, setState] = useState(props);
-    useEffect(() => {
-        setState(props)
-    }, [props]);
-
     return <div className="block" style={{flexBasis: `${(BLOCK_WIDTH / BOARD_WIDTH * 100).toFixed(2)}%`}}>
-        {state.block.getRows().map((row, blockRowIndex) => {
+        {props.block.getRows().map((row, blockRowIndex) => {
             return <div className={"row"} key={blockRowIndex}>
                 {
                     row.map((cell, blockColIndex) => {
-                        cell.isValid = state.cellValidityChecker(cell);
+                        cell.isValid = props.cellValidityChecker(cell);
                         const key = `cell${blockColIndex}`;
                         if (!inputRefs[cell.x]) {
                             inputRefs[cell.x] = {};
@@ -39,12 +35,13 @@ export const Block = (props: BlockProps) => {
                         inputRefs[cell.x][cell.y] = React.createRef();
                         return <Cell
                             ref={inputRefs[cell.x][cell.y]}
+                            tabStop={props.tabCell?.x === cell.x && props.tabCell.y === cell.y}
                             key={key}
                             cell={cell}
-                            setCellValue={v => state.updateCellValue(cell.x, cell.y, v)}
-                            setFocusedCell={state.setFocusedCell}
-                            isHighlighted={cell === state.highlightedCell}
-                            isSecondarilyHighlighted={state.secondaryHighlight.includes(cell)}
+                            setCellValue={v => props.updateCellValue(cell.x, cell.y, v)}
+                            setFocusedCell={props.setFocusedCell}
+                            isHighlighted={cell === props.highlightedCell}
+                            isSecondarilyHighlighted={props.secondaryHighlight.includes(cell)}
                             readOnly={props.readOnly}
                             supportsInputMode={props.supportsInputMode}
                         />

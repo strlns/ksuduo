@@ -41,7 +41,7 @@ it.each(['focus', 'arrow'] as const)('dismisses only primary emphasis on manual 
     act(() => {target.focus();});
     expect(container.querySelector('.hint')).toBeTruthy();
     if (method === 'focus') act(() => {screen.getByRole('textbox', {name: 'Row 1, column 4'}).focus();});
-    else fireEvent.keyUp(target, {key: 'ArrowRight'});
+    else fireEvent.keyDown(target, {key: 'ArrowRight'});
     expect(container.querySelector('.hint')).toBeNull();
     act(() => {vi.advanceTimersByTime(60000);});
     expect(container.querySelector('.logic-source')).toBeTruthy();
