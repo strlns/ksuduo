@@ -17,6 +17,7 @@ import {BOARD_WIDTH, CellIndex} from "../../model/Board";
 export interface NotesHistoryControls { undo: () => boolean; clear: () => void }
 
 interface BoardProps {
+    boardFocusRequest?: number,
     focusHint?: boolean,
     preview?: HintView,
     completedCells?: string[],
@@ -64,7 +65,7 @@ export type OptionalCell = CellData | undefined;
 
 export const Board = React.memo(
     ({
-         focusHint, preview, completedCells = [], completionVersion, patternReplayKey, onHintAnnotationAvailable, onNotesPresent, onAnnotateAll, confirmAction,
+         boardFocusRequest, focusHint, preview, completedCells = [], completionVersion, patternReplayKey, onHintAnnotationAvailable, onNotesPresent, onAnnotateAll, confirmAction,
          isPaused,
          forceFocus,
          highlightedCell,
@@ -237,7 +238,19 @@ export const Board = React.memo(
             if (document.activeElement?.matches('.cell input')) (document.activeElement as HTMLInputElement).blur();
         }, [selectionResetKey]);
         useEffect(() => {onSelectionChange?.(selectionVisible);}, [selectionVisible, onSelectionChange]);
-        const onKeyUp: KeyboardEventHandler = (e: React.KeyboardEvent) => {
+        const handledFocusRequest = React.useRef(boardFocusRequest);
+        useEffect(() => {
+            if (handledFocusRequest.current === boardFocusRequest) return;
+            handledFocusRequest.current = boardFocusRequest;
+            const first = sudoku.getEmptyCells()[0];
+            if (!first) return;
+            if (window.matchMedia?.('(hover: hover) and (pointer: fine)').matches && !navigator.maxTouchPoints) {
+                setFocusedCell(first);
+                const ref = inputRefs[first.x]?.[first.y] as React.RefObject<HTMLInputElement> | undefined;
+                ref?.current?.focus({preventScroll: true});
+            }
+        }, [boardFocusRequest, sudoku]);
+        const onKeyDown: KeyboardEventHandler = (e: React.KeyboardEvent) => {
             if (isPaused) {
                 return;
             }
@@ -262,6 +275,7 @@ export const Board = React.memo(
                 break;
             default: return;
         }
+        e.preventDefault();
         selectCell(newCell);
     }
 
@@ -296,12 +310,14 @@ export const Board = React.memo(
         <div className="coordinate-rows" aria-hidden="true">{Array.from({length:9},(_,i)=><span key={i} className={fishLineClass('rows', i)}>r{i+1}</span>)}</div>
         <PaperBox elevation={9}
                      className={classes}
-                     onKeyUp={onKeyUp}
+                     role="group" aria-label="Sudoku board" aria-description="Use arrow keys to move between cells. Tab leaves the board."
+                     onKeyDown={onKeyDown}
                      style={{position: 'relative', margin: 'auto'}}>
         {
             renderedBoard.getBlocks().map(
                 (block, index) => {
                     return <Block
+                        tabCell={isPaused ? undefined : focusedCell}
                         block={block}
                         key={index}
                         cellValidityChecker={renderedBoard.isCellValid.bind(renderedBoard)}

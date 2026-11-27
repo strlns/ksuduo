@@ -217,7 +217,13 @@ export const Game = (props: GameProps) => {
     }
   };
 
-  const generateSudokuThen = (callback: () => void) => {
+  const [boardFocusRequest, setBoardFocusRequest] = useState(0);
+  const puzzleArrived = (focusBoard: boolean) => {
+    playAquaticCue();
+    setArrivalVersion(version => version + 1);
+    if (focusBoard) setBoardFocusRequest(version => version + 1);
+  };
+  const generateBoard = (focusBoard: boolean) => {
     resetHintMode();
     if (IS_DEVELOPMENT) {
       console.log(
@@ -250,8 +256,7 @@ export const Game = (props: GameProps) => {
           currentDifficulty: state.difficulty,
           ...stateFromGenerator(result),
         }));
-        if (result[1]) {playAquaticCue(); setArrivalVersion(version => version + 1);}
-        callback();
+        if (result[1]) puzzleArrived(focusBoard);
         timer.start();
       };
       sudokuWorker.addEventListener("message", listener);
@@ -273,15 +278,14 @@ export const Game = (props: GameProps) => {
             currentDifficulty: state.difficulty,
             ...stateFromGenerator(result),
           }));
-          if (result[1]) {playAquaticCue(); setArrivalVersion(version => version + 1);}
-          callback();
+          if (result[1]) puzzleArrived(focusBoard);
           timer.start();
         }, 25);
       });
     }
   };
 
-  const generateSudoku = () => {
+  const generateSudoku = (focusBoard = true) => {
     hintHistory.current.clear();
     setReviewIndex(undefined);
     setCompletedCells([]);
@@ -289,7 +293,7 @@ export const Game = (props: GameProps) => {
     setLogicStep(undefined);
     setHintCandidates(undefined);
     notesHistoryRef.current?.clear();
-    generateSudokuThen(() => {});
+    generateBoard(focusBoard);
   };
 
   const updateNumberOfClues = (numberOfClues: number): void => {
@@ -444,7 +448,7 @@ export const Game = (props: GameProps) => {
       if (!active) return;
       useWebWorker = value;
       if (state.sudoku.isEmpty()) {
-        generateSudoku();
+        generateSudoku(false);
       }
     });
     timer.callback = () =>
@@ -758,6 +762,7 @@ export const Game = (props: GameProps) => {
               </Typography>
             </Box>
             <Board
+                boardFocusRequest={boardFocusRequest}
                 preview={preview}
                 completedCells={preview ? [] : completedCells}
                 completionVersion={completionVersion}
@@ -1005,7 +1010,7 @@ export const Game = (props: GameProps) => {
             <GenerateButton
               onClick={() => {
                 setWinnerModalOpen(false);
-                confirmAction("Generate puzzle", "Replace the completed puzzle and its notes?", () => generateSudokuThen(() => {}));
+                confirmAction("Generate puzzle", "Replace the completed puzzle and its notes?", () => generateBoard(true));
               }}
               isWorking={state.isWorking}
               text="Generate another sudoku with the same settings"

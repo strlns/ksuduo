@@ -107,6 +107,30 @@ describe('gameplay migration baseline', () => {
         fireEvent.click(screen.getByRole('switch'));
         expect(screen.getByText('Click to hide timer')).toBeTruthy();
     });
+    it.each([true, false])('returns focus after generation only for desktop pointers (desktop=%s)', async desktop => {
+        const original = window.matchMedia;
+        window.matchMedia = query => ({matches: desktop && query === '(hover: hover) and (pointer: fine)',
+            media: query, onchange: null, dispatchEvent() {return true;}, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}} as MediaQueryList);
+        try {
+            await startGame();
+            expect(document.activeElement?.closest('.cell')).toBeNull();
+            const generate = screen.getByRole('button', {name: /Generate sudoku/i});
+            await userEvent.click(generate);
+            await waitFor(() => expect(mode.requests).toHaveLength(2));
+            const first = screen.getByRole('textbox', {name: 'Row 1, column 3'});
+            expect(document.querySelectorAll('.cell input[tabindex="0"]')).toHaveLength(1);
+            if (desktop) {
+                expect(document.activeElement).toBe(first);
+                await userEvent.keyboard('{ArrowRight}');
+                const next = document.activeElement;
+                expect(next).toBe(screen.getByRole('textbox', {name: 'Row 1, column 4'}));
+                await userEvent.tab();
+                expect(document.activeElement?.closest('.cell')).toBeNull();
+                await userEvent.tab({shift: true});
+                expect(document.activeElement).toBe(next);
+            } else expect(document.activeElement?.closest('.cell')).toBeNull();
+        } finally { window.matchMedia = original; }
+    });
     it('retains keyboard entry, invalid-input cleanup, deletion and arrow navigation', async () => {
         await startGame();
         const input = screen.getByRole('textbox', {name: 'Row 1, column 3'}) as HTMLInputElement;

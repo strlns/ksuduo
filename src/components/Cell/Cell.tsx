@@ -6,6 +6,7 @@ import {Input} from "@mui/material";
 import {styled} from "@mui/material/styles";
 
 interface CellProps {
+    tabStop?: boolean,
     cell: CellData,
 
     setCellValue(v: CellValue): void,
@@ -99,6 +100,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                   type={props.supportsInputMode ? 'text' : 'number'}
             //iOS, some versions show normal keypad.
                   slotProps={{input: {
+                      tabIndex: props.tabStop ? 0 : -1,
                       'aria-label': `Row ${props.cell.y + 1}, column ${props.cell.x + 1}`,
                       'aria-description': added ? 'Value added by the hint.' : props.cell.value ? undefined : removed ? `Candidates: ${notes.join(', ')}. Eliminated ${removed}.` : notes.length ? `Notes: ${notes.join(', ')}` : undefined,
                       inputMode: 'numeric',
