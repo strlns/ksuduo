@@ -75,3 +75,31 @@ it('retains detached board and candidate snapshots and hides undone future hints
     expect(first.board.getFlatValues()).toEqual(saved);
     history.clear();expect(history.hints).toHaveLength(0);
 });
+
+it('branches after an elimination with its exact candidates and earlier move history', () => {
+    const board = new Sudoku();
+    board.initWithNumbers([...'010050080500603007006000500070060090600204001020030040002000400700106003080020060'].map(Number), false);
+    const candidates = candidatesFor(board);
+    const history = new HintHistory();
+    const pencil = {notes: {'8,8': [1, 4]}, depth: 0};
+    const advance = () => {
+        const step = nextLogicStep(board, candidates)!;
+        const before = history.begin(board, candidates, {kind: 'step', step});
+        applyLogicStep(board, candidates, step, true);
+        history.commit(before, board, candidates, pencil);
+        return step;
+    };
+    while (advance().placement) { /* reach the first elimination */ }
+    const view = history.hints.at(-1)!;
+    const expected = structuredClone(candidates);
+    const depth = board.history.length;
+    advance();
+    const branch = history.branchFrom(view, board)!;
+    expect(branch.board.getFlatValues()).toEqual(view.board.getFlatValues());
+    expect(branch.board.history).toHaveLength(depth);
+    expect(branch.candidates).toEqual(expected);
+    expect(branch.pencil).toEqual({notes: {...pencil.notes, ...view.notes}, depth: 1});
+    expect(history.hints.at(-1)).toBe(view);
+    expect(history.replay(branch.board)).toBeUndefined();
+    expect(history.undo(branch.board, true)).toBeDefined();
+});

@@ -18,6 +18,7 @@ interface BlockProps {
     highlightedCell: OptionalCell,
     secondaryHighlight: CellData[],
     readOnly?: boolean,
+    touchKeypad?: boolean,
     supportsInputMode: boolean
 }
 
@@ -44,6 +45,7 @@ export const Block = (props: BlockProps) => {
                             isSecondarilyHighlighted={props.secondaryHighlight.includes(cell)}
                             readOnly={props.readOnly}
                             supportsInputMode={props.supportsInputMode}
+                            touchKeypad={props.touchKeypad}
                         />
                     })
                 }

@@ -608,3 +608,47 @@ it('offers step-by-step mode after two mobile holds and permits the next hint by
         expect(screen.queryByRole('dialog')).toBeNull();
     } finally {vi.useRealTimers(); window.matchMedia = original;}
 });
+
+it('keeps the touch keypad mounted for entries, notes and erasing', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = query => ({matches: query === '(pointer: coarse)', media: query, onchange: null,
+        addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true});
+    try {
+        await startGame();
+        const cell = screen.getByRole('textbox', {name: 'Row 1, column 3'}) as HTMLInputElement;
+        act(() => cell.focus());
+        expect(cell.readOnly).toBe(true);
+        expect(cell.inputMode).toBe('none');
+        const pad = screen.getByRole('group', {name: 'Number pad'});
+        fireEvent.click(screen.getByRole('button', {name: 'Enter 4'}));
+        expect(cell.value).toBe('4');
+        fireEvent.click(screen.getByRole('button', {name: 'Erase number'}));
+        expect(cell.value).toBe('');
+        fireEvent.click(screen.getByRole('button', {name: 'Notes mode'}));
+        expect(screen.getByRole('group', {name: 'Note digits'})).toBe(pad);
+        fireEvent.click(screen.getByRole('button', {name: 'Toggle note 4'}));
+        expect(screen.getByRole('button', {name: 'Toggle note 4'}).getAttribute('aria-pressed')).toBe('true');
+        expect(cell.value).toBe('');
+    } finally {window.matchMedia = original;}
+});
+
+it('branches only after confirmation even when the hint assistant is hidden', async () => {
+    await startGame();
+    await addHint();
+    const first = values();
+    await addHint();
+    fireEvent.click(screen.getByRole('button', {name: 'Explain'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Previous hint'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Hide hint assistant'}));
+    const branch = screen.getByRole('button', {name: 'Play from this hint'});
+    fireEvent.click(branch);
+    fireEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('button', {name: 'Current board'})).toBeTruthy();
+    fireEvent.click(branch);
+    await confirmIfNeeded();
+    expect(values()).toEqual(first);
+    expect(screen.queryByRole('button', {name: 'Current board'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: 'Undo'}));
+    expect(values()).toEqual(puzzle);
+});

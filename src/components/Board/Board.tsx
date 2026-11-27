@@ -1,7 +1,7 @@
 import {playEntryCue} from '../../audio/AquaticAudio';
 import {annotationsFor, AnnotationRequest} from './annotations';
 import * as React from "react";
-import type {HintView} from '../../gameplay/HintHistory';
+import type {HintView, PencilSnapshot} from '../../gameplay/HintHistory';
 import type {LogicStep} from "../../algorithm/solver/logical";
 import {NotesContext, LogicStepContext, SelectedCellContext} from "./NotesContext";
 import {Button} from "../Controls/Button";
@@ -14,9 +14,15 @@ import {IconButton, Tooltip} from "@mui/material";
 import {EditNoteRounded, GridOnRounded, PauseCircleFilledTwoTone} from "@mui/icons-material";
 import {BOARD_WIDTH, CellIndex} from "../../model/Board";
 
-export interface NotesHistoryControls { undo: () => boolean; clear: () => void }
+export interface NotesHistoryControls {
+    snapshot: () => PencilSnapshot;
+    restore: (snapshot: PencilSnapshot) => void;
+    undo: () => boolean;
+    clear: () => void;
+}
 
 interface BoardProps {
+    touchKeypad?: boolean,
     boardFocusRequest?: number,
     focusHint?: boolean,
     preview?: HintView,
@@ -65,8 +71,8 @@ export type OptionalCell = CellData | undefined;
 
 export const Board = React.memo(
     ({
-         boardFocusRequest, focusHint, preview, completedCells = [], completionVersion, patternReplayKey, onHintAnnotationAvailable, onNotesPresent, onAnnotateAll, confirmAction,
-         isPaused,
+         touchKeypad, boardFocusRequest, focusHint, preview, completedCells = [], completionVersion, patternReplayKey, onHintAnnotationAvailable, onNotesPresent, onAnnotateAll, confirmAction,
+         solutionIsFromApp, isPaused,
          forceFocus,
          highlightedCell,
          secondaryHighlight,
@@ -146,6 +152,12 @@ export const Board = React.memo(
             persistNotes(next);
         };
         React.useImperativeHandle(notesHistoryRef, () => ({
+            snapshot: () => ({notes, depth: notesHistory.current.length}),
+            restore: snapshot => {
+                notesHistory.current.length = snapshot.depth;
+                persistNotes(snapshot.notes);
+                onNotesHistoryChange?.(snapshot.depth > 0);
+            },
             undo: () => {
                 const latest = notesHistory.current.at(-1);
                 if (!latest || latest.depth !== sudoku.history.length) return false;
@@ -329,6 +341,7 @@ export const Board = React.memo(
                         setFocusedCell={selectCell}
                         highlightedCell={primaryHighlightVisible ? emphasizedCell : undefined}
                         secondaryHighlight={!isSingle || singleHighlightsVisible ? (preview ? [...preview.step.sources, ...preview.step.targets].map(c => renderedBoard.getCell(c.x, c.y)) : secondaryHighlight) : []}
+                        touchKeypad={touchKeypad}
                         readOnly={!!preview}
                         supportsInputMode={supportsInputMode}
                     />
@@ -351,6 +364,15 @@ export const Board = React.memo(
             : null}
     </PaperBox>
         </div>
+        {touchKeypad && <fieldset className="touch-keypad" disabled={!!preview || isPaused || solutionIsFromApp || sudoku.isSolved() || !selectionVisible || selected.isInitial} aria-label={noteMode ? 'Note digits' : 'Number pad'}>
+            {[1,2,3,4,5,6,7,8,9].map(n => <button type="button" key={n}
+                disabled={noteMode && !!selected.value}
+                aria-label={noteMode ? `Toggle note ${n}` : `Enter ${n}`}
+                aria-pressed={noteMode ? (visibleNotes[key] ?? []).includes(n) : undefined}
+                onClick={() => updateCellValue(selected.x, selected.y, n)}>{n}</button>)}
+            <button type="button" aria-label={noteMode && !selected.value ? 'Erase cell notes' : 'Erase number'}
+                onClick={() => updateCellValue(selected.x, selected.y, CellValue.EMPTY)}>Erase</button>
+        </fieldset>}
         <fieldset disabled={!!preview} className="notes-toolbar" aria-label="Pencil notes" onPointerDown={event => {
             // Keep an already-open keyboard stable while toggling notes or digits.
             if (document.activeElement?.matches('.cell input')) event.preventDefault();
@@ -370,7 +392,7 @@ export const Board = React.memo(
                 <Button size="small" aria-label="Clear cell notes" disabled={isPaused || !selectionVisible || !(notes[key]?.length)} onClick={() => saveNotes({...notes, [key]: []})}>Clear cell</Button>
                 <Button size="small" aria-label="Clear all notes" disabled={isPaused || !Object.values(notes).some(values => values.length)} onClick={() => confirmAction ? confirmAction("Clear all notes", "Remove all pencil annotations? Your entered numbers will stay.", () => saveNotes({})) : saveNotes({})}>Clear all</Button>
             </div>
-            {noteMode && <div className="note-digits" role="group" aria-label="Note digits">
+            {noteMode && !touchKeypad && <div className="note-digits" role="group" aria-label="Note digits">
                 {[1,2,3,4,5,6,7,8,9].map(n => <Button key={n} size="small" disabled={isPaused || !selectionVisible || !!selected.value} aria-label={`Toggle note ${n}`} aria-pressed={(visibleNotes[key] ?? []).includes(n)} onClick={() => updateCellValue(selected.x, selected.y, n)}>{n}</Button>)}
             </div>}
         </fieldset>

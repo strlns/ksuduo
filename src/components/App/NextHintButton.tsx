@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import {useEffect, useRef, useState} from 'react';
 
 /** Touch-only guard; keyboard activation uses the regular confirmation flow. */
@@ -46,6 +47,8 @@ export function NextHintButton({guarded, disabled, onHint, onHold}: {
         if (guarded && event.detail !== 0) {setHelp(true); return;}
         onHint();
       }}>Next Hint</button>
-    <small className="next-hint-feedback" role={remaining !== null || help ? "status" : undefined}>{remaining !== null ? remaining : help ? 'Hold for 2 seconds' : ''}</small>
+    {remaining !== null && createPortal(
+      <small className="hold-countdown" role="status">Keep holding · {remaining}s</small>, document.body)}
+    <small className="next-hint-feedback" role={help ? "status" : undefined}>{help ? 'Hold for 2 seconds' : ''}</small>
   </span>;
 }

@@ -628,3 +628,38 @@ a { color: #62d7e5; }
     100% { transform: translate(3px,-12px); }
 }
 @media (prefers-reduced-motion: reduce) { .move-bubbles { display: none; } }
+
+.touch-keypad {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: min(100%, 24rem);
+    box-sizing: border-box;
+    gap: 4px;
+    border: 0;
+    margin: .5rem 0;
+    padding: 0;
+}
+.touch-keypad button, .hold-countdown {
+    color: #dcfff5;
+    background: #183e48;
+    border: 1px solid #507b84;
+    border-radius: .5rem;
+}
+.touch-keypad button { min-height: 44px; font: inherit; touch-action: manipulation; }
+.touch-keypad button[aria-pressed="true"] { background: #236572; }
+.touch-keypad button:disabled { opacity: .5; }
+.review-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .25rem .6rem; margin-bottom: .5rem; }
+.review-actions strong { flex-basis: 100%; text-align: center; font-size: .8rem; }
+.next-hint-control, .next-hint-button, .hold-countdown { -webkit-user-select: none; user-select: none; }
+.hold-countdown {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: .5rem 1rem;
+    pointer-events: none;
+    z-index: 1300;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.review-actions .MuiButton-root { width: auto; text-transform: none; }

@@ -15,6 +15,7 @@ interface CellProps {
     isHighlighted: boolean,
     isSecondarilyHighlighted: boolean,
     readOnly?: boolean,
+    touchKeypad?: boolean,
     supportsInputMode: boolean
 }
 
@@ -103,7 +104,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                       tabIndex: props.tabStop ? 0 : -1,
                       'aria-label': `Row ${props.cell.y + 1}, column ${props.cell.x + 1}`,
                       'aria-description': added ? 'Value added by the hint.' : props.cell.value ? undefined : removed ? `Candidates: ${notes.join(', ')}. Eliminated ${removed}.` : notes.length ? `Notes: ${notes.join(', ')}` : undefined,
-                      inputMode: 'numeric',
+                      inputMode: props.touchKeypad ? 'none' : 'numeric',
                       pattern: '[0-9]'
                   }}}
                   value={formatValue(props.cell.value)}
@@ -120,7 +121,7 @@ const Cell = React.forwardRef((props: CellProps, ref: ForwardedRef<HTMLInputElem
                   onKeyUp={onKeyUp}
                   onFocus={onFocus}
                   disableUnderline={true}
-                  readOnly={props.readOnly || props.cell.isInitial}
+                  readOnly={props.touchKeypad || props.readOnly || props.cell.isInitial}
         />
     </div>
 });

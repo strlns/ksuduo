@@ -5,6 +5,10 @@ import type {CellData} from '../model/CellData';
 export type HintChoice = {kind: 'step'; step: LogicStep} | {kind: 'correction'; cell: CellData};
 const position = (board: Sudoku) => `${board.history.length}:${board.getFlatValuesAsString()}`;
 const copyCandidates = (candidates: Candidates): Candidates => new Map([...candidates].map(([i, values]) => [i, [...values]]));
+export interface PencilSnapshot {
+    notes: Record<string, number[]>;
+    depth: number;
+}
 export interface HintView {
     step: LogicStep;
     board: Sudoku;
@@ -16,6 +20,11 @@ interface Entry {
     candidates: Candidates;
     choice: HintChoice;
     view?: HintView;
+    branch?: {
+        depth: number;
+        candidates: Candidates;
+        pencil: PencilSnapshot;
+    };
 }
 
 /** Session-only redo path. New entries discard the future; undo preserves it. */
@@ -24,6 +33,17 @@ export class HintHistory {
     private future: Entry[] = [];
 
     get hints(): HintView[] { return this.past.flatMap(entry => entry.view ? [entry.view] : []); }
+
+    branchFrom(view: HintView, live: Sudoku) {
+        const index = this.past.findIndex(entry => entry.view === view);
+        const saved = this.past[index]?.branch;
+        if (!saved) return;
+        const board = Sudoku.cloneWithoutHistory(view.board);
+        board.history = live.history.slice(0, saved.depth);
+        this.past.length = index + 1;
+        this.future = [];
+        return {board, candidates: copyCandidates(saved.candidates), pencil: saved.pencil};
+    }
 
     clear() { this.past = []; this.future = []; }
 
@@ -37,7 +57,7 @@ export class HintHistory {
         return {before: position(board), candidates: copyCandidates(candidates), choice};
     }
 
-    commit(before: Pick<Entry, 'before' | 'candidates' | 'choice'>, board: Sudoku, candidates?: Candidates) {
+    commit(before: Pick<Entry, 'before' | 'candidates' | 'choice'>, board: Sudoku, candidates?: Candidates, pencil?: PencilSnapshot) {
         if (this.future.at(-1)?.choice === before.choice) this.future.pop();
         else this.future = [];
         const view = before.choice.kind === 'step' ? {
@@ -48,7 +68,15 @@ export class HintHistory {
                 return [`${cell.x},${cell.y}`, (candidates ?? before.candidates).get(cell.y * 9 + cell.x)?.filter(n => allowed.includes(n)) ?? []];
             })),
         } : undefined;
-        this.past.push({...before, after: position(board), view});
+        const branch = view && candidates && pencil ? {
+            depth: board.history.length,
+            candidates: copyCandidates(candidates),
+            pencil: view.step.placement ? pencil : {
+                notes: {...pencil.notes, ...view.notes},
+                depth: pencil.depth + 1,
+            },
+        } : undefined;
+        this.past.push({...before, after: position(board), view, branch});
     }
 
     undo(board: Sudoku, notesUndone: boolean): Candidates | undefined {

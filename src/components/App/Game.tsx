@@ -225,6 +225,7 @@ export const Game = (props: GameProps) => {
   };
   const generateBoard = (focusBoard: boolean) => {
     resetHintMode();
+    setHintActivationKey(0);
     if (IS_DEVELOPMENT) {
       console.log(
         useWebWorker
@@ -315,6 +316,7 @@ export const Game = (props: GameProps) => {
 
   const resetSudoku = () => {
     resetHintMode();
+    setHintActivationKey(0);
     hintHistory.current.clear();
     setReviewIndex(undefined);
     setCompletedCells([]);
@@ -620,7 +622,7 @@ export const Game = (props: GameProps) => {
       const before = hintHistory.current.begin(sudoku, candidates, choice);
       applyLogicStep(sudoku, candidates, step, true);
       if (step.placement) sudoku.getCell(step.targets[0].x, step.targets[0].y).isHint = true;
-      hintHistory.current.commit(before, sudoku, candidates);
+      hintHistory.current.commit(before, sudoku, candidates, notesHistoryRef.current?.snapshot());
       checkCompletedUnits(sudoku);
       logicRef.current = {signature: sudoku.getFlatValues().join(''), candidates};
       setLogicStep(step);
@@ -691,7 +693,23 @@ export const Game = (props: GameProps) => {
   const preview = reviewIndex !== undefined ? hints[shownHintIndex] : undefined;
   const shownStep = preview?.step ?? logicStep;
   const hasEmptyHintCells = shownStep && [...shownStep.sources, ...shownStep.targets].some(c => !state.sudoku.getCell(c.x, c.y).value);
-  const idleHintText = hintActivationKey ? 'Hint undone or board changed. Add Hint continues from here.' : 'Add Hint explains one solving step at a time.';
+  const idleHintText = hintActivationKey
+    ? 'Choose Next Hint to explain a move from this position.'
+    : 'Choose Next Hint to see which digit to place or cross out, and why.';
+  const branchFromHint = () => {
+    if (!preview) return;
+    const branch = hintHistory.current.branchFrom(preview, state.sudoku);
+    if (!branch) return;
+    notesHistoryRef.current?.restore(branch.pencil);
+    logicRef.current = {signature: branch.board.getFlatValues().join(''), candidates: branch.candidates};
+    setHintCandidates(undefined);
+    setLogicStep(preview.step);
+    setReviewIndex(undefined);
+    setCompletedCells([]);
+    setSelectionResetKey(key => key + 1);
+    setState(prev => ({...prev, sudoku: branch.board, solutionShown: false,
+      highlightedCell: undefined, secondaryHighlight: [], forceFocus: undefined}));
+  };
   const smallTextClass = "small-text";
 
   return (
@@ -703,7 +721,7 @@ export const Game = (props: GameProps) => {
       <section className={`logic-step${explainerExpanded ? ' explainer-expanded' : ''}${shownStep ? '' : ' logic-step-empty'}`} aria-label="Solving explanation" aria-live="polite">
         <header className="explainer-header">
           <div className="explainer-heading">
-            <strong>{shownStep ? `${shownStep.technique}${shownStep.priorEliminations?.length ? ' · after eliminations' : ''}` : 'Step-by-step hints'}</strong>
+            <strong>{shownStep ? `${shownStep.technique}${shownStep.priorEliminations?.length ? ' · after eliminations' : ''}` : hintActivationKey ? 'Board changed' : 'Need a hint?'}</strong>
             <span className="explainer-summary">{shownStep?.explanation ?? idleHintText}</span>
           </div>
           <div className="explainer-actions">
@@ -730,10 +748,8 @@ export const Game = (props: GameProps) => {
         <div className="hint-tools">
           {shownStep && <Button size="small" onClick={() => setPatternReplayKey(key => key + 1)}>Show pattern</Button>}
           {hasEmptyHintCells && !preview && <Tooltip title={canAnnotateHint ? 'Add missing candidate notes in the cells used by this explanation' : 'These cells already show all remaining candidates'}><span><Button size="small" disabled={!canAnnotateHint || state.isPaused || state.isWorking} onClick={() => annotate('explanation')}>{canAnnotateHint ? 'Annotate these cells' : 'Notes already shown'}</Button></span></Tooltip>}
-
-          {preview && <Button size="small" onClick={() => setReviewIndex(undefined)}>Current board</Button>}
         </div>
-        <small className="explainer-status">{preview ? 'Reviewing a saved hint · Undo always acts on the current game' : shownStep ? (shownStep.placement ? 'Digit added · Add Hint continues' : 'Notes updated, no digit added · Add Hint continues') : hintActivationKey ? 'Add Hint continues from the current board.' : 'Follow the highlighted cells and candidates.'}</small>
+        <small className="explainer-status">{preview ? 'Reviewing a saved hint · Undo always acts on the current game' : shownStep ? (shownStep.placement ? 'Digit placed · Next Hint continues' : 'Candidates crossed out · Next Hint continues') : ''}</small>
       </section>}
       </div>
       <Grid
@@ -760,10 +776,20 @@ export const Game = (props: GameProps) => {
                 }}
                 className={smallTextClass}
               >
-                {preview ? 'Review · saved board · ' : boardCelebrating ? '✓ Puzzle complete · ' : ''}{(preview?.board ?? state.sudoku).getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
+                {boardCelebrating && !preview ? '✓ Puzzle complete · ' : ''}{(preview?.board ?? state.sudoku).getNumberOfCorrectlyFilledCells()} / {BOARD_SIZE}
               </Typography>
             </Box>
+            {preview && <div className="review-actions" role="group" aria-label="Hint review">
+              <strong>Viewing hint {shownHintIndex + 1} of {hints.length} · Read-only</strong>
+              <Button size="small" onClick={() => setReviewIndex(undefined)}>Current board</Button>
+              <Button size="small" onClick={() => setConfirmation({
+                title: 'Play from this hint',
+                description: `Continue from hint ${shownHintIndex + 1}? This replaces later moves, hints and pencil marks. Earlier moves can still be undone.`,
+                action: branchFromHint,
+              })}>Play from this hint</Button>
+            </div>}
             <Board
+                touchKeypad={mobileHints}
                 boardFocusRequest={boardFocusRequest}
                 preview={preview}
                 completedCells={preview ? [] : completedCells}
