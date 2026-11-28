@@ -531,6 +531,16 @@ export const Game = (props: GameProps) => {
   const [hintMenuAnchor, setHintMenuAnchor] = useState<HTMLElement | null>(null);
   const [explainerExpanded, setExplainerExpanded] = useState(false);
   const [explainerHidden, setExplainerHidden] = useState(false);
+  const assistantToggle = useRef<HTMLButtonElement>(null);
+  const restoreToggleFocus = useRef(false);
+  const toggleAssistant = () => {
+    restoreToggleFocus.current = document.activeElement === assistantToggle.current;
+    setExplainerHidden(hidden => !hidden);
+  };
+  React.useLayoutEffect(() => {
+    if (restoreToggleFocus.current) assistantToggle.current?.focus({preventScroll: true});
+    restoreToggleFocus.current = false;
+  }, [explainerHidden]);
   const [reviewIndex, setReviewIndex] = useState<number | undefined>(undefined);
   const [patternReplayKey, setPatternReplayKey] = useState(0);
   const [canAnnotateHint, setCanAnnotateHint] = useState(false);
@@ -712,12 +722,10 @@ export const Game = (props: GameProps) => {
   };
   const smallTextClass = "small-text";
 
-  return (
-    <Container style={{ padding: 0 }}>
-      <MessageQueue messages={state.gameMessages}/>
-      <div className="gameplay-area">
-      <div className={`explainer-slot${explainerHidden ? ' explainer-hidden' : ''}`}>
-      {explainerHidden ? <Button className="show-assistant" size="small" aria-label="Show hint assistant" onClick={() => setExplainerHidden(false)}>Hints</Button> :
+  const sideBySide = useMediaQuery("(min-width:760px)");
+  const hintAssistant = (
+    <div className={`explainer-slot${explainerHidden ? ' explainer-hidden' : ''}`}>
+      {explainerHidden ? <Button className="show-assistant" size="small" aria-label="Show hint assistant" ref={assistantToggle} onClick={toggleAssistant}>Hints</Button> :
       <section className={`logic-step${explainerExpanded ? ' explainer-expanded' : ''}${shownStep ? '' : ' logic-step-empty'}`} aria-label="Solving explanation" aria-live="polite">
         <header className="explainer-header">
           <div className="explainer-heading">
@@ -726,7 +734,7 @@ export const Game = (props: GameProps) => {
           </div>
           <div className="explainer-actions">
             <NextHintButton guarded={mobileHints && !stepByStep} disabled={hintDisabled} onHint={mobileHints && stepByStep ? giveHint : requestHint} onHold={heldHint}/>
-            <Button size="small" aria-label="Hide hint assistant" onClick={() => setExplainerHidden(true)}>Hide</Button>
+            <Button size="small" aria-label="Hide hint assistant" ref={assistantToggle} onClick={toggleAssistant}>Hide</Button>
             <Button className="explainer-toggle" size="small" aria-expanded={explainerExpanded} aria-controls="step-explanation" onClick={() => setExplainerExpanded(expanded => !expanded)}>{explainerExpanded ? 'Collapse' : 'Explain'}</Button>
             <span className="explainer-menu"><Tooltip title="Annotation options"><IconButton size="small" aria-label="Hint and annotation options" onClick={event => setHintMenuAnchor(event.currentTarget)}><MoreHorizRounded/></IconButton></Tooltip></span>
           </div>
@@ -752,6 +760,13 @@ export const Game = (props: GameProps) => {
         <small className="explainer-status">{preview ? 'Reviewing a saved hint · Undo always acts on the current game' : shownStep ? (shownStep.placement ? 'Digit placed · Next Hint continues' : 'Candidates crossed out · Next Hint continues') : ''}</small>
       </section>}
       </div>
+  );
+
+  return (
+    <Container style={{ padding: 0 }}>
+      <MessageQueue messages={state.gameMessages}/>
+      <div className="gameplay-area">
+      {!sideBySide && hintAssistant}
       <Grid
         container
         spacing={3}
@@ -839,6 +854,7 @@ export const Game = (props: GameProps) => {
             </Box>
           </PaperBox>
         </Grid>
+        {sideBySide && hintAssistant}
         <Grid
           className="game-controls"
           size="grow"
@@ -1014,11 +1030,11 @@ export const Game = (props: GameProps) => {
         <DialogActions><Button onClick={() => setGenerationInfoOpen(false)}>Close</Button></DialogActions>
       </Dialog>
       <Modal open={winnerModalOpen} onClose={() => setWinnerModalOpen(false)}>
-        <WinnerMessage>
+        <WinnerMessage role="dialog" aria-modal="true" aria-labelledby="winner-heading">
           <Box sx={{display: "flex", justifyContent: "center"}}>
             <Icon children={<ThumbUp />} fontSize={"large"} />
           </Box>
-          <Typography component={"h3"} variant={"h3"}>
+          <Typography id="winner-heading" component={"h3"} variant={"h3"}>
             Good job!
           </Typography>
           <Typography style={{ margin: "1em 0" }}>

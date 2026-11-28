@@ -31,6 +31,7 @@ class Context extends EventTarget {
     createBiquadFilter = () => new AudioNode();
     oscillators: AudioNode[] = [];
     createOscillator = () => {const node = new AudioNode(); this.oscillators.push(node); return node;};
+    createWaveShaper = () => new AudioNode();
     createConvolver = () => new AudioNode();
     createBuffer = (_channels: number, length: number) => ({getChannelData: () => new Float32Array(length)});
     change(state: string) {this.state = state; this.dispatchEvent(new Event('statechange'));}
@@ -155,12 +156,12 @@ it('spaces rare melodic additions and only plays them with music enabled', async
     fxOnly.dispose();
 });
 
-it('changes all five scores in one context and restores the choice with sound off', async () => {
+it('changes all ten scores in one context and restores the choice with sound off', async () => {
     localStorage.removeItem('ksuduo-soundscape');
     const ctx = await enable();
     const picker = screen.getByRole('combobox', {name: 'Soundscape'}) as HTMLSelectElement;
-    expect(picker.options).toHaveLength(5);
-    for (const id of ['shelf', 'trench', 'kelp', 'grotto', 'lagoon', 'trench']) {
+    expect(picker.options).toHaveLength(10);
+    for (const id of ['shelf', 'trench', 'kelp', 'grotto', 'ballast', 'relay', 'silt', 'moonpool', 'vent', 'lagoon', 'trench']) {
         const before = ctx.oscillators.length;
         fireEvent.change(picker, {target: {value: id}});
         expect(ctx.oscillators.length).toBeGreaterThan(before);

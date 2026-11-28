@@ -663,3 +663,27 @@ a { color: #62d7e5; }
     font-variant-numeric: tabular-nums;
 }
 .review-actions .MuiButton-root { width: auto; text-transform: none; }
+
+/* Brass fasteners, a graduated gauge and a sonar dial around the instruments. */
+.board-card.MuiPaper-root {
+    background:
+        radial-gradient(circle at 7px 7px, #c3ad83 0 1px, #39535a 1.5px 2.5px, transparent 3px),
+        radial-gradient(circle at calc(100% - 7px) 7px, #c3ad83 0 1px, #39535a 1.5px 2.5px, transparent 3px),
+        linear-gradient(150deg, #1e414a, #102934 65%, #193740);
+}
+.board-card .MuiLinearProgress-root {
+    background-image: repeating-linear-gradient(90deg, transparent 0 calc(11.111% - 1px), #8de4da77 calc(11.111% - 1px) 11.111%);
+}
+.game-controls .timer-card.MuiPaper-root {
+    background:
+        repeating-radial-gradient(circle at 0% 110%, transparent 0 17px, #8affda15 17px 18px, transparent 18px 28px),
+        linear-gradient(110deg, #1c4449, #112b37 72%);
+}
+:where(.gameplay-area, .game-footer, [role="dialog"], [role="menu"]) :is(button, a, select, [tabindex]):focus-visible,
+.gameplay-area .MuiSwitch-switchBase.Mui-focusVisible,
+.gameplay-area .MuiSlider-thumb.Mui-focusVisible,
+[role="dialog"] .MuiSlider-thumb.Mui-focusVisible,
+[role="dialog"] .MuiCheckbox-root.Mui-focusVisible {
+    outline: 2px solid #ffe3a0;
+    outline-offset: -2px;
+}

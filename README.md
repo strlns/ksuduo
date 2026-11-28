@@ -245,6 +245,15 @@ sets the sound of entries, hints and completions in FX-only mode.
 - **Kelp Forest** lets voices drift in one at a time, with upward-bending touch sounds.
 - **Glass Grotto** opens and closes its filter over suspended chords and long glassy plonks.
 
+Five more scores add sparse percussion to the same echo and reverb chamber. Each
+has a quicker attack and a shorter tail on move sounds.
+
+- **Ballast Shift** uses sub-octave FM and sets a low plonk against a descending zap in a four-hit phrase.
+- **Relay Echo** uses a near-double-frequency FM modulator and answers a high bent note with a quieter fifth two subdivisions later.
+- **Silt Drift** slowly flanges the pad and leaves long rests between three taps beneath a slow, dark sweep.
+- **Moon Pool** shapes the pad with slow tremolo and pairs two close hits halfway through a bright suspended chord.
+- **Thermal Vent** runs a five-hit pattern over a softly saturated sawtooth swell.
+
 Effects have a gently brighter, softened top end and a quiet filtered tape delay
 with slow, randomized drift. Frequent interactions stay softer than occasional accents,
 but have a clear midrange body and a short bass underlay. FX have a separate, long,

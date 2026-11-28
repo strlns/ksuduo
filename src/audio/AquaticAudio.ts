@@ -158,13 +158,13 @@ export class AquaticAudio {
         this.tape.delayTime.setTargetAtTime(accent ? .38 + Math.random() * .25 : .25 + Math.random() * .1, now, .6);
         this.tapeFeedback.gain.setTargetAtTime(accent ? .24 + Math.random() * .08 : .16 + Math.random() * .06, now, .5);
     }
-    private tone(midi: number, duration: number, volume: number, attack: number, delay = 0, watery = false) {
+    private tone(midi: number, duration: number, volume: number, attack: number, delay = 0, watery = false, pitchRatio = 1) {
         const ctx = this.context, start = ctx.currentTime + delay;
         const oscillator = ctx.createOscillator(), envelope = ctx.createGain();
         oscillator.type = watery ? 'triangle' : 'sine';
         const frequency = 440 * 2 ** ((midi - 69) / 12);
-        oscillator.frequency.setValueAtTime(watery ? frequency * 1.15 : frequency, start);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency, start + .18);
+        oscillator.frequency.setValueAtTime(frequency * (watery ? 1.15 : pitchRatio), start);
+        oscillator.frequency.exponentialRampToValueAtTime(frequency, start + (pitchRatio > 1.5 ? .065 : .18));
         envelope.gain.setValueAtTime(0, start);
         envelope.gain.linearRampToValueAtTime(volume, start + attack);
         envelope.gain.exponentialRampToValueAtTime(.0001, start + duration);
@@ -192,6 +192,52 @@ export class AquaticAudio {
         oscillator.start(start); oscillator.stop(start + 12.1);
         oscillator.onended = () => {this.voices.delete(oscillator); oscillator.disconnect(); band.disconnect(); envelope.disconnect();};
     }
+    // Keep modulation local to its carrier so style changes fade scheduled beats
+    // with their pad bus and move effects can finish their own short tails.
+    private colorVoice(carrier: OscillatorNode, hz: number, start: number, length: number, music: boolean) {
+        const score = soundscapes[this.style];
+        if (!('color' in score)) return carrier;
+        const color = score.color, ctx = this.context;
+        if (color.kind === 'drive') {
+            const drive = ctx.createWaveShaper();
+            drive.curve = Float32Array.from({length: 129}, (_, i) =>
+                Math.tanh((i / 64 - 1) * color.amount) / Math.tanh(color.amount));
+            carrier.connect(drive);
+            return drive;
+        }
+        const mod = ctx.createOscillator(), depth = ctx.createGain();
+        let output: AudioNode = carrier;
+        if (color.kind === 'fm') {
+            mod.frequency.value = hz * color.ratio;
+            depth.gain.setValueAtTime(hz * color.index, start);
+            depth.gain.exponentialRampToValueAtTime(hz * color.index * .12, start + length);
+            depth.connect(carrier.frequency);
+        } else if (color.kind === 'flange') {
+            const delay = ctx.createDelay(.02), mix = ctx.createGain();
+            delay.delayTime.value = .004;
+            mod.frequency.value = music ? color.rate : 4;
+            depth.gain.value = color.depth;
+            depth.connect(delay.delayTime);
+            mix.gain.value = .5;
+            carrier.connect(delay).connect(mix);
+            carrier.connect(mix);
+            output = mix;
+        } else {
+            const amp = ctx.createGain();
+            mod.frequency.value = music ? color.rate : 9;
+            amp.gain.value = 1 - color.depth;
+            depth.gain.value = color.depth;
+            depth.connect(amp.gain);
+            carrier.connect(amp);
+            output = amp;
+        }
+        mod.connect(depth);
+        if (music) this.voices.add(mod);
+        mod.onended = () => {this.voices.delete(mod); mod.disconnect(); depth.disconnect();};
+        mod.start(start);
+        mod.stop(start + length);
+        return output;
+    }
     private swell(note: number, index: number) {
         const ctx = this.context, score = soundscapes[this.style];
         const start = ctx.currentTime + index * score.spread, length = score.period * 1.16;
@@ -208,11 +254,12 @@ export class AquaticAudio {
         gain.gain.setValueAtTime(0, start);
         gain.gain.linearRampToValueAtTime(index === 0 ? .068 : .035, start + length * .36);
         gain.gain.exponentialRampToValueAtTime(.0001, start + length);
-        voice.connect(veil).connect(gain).connect(this.pads);
+        const colored = this.colorVoice(voice, hz, start, length, true);
+        colored.connect(veil).connect(gain).connect(this.pads);
         this.voices.add(voice);
         voice.onended = () => {
             this.voices.delete(voice);
-            voice.disconnect(); veil.disconnect(); gain.disconnect();
+            voice.disconnect(); colored.disconnect(); veil.disconnect(); gain.disconnect();
         };
         voice.start(start); voice.stop(start + length);
     }
@@ -223,6 +270,13 @@ export class AquaticAudio {
         if (this.style !== 'lagoon') {
             // Stagger individual swells so their partials move through the hall in waves.
             notes.forEach((note, index) => this.swell(note, index));
+            if ('beats' in score) {
+                for (const [slot, interval] of score.beats) {
+                    const zap = interval < 0;
+                    this.tone(notes[0] + Math.abs(interval), zap ? .25 : .54,
+                        zap ? .022 : .034, .008, slot * score.period / 16, false, zap ? 1.85 : 1.035);
+                }
+            }
             return;
         }
         notes.forEach((note, index) => {
@@ -267,11 +321,12 @@ export class AquaticAudio {
         gain.gain.setValueAtTime(0, start);
         gain.gain.linearRampToValueAtTime(volume, start + kit.attack);
         gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
-        oscillator.connect(filter);
+        const colored = this.colorVoice(oscillator, frequency, start, duration, false);
+        colored.connect(filter);
         body.connect(bodyGain).connect(filter);
         filter.connect(gain).connect(this.fx);
         for (const voice of [oscillator, body]) {voice.start(start); voice.stop(start + duration + .02);}
-        oscillator.onended = () => {oscillator.disconnect(); body.disconnect(); bodyGain.disconnect(); filter.disconnect(); gain.disconnect();};
+        oscillator.onended = () => {oscillator.disconnect(); colored.disconnect(); body.disconnect(); bodyGain.disconnect(); filter.disconnect(); gain.disconnect();};
     }
     entry(wrong: boolean) {
         const now = this.context.currentTime;

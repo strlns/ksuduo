@@ -111,10 +111,10 @@ export default (props: GeneratorConfigurationProps) => {
         </ThemeProvider>
         {isRangeSliderVisible ?
             <fieldset aria-label={"Number of hints (filled cells)"}>
-                <InputLabel htmlFor="difficulty-select" style={{fontSize: '.75rem'}}>
+                <InputLabel id="clue-count-label" style={{fontSize: '.75rem'}}>
                     Number of hints (filled cells)
                 </InputLabel>
-                <DiscreteRangeSlider id={"difficulty-select"}
+                <DiscreteRangeSlider aria-labelledby="clue-count-label"
                                      marks={marks}
                                      value={props.numberOfClues}
                                      step={1}

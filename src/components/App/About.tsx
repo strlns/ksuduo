@@ -13,10 +13,10 @@ export default () => {
             About
         </Button>
 
-        <Modal open={isExplanationModalOpen}>
-            <Box sx={modalBaseSx}>
+        <Modal open={isExplanationModalOpen} onClose={() => setExplanationModalOpen(false)}>
+            <Box sx={modalBaseSx} role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1}>
                 <Box sx={{display: "flex", justifyContent: 'space-between', alignItems: 'center'}}>
-                    <h1>Ksuduo</h1>
+                    <h1 id="about-title">Ksuduo</h1>
                     <IconButton edge='end' title="Close" onClick={() => setExplanationModalOpen(false)}>
                         <CloseRounded/>
                     </IconButton>
@@ -67,8 +67,8 @@ export default () => {
                     Turn on Notes to enter pencil marks, or use Annotate selected cell to list values allowed by the current board.
                     Your notes are separate from the hint solver. Marks conflicting with current entries are hidden and return if those entries are undone or cleared.
                 </p>
-                <Box onClick={() => setExplanationModalOpen(false)}>
-                    <IconButton style={{margin: 'auto', display: 'block'}} title="Close">
+                <Box>
+                    <IconButton style={{margin: 'auto', display: 'block'}} title="Close" onClick={() => setExplanationModalOpen(false)}>
                         <CheckCircleRounded color={'primary'}/>
                     </IconButton>
                 </Box>

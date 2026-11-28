@@ -353,7 +353,7 @@ export const Board = React.memo(
         {!!completedCells.length && <svg key={completionVersion} className="unit-celebration" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">
             {completedCells.map(key => {const [x, y] = key.split(',').map(Number); return <rect key={key} x={x + .05} y={y + .05} width=".9" height=".9" style={{animationDelay: `${(x + y) * 35}ms`}}/>;})}
         </svg>}
-        {isPaused ? <IconButton onClick={togglePaused} style={{
+        {isPaused ? <IconButton aria-label="Resume play" onClick={togglePaused} style={{
                 zIndex: 999, position: 'absolute',
                 left: '50%', top: '50%', transform: 'translate(-50%, -50%)'
             }}>

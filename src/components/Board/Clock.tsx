@@ -62,7 +62,7 @@ export const Clock = (props: ClockProps) => {
   return (
     <Box className="clock">
       <TimerRounded /> {formatTime(props.secondsElapsed)}
-      <IconButton onClick={props.togglePaused}>
+      <IconButton aria-label={props.isPaused ? "Resume puzzle" : "Pause puzzle"} onClick={props.togglePaused}>
         {props.isPaused ? (
           <PlayCircleOutlineRounded color={"secondary"} />
         ) : (
